@@ -61,7 +61,7 @@ function luz_page_default() {
     for ($i = 0; $i < $days; $i++, $date->add(DateInterval::createFromDateString('+1 day'))) {
 
       $item = array('data' => '', 'class' => array(date('Y-m-d') == $date->format('Y-m-d') ? 'current-date' : ''));
-      if ($i == 0) {
+      if ($i == 0 && user_access('administer content')) {
         $item['data'] .= l(t('Copy previous week'), 'luz/copy-previous-week/' . $date->getTimestamp(), array('attributes' => array('class' => array('copy-week'))));
       }
       $item['data'] .= '<h4>' . t($date->format('l')) . ', ' . $date->format(variable_get('date_format_shorter')) . '</h4><div class="day">';
