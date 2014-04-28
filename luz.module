@@ -1,0 +1,330 @@
+<?php
+
+include_once 'luz.features.inc';
+
+/**
+ * hook_menu_alter
+ */
+function luz_menu_alter(&$items) {
+  $items['node']['page callback'] = 'luz_page_default';
+}
+
+/**
+ * hook_menu
+ */
+function luz_menu() {
+  $items['luz/copy-previous-week/%'] = array(
+    'page callback' => 'luz_copy_previous_week',
+    'page arguments' => array(2),
+    'access arguments' => array('administer content'),
+  );
+
+  return $items;
+}
+
+function luz_page_default() {
+  global $user;
+
+  drupal_add_js(drupal_get_path('module', 'luz') . '/luz.js');
+  if ($user->uid) {
+    drupal_add_js(array('luz' => array('user_name' => $user->name)), 'setting');
+  }
+
+  $days = 6;
+  $weeks = 4;
+
+  $current_week = array_key_exists('week', $_GET) ? (int)$_GET['week'] : 0;
+  if ($current_week < 0 || $current_week >= $weeks) {
+    $current_week = 0;
+  }
+
+  // Set date to last Sunday, or next Sunday of today is Saturday.
+  $start_date = new DateTime();
+  $start_date->setTime(0, 0);
+  $interval = $start_date->format('w') < 6 ?  '-' . $start_date->format('w') : '+1';
+  $start_date->add(DateInterval::createFromDateString("$interval day"));
+
+  $end_date = clone $start_date;
+  $end_date->add(DateInterval::createFromDateString("+$weeks weeks"));
+
+  $workshops = luz_get_workshops($start_date->getTimestamp(), $end_date->getTimestamp());
+
+  $labels = theme('item_list', array('items' => range(8, 22), 'attributes' => array('class' => array('hour-labels'))));
+  // The hour labels are added twice for when the week is shown in two rows.
+  $weeks_items = array($labels . $labels);
+
+  for ($week = 0; $week < $weeks; $week++, $start_date->add(DateInterval::createFromDateString('+1 week'))) {
+    $items = array();
+
+    $date = clone $start_date;
+
+    for ($i = 0; $i < $days; $i++, $date->add(DateInterval::createFromDateString('+1 day'))) {
+
+      $item = array('data' => '', 'class' => array(date('Y-m-d') == $date->format('Y-m-d') ? 'current-date' : ''));
+      if ($i == 0) {
+        $item['data'] .= l(t('Copy previous week'), 'luz/copy-previous-week/' . $date->getTimestamp(), array('attributes' => array('class' => array('copy-week'))));
+      }
+      $item['data'] .= '<h4>' . t($date->format('l')) . ', ' . $date->format(variable_get('date_format_shorter')) . '</h4><div class="day">';
+
+      if (array_key_exists($date->format('Y-m-d'), $workshops)) {
+        foreach ($workshops[$date->format('Y-m-d')] as $node) {
+          $node_view = node_view($node);
+          $node_view['field_date']['#formatter'] = 'luz_date_formatter';
+          $item['data'] .= render($node_view);
+        }
+      }
+
+      $item['data'] .= '</div>';
+
+      if (user_access('create workshop content')) {
+        $attributes = array(
+          'attributes' => array('class' => array('add-workshop')),
+          'query' => array(
+            'edit[field_date][und][0][value][date]' => $date->format('m/d/Y'),
+            'edit[field_date][und][0][value2][date]' => $date->format('m/d/Y'),
+          ),
+        );
+        $item['data'] .= l(t('Add workshop'), 'node/add/workshop', $attributes);
+      }
+
+      $items[] = $item;
+    }
+
+    $weeks_items[] = theme('item_list', array('items' => $items, 'attributes' => array('id' => "week-$week", 'class' => array('luz', $week == $current_week ? 'active' : ''))));
+  }
+  $luz = theme('item_list', array('items' => $weeks_items, 'attributes' => array('id' => 'luz-wrapper')));
+
+  return $luz;
+}
+
+function luz_get_workshops($start, $end) {
+
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', 'workshop')
+    ->propertyCondition('status', NODE_PUBLISHED)
+    ->fieldCondition('field_date', 'value', array($start, $end), 'BETWEEN')
+    ->fieldOrderBy('field_date', 'value');
+  $result = $query->execute();
+
+  $by_date = array();
+  $nodes = !empty($result) ? node_load_multiple(array_keys($result['node'])) : array();
+  foreach ($nodes as $node) {
+    $wrapper = entity_metadata_wrapper('node', $node);
+    $date = date('Y-m-d', $wrapper->field_date->value->value());
+    if (!array_key_exists($date, $by_date)) {
+      $by_date[$date] = array();
+    }
+    $by_date[$date][] = $node;
+  }
+
+  return $by_date;
+}
+
+function luz_flag_flag($flag, $entity_id, $account, $flagging) {
+  if ($flagging->flag_name != 'attend') {
+    return;
+  }
+
+  $node = node_load($entity_id);
+  $wrapper = entity_metadata_wrapper('node', $node);
+  foreach ($wrapper->field_participants as $item) {
+    if ($item->field_participant->getIdentifier() == $account->uid) {
+      return;
+    }
+  }
+
+  // Create a participant item and attach it to the workshop node.
+  $item = entity_create('field_collection_item', array('field_name' => 'field_participants'));
+  $item->setHostEntity('node', $node);
+  $item->field_participant[LANGUAGE_NONE][0]['target_id'] = $account->uid;
+  $wrapper->field_participants[] = $item;
+  $wrapper->save();
+}
+
+function luz_flag_unflag($flag, $entity_id, $account, $flagging) {
+  if ($flagging->flag_name != 'attend') {
+    return;
+  }
+
+  $node = node_load($entity_id);
+  $wrapper = entity_metadata_wrapper('node', $node);
+  foreach ($wrapper->field_participants as $delta => $item) {
+    if ($item->field_participant->getIdentifier() == $account->uid) {
+      unset($node->field_participants[LANGUAGE_NONE][$delta]);
+      entity_delete('field_collection_item', $item->getIdentifier());
+      node_save($node);
+      break;
+    }
+  }
+}
+
+function luz_count_participants($node) {
+  $wrapper = entity_metadata_wrapper('node', $node);
+  $count = 0;
+  foreach ($wrapper->field_participants as $item) {
+    if ($item->field_participant && $item->field_participant->value()) {
+      $count++;
+    }
+  }
+
+  return $count;
+}
+
+function luz_node_update($node) {
+  global $user;
+
+  $wrapper = entity_metadata_wrapper('node', $node);
+  // Create an array of the participants IDs and remove empty items.
+  $participants = array();
+  foreach ($wrapper->field_participants as $item) {
+    $uid = $item->field_participant->getIdentifier();
+    if ($uid) {
+      $participants[$uid] = true;
+    }
+  }
+
+  $flaggings = flag_get_entity_flags('node', $node->nid, 'attend');
+  $flagging_participants = array();
+  foreach ($flaggings as $flagging) {
+    $flagging_participants[$flagging->uid] = true;
+    if (!array_key_exists($flagging->uid, $participants) && $user->uid != $flagging->uid) {
+      flag('unflag', 'attend', $node->nid, user_load($flagging->uid));
+    }
+  }
+
+  foreach (array_keys($participants) as $uid) {
+    if (!array_key_exists($uid, $flagging_participants)) {
+      flag('flag', 'attend', $node->nid, user_load($uid));
+    }
+  }
+}
+
+function luz_user_attending_workshop($workshop_node, $uid) {
+  if (!$uid) {
+    return FALSE;
+  }
+
+  $wrapper = entity_metadata_wrapper('node', $workshop_node);
+  foreach ($wrapper->field_participants as $item) {
+    if ($item->field_participant->getIdentifier() == $uid) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+function luz_flag_access($flag, $entity_id, $action, $account) {
+  if ($flag->name != 'attend' || !$account->uid) {
+    return;
+  }
+
+  $now = time();
+  $node_wrapper = entity_metadata_wrapper('node', $entity_id);
+
+  $node_time = $node_wrapper->field_date->value->value();
+  if ($node_time < $now) {
+    return FALSE;
+  }
+
+  if ($action == 'flag') {
+    $tid = $node_wrapper->field_type->tid->value();
+
+    $type_access = FALSE;
+    $user_wrapper = entity_metadata_wrapper('user', $account);
+    foreach ($user_wrapper->field_workshop_types->value() as $term) {
+      if ($term->tid == $tid) {
+        $type_access = TRUE;
+      }
+    }
+
+    return $type_access && luz_count_participants($node_wrapper->value()) < 5;
+  }
+  else {
+    // No unflagging in the last 24 hours.
+    if ($node_time < $now + 86400) {
+      return FALSE;
+    }
+  }
+}
+
+function luz_copy_workshops($from_week, $to_week) {
+  $from = new DateTime();
+  $from->setTimestamp($from_week);
+  $from_week_end = $from->add(DateInterval::createFromDateString('+1 week'))->getTimestamp();
+
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', 'workshop')
+    ->propertyCondition('status', NODE_PUBLISHED)
+    ->fieldCondition('field_date', 'value', array($from_week, $from_week_end), 'BETWEEN')
+    ->fieldCondition('field_repeat', 'value', TRUE)
+    ->fieldOrderBy('field_date', 'value');
+  $result = $query->execute();
+
+  if (empty($result['node'])) {
+    drupal_set_message(t('No repeating workshops found.'));
+    return;
+  }
+
+  $weeks_delta = $to_week - $from_week;
+  foreach (node_load_multiple(array_keys($result['node'])) as $node) {
+    $node->nid = NULL;
+    $node->vid = NULL;
+    $wrapper = entity_metadata_wrapper('node', $node);
+    $wrapper->field_date->value->set($wrapper->field_date->value->value() + $weeks_delta);
+    $wrapper->field_date->value2->set($wrapper->field_date->value2->value() + $weeks_delta);
+
+    // Replace the participant entities.
+    $participants = array();
+    foreach ($wrapper->field_participants as $delta => $item) {
+      if (!$item->field_repeat->value()) {
+        continue;
+      }
+
+      $new_item = entity_create('field_collection_item', array('field_name' => 'field_participants'));
+      $new_item->setHostEntity('node', $node);
+      $new_item->field_participant[LANGUAGE_NONE][0]['target_id'] = $item->field_participant->getIdentifier();
+      $new_item->field_repeat[LANGUAGE_NONE]['value'] = TRUE;
+      $participants[] = $new_item;
+    }
+
+    $wrapper->field_participants->set(NULL);
+    $wrapper->save();
+  }
+}
+
+/**
+ * hook_field_access
+ *
+ * Disallow normal users to access the workshop types field.
+ */
+function luz_field_access($op, $field, $entity_type, $entity, $account) {
+  if ($field['field_name'] == 'field_workshop_types') {
+    return (bool)array_intersect(array('administrator', 'content manager'), $account->roles);
+  }
+}
+
+function luz_form_user_profile_form_alter(&$form, $form_state) {
+}
+
+/**
+ * hook_user_login
+ */
+function luz_user_login(&$edit, $account) {
+  $edit['redirect'] = '<front>';
+}
+
+/**
+ * Menu callback
+ */
+function luz_copy_previous_week($this_week_timestamp) {
+  $previous_week = new DateTime();
+  $previous_week->setTimestamp($this_week_timestamp);
+  $previous_week->add(DateInterval::createFromDateString('-1 weeks'));
+
+  luz_copy_workshops($previous_week->getTimestamp(), $this_week_timestamp);
+
+  drupal_goto('<front>', array('query' => array('week' => 1)));
+}
