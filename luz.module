@@ -80,6 +80,7 @@ function luz_page_default() {
         $attributes = array(
           'attributes' => array('class' => array('add-workshop')),
           'query' => array(
+            'destination' => '<front>',
             'edit[field_date][und][0][value][date]' => $date->format('m/d/Y'),
             'edit[field_date][und][0][value2][date]' => $date->format('m/d/Y'),
           ),
@@ -98,7 +99,6 @@ function luz_page_default() {
 }
 
 function luz_get_workshops($start, $end) {
-
   $query = new EntityFieldQuery();
   $query->entityCondition('entity_type', 'node')
     ->entityCondition('bundle', 'workshop')
@@ -126,9 +126,18 @@ function luz_flag_flag($flag, $entity_id, $account, $flagging) {
     return;
   }
 
+  // Only create the participant item if the flag was triggered directly by the user.
+  if (isset($account->flag_from_sync)) {
+    return;
+  }
+
   $node = node_load($entity_id);
   $wrapper = entity_metadata_wrapper('node', $node);
   foreach ($wrapper->field_participants as $item) {
+    if (!$item->value()) {
+      continue;
+    }
+
     if ($item->field_participant->getIdentifier() == $account->uid) {
       return;
     }
@@ -147,15 +156,30 @@ function luz_flag_unflag($flag, $entity_id, $account, $flagging) {
     return;
   }
 
+  // Only remove the participant item if the flag was triggered directly by the user.
+  if (isset($account->flag_from_sync)) {
+    return;
+  }
+
   $node = node_load($entity_id);
-  $wrapper = entity_metadata_wrapper('node', $node);
-  foreach ($wrapper->field_participants as $delta => $item) {
-    if ($item->field_participant->getIdentifier() == $account->uid) {
-      unset($node->field_participants[LANGUAGE_NONE][$delta]);
-      entity_delete('field_collection_item', $item->getIdentifier());
-      node_save($node);
-      break;
+
+  if ($node->field_participants) {
+    foreach ($node->field_participants[LANGUAGE_NONE] as $delta => $item) {
+      if (!$item = field_collection_item_load($item['value'])) {
+        continue;
+      }
+
+      $wrapper = entity_metadata_wrapper('field_collection_item', $item);
+      $uid = $wrapper->field_participant->getIdentifier();
+      if ($uid == $account->uid) {
+        unset($node->field_participants[LANGUAGE_NONE][$delta]);
+        entity_delete('field_collection_item', $item->item_id);
+      }
     }
+
+    // For avoiding an endless loop when syncing after node save.
+    $node->unflagged = $flagging->uid;
+    node_save($node);
   }
 }
 
@@ -163,7 +187,7 @@ function luz_count_participants($node) {
   $wrapper = entity_metadata_wrapper('node', $node);
   $count = 0;
   foreach ($wrapper->field_participants as $item) {
-    if ($item->field_participant && $item->field_participant->value()) {
+    if ($item->value() && $item->field_participant && $item->field_participant->value()) {
       $count++;
     }
   }
@@ -171,30 +195,124 @@ function luz_count_participants($node) {
   return $count;
 }
 
+/**
+ * hook_node_update
+ */
 function luz_node_update($node) {
-  global $user;
+  if ($node->type == 'workshop') {
+    luz_sync_participants_flaggings($node);
+  }
+}
 
-  $wrapper = entity_metadata_wrapper('node', $node);
-  // Create an array of the participants IDs and remove empty items.
-  $participants = array();
-  foreach ($wrapper->field_participants as $item) {
-    $uid = $item->field_participant->getIdentifier();
-    if ($uid) {
-      $participants[$uid] = true;
+/**
+ * hook_node_insert
+ */
+function luz_node_insert($node) {
+  if ($node->type == 'workshop') {
+    luz_sync_participants_flaggings($node);
+  }
+}
+
+/**
+ * hook_node_presave
+ */
+function luz_node_presave($node) {
+  if ($node->type != 'workshop') {
+    return;
+  }
+
+  $node->language = LANGUAGE_NONE;
+
+  // Remove empty participant items.
+  if (!empty($node->field_participants)) {
+    foreach ($node->field_participants[LANGUAGE_NONE] as $delta => $item) {
+      if (!empty($item['entity']) && $item['entity']->item_id && !$item['field_participant'][LANGUAGE_NONE][0]['target_id']) {
+        unset($node->field_participants[LANGUAGE_NONE][$delta]);
+        entity_delete('field_collection_item', $item['entity']->item_id);
+      }
     }
   }
+}
+
+/**
+ * hook_node_validate
+ *
+ * Make sure there are no two workshops starting at the same time.
+ */
+function luz_node_validate($node, $form, &$form_state) {
+  if ($node->type != 'workshop') {
+    return;
+  }
+
+  $wrapper = entity_metadata_wrapper('node', $node);
+  $timestamp = $wrapper->field_date->value->value();
+
+  if ($nid = luz_workshops_conflict($node)) {
+    form_set_error('field_date', t("There's already another workshop (#@id) on @date starting at @time. Saving cancelled.", array('@id' => $nid, '@date' => date('j/n', $timestamp), '@time' => date('H:i', $timestamp))));
+  }
+}
+
+/**
+ * Check if the given workshop is conflicting with another workshop (Currently a conflict is to start at the same time).
+ */
+function luz_workshops_conflict($node) {
+  $wrapper = entity_metadata_wrapper('node', $node);
+  $timestamp = $wrapper->field_date->value->value();
+
+  $query = new EntityFieldQuery();
+  $result = $query->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', 'workshop')
+    ->propertyCondition('status', NODE_PUBLISHED)
+    ->fieldCondition('field_date', 'value', $timestamp)
+    ->execute();
+
+  if (!empty($result)) {
+    $nid = key($result['node']);
+    return $nid != $node->nid ? $nid : FALSE;
+  }
+  return FALSE;
+}
+
+function luz_sync_participants_flaggings($node) {
+
+  // Create an array of the participants IDs and remove empty items.
+  $participants = array();
+  if (!empty($node->field_participants)) {
+    foreach ($node->field_participants[LANGUAGE_NONE] as $item) {
+      if (!$item = field_collection_item_load($item['value'])) {
+        continue;
+      }
+      $wrapper = entity_metadata_wrapper('field_collection_item', $item);
+      $uid = $wrapper->field_participant->getIdentifier();
+      if ($uid) {
+        $participants[$uid] = true;
+      }
+    }
+  }
+
+  // In case a user unflagged the node on their own, avoid calling unflag for them again.
+  $flagged_by = isset($node->unflagged) ? $node->unflagged : NULL;
 
   $flaggings = flag_get_entity_flags('node', $node->nid, 'attend');
   $flagging_participants = array();
   foreach ($flaggings as $flagging) {
     $flagging_participants[$flagging->uid] = true;
-    if (!array_key_exists($flagging->uid, $participants) && $user->uid != $flagging->uid) {
-      flag('unflag', 'attend', $node->nid, user_load($flagging->uid));
+
+    if ($flagged_by == $flagging->uid) {
+      continue;
+    }
+
+    if (!array_key_exists($flagging->uid, $participants)) {
+      $account = user_load($flagging->uid);
+      $account->flag_from_sync = TRUE;
+      flag('unflag', 'attend', $node->nid, $account);
     }
   }
 
   foreach (array_keys($participants) as $uid) {
     if (!array_key_exists($uid, $flagging_participants)) {
+      $account = user_load($uid);
+      $account->flag_from_sync = TRUE;
       flag('flag', 'attend', $node->nid, user_load($uid));
     }
   }
@@ -207,6 +325,10 @@ function luz_user_attending_workshop($workshop_node, $uid) {
 
   $wrapper = entity_metadata_wrapper('node', $workshop_node);
   foreach ($wrapper->field_participants as $item) {
+    if (!$item->value()) {
+      continue;
+    }
+
     if ($item->field_participant->getIdentifier() == $uid) {
       return TRUE;
     }
@@ -221,7 +343,8 @@ function luz_flag_access($flag, $entity_id, $action, $account) {
   }
 
   $now = time();
-  $node_wrapper = entity_metadata_wrapper('node', $entity_id);
+  $node = node_load($entity_id);
+  $node_wrapper = entity_metadata_wrapper('node', $node);
 
   $node_time = $node_wrapper->field_date->value->value();
   if ($node_time < $now) {
@@ -249,7 +372,9 @@ function luz_flag_access($flag, $entity_id, $action, $account) {
   }
 }
 
-function luz_copy_workshops($from_week, $to_week) {
+function luz_copy_repeating_workshops($from_week, $to_week) {
+  global $user;
+
   $from = new DateTime();
   $from->setTimestamp($from_week);
   $from_week_end = $from->add(DateInterval::createFromDateString('+1 week'))->getTimestamp();
@@ -269,29 +394,44 @@ function luz_copy_workshops($from_week, $to_week) {
   }
 
   $weeks_delta = $to_week - $from_week;
-  foreach (node_load_multiple(array_keys($result['node'])) as $node) {
-    $node->nid = NULL;
-    $node->vid = NULL;
-    $wrapper = entity_metadata_wrapper('node', $node);
-    $wrapper->field_date->value->set($wrapper->field_date->value->value() + $weeks_delta);
-    $wrapper->field_date->value2->set($wrapper->field_date->value2->value() + $weeks_delta);
+  foreach (node_load_multiple(array_keys($result['node'])) as $original_node) {
+    $values = array(
+      'nid' => NULL, // auto_nodetitle is expecting an nid property.
+      'type' => 'workshop',
+      'uid' => $user->uid,
+      'status' => NODE_PUBLISHED,
+      'promote' => NODE_NOT_PROMOTED,
+    );
+    $new_node = entity_create('node', $values);
 
-    // Replace the participant entities.
-    $participants = array();
-    foreach ($wrapper->field_participants as $delta => $item) {
+    $original_wrapper = entity_metadata_wrapper('node', $original_node);
+    $new_wrapper = entity_metadata_wrapper('node', $new_node);
+
+    $date = $original_wrapper->field_date->value();
+    $date['value'] += $weeks_delta;
+    $date['value2'] += $weeks_delta;
+    $new_node->field_date[LANGUAGE_NONE][0] = $date;
+
+    $new_wrapper->field_type->set($original_wrapper->field_type->getIdentifier());
+
+    if (luz_workshops_conflict($new_node)) {
+      continue;
+    }
+
+    foreach ($original_wrapper->field_participants as $item) {
       if (!$item->field_repeat->value()) {
         continue;
       }
 
+      // Create an item for each participant.
       $new_item = entity_create('field_collection_item', array('field_name' => 'field_participants'));
-      $new_item->setHostEntity('node', $node);
+      $new_item->setHostEntity('node', $new_node);
       $new_item->field_participant[LANGUAGE_NONE][0]['target_id'] = $item->field_participant->getIdentifier();
-      $new_item->field_repeat[LANGUAGE_NONE]['value'] = TRUE;
-      $participants[] = $new_item;
+      $new_item->field_repeat[LANGUAGE_NONE][0]['value'] = TRUE;
+      entity_save('field_collection_item', $new_item);
     }
 
-    $wrapper->field_participants->set(NULL);
-    $wrapper->save();
+    $new_wrapper->save();
   }
 }
 
@@ -304,9 +444,6 @@ function luz_field_access($op, $field, $entity_type, $entity, $account) {
   if ($field['field_name'] == 'field_workshop_types') {
     return (bool)array_intersect(array('administrator', 'content manager'), $account->roles);
   }
-}
-
-function luz_form_user_profile_form_alter(&$form, $form_state) {
 }
 
 /**
@@ -324,7 +461,12 @@ function luz_copy_previous_week($this_week_timestamp) {
   $previous_week->setTimestamp($this_week_timestamp);
   $previous_week->add(DateInterval::createFromDateString('-1 weeks'));
 
-  luz_copy_workshops($previous_week->getTimestamp(), $this_week_timestamp);
+  luz_copy_repeating_workshops($previous_week->getTimestamp(), $this_week_timestamp);
 
-  drupal_goto('<front>', array('query' => array('week' => 1)));
+  drupal_goto('<front>', array('query' => array('week' => 0)));
 }
+
+/**
+ * hook_form_FROM_ID_alter
+ */
+function luz_form_workshop_node_form_alter(&$form, &$form_state) {}
