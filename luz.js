@@ -1,4 +1,5 @@
 (function ($) {
+
     $(document).bind('flagGlobalAfterLinkUpdate', function(event, data) {
         var node = $("#node-" + data.contentId);
         node.toggleClass("attending", data.flagStatus == 'flagged');
@@ -13,6 +14,8 @@
             count--;
         }
         else if (data.flagStatus == 'flagged') {
+            participants.find(".no-attendees").parent().remove();
+
             var item = '<div class="field-item">' + Drupal.settings.luz.user_name + "</div>";
             participants.append(item);
             count++;

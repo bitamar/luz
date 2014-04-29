@@ -54,7 +54,7 @@ function luz_field_default_field_instances() {
     'bundle' => 'field_participants',
     'default_value' => array(
       0 => array(
-        'value' => 1,
+        'value' => 0,
       ),
     ),
     'deleted' => 0,
@@ -160,8 +160,8 @@ function luz_field_default_field_instances() {
         'label' => 'above',
         'module' => 'field_collection',
         'settings' => array(
-          'empty_fields_emptyfieldtext_empty_text' => '',
-          'empty_fields_handler' => '',
+          'empty_fields_emptyfieldtext_empty_text' => '<span class="no-attendees"></span>',
+          'empty_fields_handler' => 'EmptyFieldText',
           'view_mode' => 'full',
         ),
         'type' => 'field_collection_fields',
