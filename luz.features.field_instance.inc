@@ -69,7 +69,7 @@ function luz_field_default_field_instances() {
     ),
     'entity_type' => 'field_collection_item',
     'field_name' => 'field_repeat',
-    'label' => 'Repeat',
+    'label' => 'Recurrent',
     'required' => 0,
     'settings' => array(
       'user_register_form' => FALSE,
@@ -121,6 +121,12 @@ function luz_field_default_field_instances() {
         'type' => 'date_default',
         'weight' => 0,
       ),
+      'teaser' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
     ),
     'entity_type' => 'node',
     'field_name' => 'field_date',
@@ -157,15 +163,21 @@ function luz_field_default_field_instances() {
     'description' => '',
     'display' => array(
       'default' => array(
-        'label' => 'above',
+        'label' => 'inline',
         'module' => 'field_collection',
         'settings' => array(
-          'empty_fields_emptyfieldtext_empty_text' => '<span class="no-attendees"></span>',
+          'empty_fields_emptyfieldtext_empty_text' => '<span class="empty"></span>',
           'empty_fields_handler' => 'EmptyFieldText',
           'view_mode' => 'full',
         ),
         'type' => 'field_collection_fields',
         'weight' => 4,
+      ),
+      'teaser' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
       ),
     ),
     'entity_type' => 'node',
@@ -201,10 +213,16 @@ function luz_field_default_field_instances() {
         'type' => 'hidden',
         'weight' => 3,
       ),
+      'teaser' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
     ),
     'entity_type' => 'node',
     'field_name' => 'field_repeat',
-    'label' => 'Repeat',
+    'label' => 'Recurrent',
     'required' => 0,
     'settings' => array(
       'user_register_form' => FALSE,
@@ -241,6 +259,12 @@ function luz_field_default_field_instances() {
         'type' => 'i18n_taxonomy_term_reference_plain',
         'weight' => 0,
       ),
+      'teaser' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
     ),
     'entity_type' => 'node',
     'field_name' => 'field_type',
@@ -258,15 +282,50 @@ function luz_field_default_field_instances() {
     ),
   );
 
+  // Exported field_instance: 'user-user-field_workshop_types'
+  $field_instances['user-user-field_workshop_types'] = array(
+    'bundle' => 'user',
+    'default_value' => array(
+      0 => array(
+        'tid' => 1,
+      ),
+    ),
+    'deleted' => 0,
+    'description' => '',
+    'display' => array(
+      'default' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 1,
+      ),
+    ),
+    'entity_type' => 'user',
+    'field_name' => 'field_workshop_types',
+    'label' => 'Workshop types',
+    'required' => 0,
+    'settings' => array(
+      'user_register_form' => 0,
+    ),
+    'widget' => array(
+      'active' => 1,
+      'module' => 'options',
+      'settings' => array(),
+      'type' => 'options_buttons',
+      'weight' => 7,
+    ),
+  );
+
   // Translatables
   // Included for use with string extractors like potx.
   t('Attendees');
   t('Date');
   t('On every Friday evening, the workshops for a new week will be created automatically, copying the workshops marked as "Repeat" from the latest week found in the system. ');
   t('Participant');
-  t('Repeat');
+  t('Recurrent');
   t('Type');
   t('Whether this participant will be joined automatically to the next instance of this workshop.');
+  t('Workshop types');
 
   return $field_instances;
 }

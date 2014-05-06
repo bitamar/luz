@@ -469,4 +469,7 @@ function luz_copy_previous_week($this_week_timestamp) {
 /**
  * hook_form_FROM_ID_alter
  */
-function luz_form_workshop_node_form_alter(&$form, &$form_state) {}
+function luz_form_workshop_node_form_alter(&$form, &$form_state) {
+    $form['#attached']['js'][] = drupal_get_path('module', 'luz') . '/luz_workshop.js';
+    $form['field_participants'][LANGUAGE_NONE]['add_more']['#value'] = t('Add a participant');
+}
