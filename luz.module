@@ -69,7 +69,8 @@ function luz_page_default() {
       if (array_key_exists($date->format('Y-m-d'), $workshops)) {
         foreach ($workshops[$date->format('Y-m-d')] as $node) {
           $node_view = node_view($node);
-          $node_view['field_date']['#formatter'] = 'luz_date_formatter';
+          // The week the node is displayed on - For destination.
+          $node_view['#link_to_week'] = $week;
           $item['data'] .= render($node_view);
         }
       }
@@ -80,7 +81,7 @@ function luz_page_default() {
         $attributes = array(
           'attributes' => array('class' => array('add-workshop')),
           'query' => array(
-            'destination' => '<front>',
+            'destination' => '<front>?week=' . $week,
             'edit[field_date][und][0][value][date]' => $date->format('m/d/Y'),
             'edit[field_date][und][0][value2][date]' => $date->format('m/d/Y'),
           ),
@@ -238,7 +239,7 @@ function luz_node_presave($node) {
   // Remove empty participant items.
   if (!empty($node->field_participants)) {
     foreach ($node->field_participants[LANGUAGE_NONE] as $delta => $item) {
-      if (!empty($item['entity']) && $item['entity']->item_id && !$item['entity']->field_participant[LANGUAGE_NONE][0]['target_id']) {
+      if (!empty($item['entity']) && $item['entity']->item_id && empty($item['entity']->field_participant[LANGUAGE_NONE][0]['target_id'])) {
         unset($node->field_participants[LANGUAGE_NONE][$delta]);
         entity_delete('field_collection_item', $item['entity']->item_id);
       }
