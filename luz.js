@@ -32,8 +32,7 @@
            var link = $(event.currentTarget);
            $("#navbar .primary-nav .active").removeClass("active");
            link.addClass("active").parent().addClass("active");
-           $("#luz-wrapper .luz:visible").hide("fast");
-           $("#luz-wrapper #week-" + link.data("week")).show("fast");
+           $("#luz-wrapper").removeClass("week-0 week-1 week-2 week-3").addClass("week-" + link.data('week'));
        });
     });
 })(jQuery);

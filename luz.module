@@ -51,8 +51,8 @@ function luz_page_default() {
 
   $labels = theme('item_list', array('items' => range(8, 22), 'attributes' => array('class' => array('hour-labels'))));
   // The hour labels are added twice for when the week is shown in two rows.
-  $weeks_items = array($labels . $labels);
-
+//  $weeks_items = array($labels . $labels);
+  $weeks_items = array();
   for ($week = 0; $week < $weeks; $week++, $start_date->add(DateInterval::createFromDateString('+1 week'))) {
     $items = array();
 
