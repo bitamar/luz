@@ -34,5 +34,7 @@
            link.addClass("active").parent().addClass("active");
            $("#luz-wrapper").removeClass("week-0 week-1 week-2 week-3").addClass("week-" + link.data('week'));
        });
+
+        $("#navbar .primary-nav a.active").click();
     });
 })(jQuery);
