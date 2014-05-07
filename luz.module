@@ -138,7 +138,12 @@ function luz_flag_flag($flag, $entity_id, $account, $flagging) {
       continue;
     }
 
+      // If the participant is already listed, no need to add it, but make sure the its active.
     if ($item->field_participant->getIdentifier() == $account->uid) {
+        if (!$item->field_active->value()) {
+            $item->field_active->set(TRUE);
+            $item->save();
+        }
       return;
     }
   }
@@ -170,10 +175,17 @@ function luz_flag_unflag($flag, $entity_id, $account, $flagging) {
       }
 
       $wrapper = entity_metadata_wrapper('field_collection_item', $item);
-      $uid = $wrapper->field_participant->getIdentifier();
-      if ($uid == $account->uid) {
-        unset($node->field_participants[LANGUAGE_NONE][$delta]);
-        entity_delete('field_collection_item', $item->item_id);
+      if ($wrapper->field_participant->getIdentifier() == $account->uid) {
+          // If the participant is recurrent, leave her in the list but set her is inactive, otherwise remove her from
+          // the list.
+          if ($wrapper->field_repeat->value()) {
+            $wrapper->field_active->set(FALSE);
+            $wrapper->save();
+          }
+          else {
+            unset($node->field_participants[LANGUAGE_NONE][$delta]);
+            entity_delete('field_collection_item', $item->item_id);
+          }
       }
     }
 
@@ -187,7 +199,7 @@ function luz_count_participants($node) {
   $wrapper = entity_metadata_wrapper('node', $node);
   $count = 0;
   foreach ($wrapper->field_participants as $item) {
-    if ($item->value() && $item->field_participant && $item->field_participant->value()) {
+    if ($item->value() && $item->field_participant && $item->field_participant->value() && $item->field_active->value()) {
       $count++;
     }
   }
@@ -226,7 +238,7 @@ function luz_node_presave($node) {
   // Remove empty participant items.
   if (!empty($node->field_participants)) {
     foreach ($node->field_participants[LANGUAGE_NONE] as $delta => $item) {
-      if (!empty($item['entity']) && $item['entity']->item_id && !$item['field_participant'][LANGUAGE_NONE][0]['target_id']) {
+      if (!empty($item['entity']) && $item['entity']->item_id && !$item['entity']->field_participant[LANGUAGE_NONE][0]['target_id']) {
         unset($node->field_participants[LANGUAGE_NONE][$delta]);
         entity_delete('field_collection_item', $item['entity']->item_id);
       }
@@ -274,7 +286,6 @@ function luz_workshops_conflict($node) {
 }
 
 function luz_sync_participants_flaggings($node) {
-
   // Create an array of the participants IDs and remove empty items.
   $participants = array();
   if (!empty($node->field_participants)) {
@@ -284,7 +295,7 @@ function luz_sync_participants_flaggings($node) {
       }
       $wrapper = entity_metadata_wrapper('field_collection_item', $item);
       $uid = $wrapper->field_participant->getIdentifier();
-      if ($uid) {
+      if ($uid && $wrapper->field_active->value()) {
         $participants[$uid] = true;
       }
     }
@@ -329,7 +340,7 @@ function luz_user_attending_workshop($workshop_node, $uid) {
       continue;
     }
 
-    if ($item->field_participant->getIdentifier() == $uid) {
+    if ($item->field_participant->getIdentifier() == $uid && $item->field_active->value()) {
       return TRUE;
     }
   }
@@ -423,11 +434,16 @@ function luz_copy_repeating_workshops($from_week, $to_week) {
         continue;
       }
 
+        if (!$uid = $item->field_participant->getIdentifier()) {
+            continue;
+        }
+
       // Create an item for each participant.
       $new_item = entity_create('field_collection_item', array('field_name' => 'field_participants'));
       $new_item->setHostEntity('node', $new_node);
-      $new_item->field_participant[LANGUAGE_NONE][0]['target_id'] = $item->field_participant->getIdentifier();
+      $new_item->field_participant[LANGUAGE_NONE][0]['target_id'] = $uid;
       $new_item->field_repeat[LANGUAGE_NONE][0]['value'] = TRUE;
+      $new_item->field_active[LANGUAGE_NONE][0]['value'] = TRUE;
       entity_save('field_collection_item', $new_item);
     }
 

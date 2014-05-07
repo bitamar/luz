@@ -10,6 +10,42 @@
 function luz_field_default_field_instances() {
   $field_instances = array();
 
+  // Exported field_instance: 'field_collection_item-field_participants-field_active'
+  $field_instances['field_collection_item-field_participants-field_active'] = array(
+    'bundle' => 'field_participants',
+    'default_value' => array(
+      0 => array(
+        'value' => 1,
+      ),
+    ),
+    'deleted' => 0,
+    'description' => '',
+    'display' => array(
+      'default' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 1,
+      ),
+    ),
+    'entity_type' => 'field_collection_item',
+    'field_name' => 'field_active',
+    'label' => 'Active',
+    'required' => 0,
+    'settings' => array(
+      'user_register_form' => FALSE,
+    ),
+    'widget' => array(
+      'active' => 1,
+      'module' => 'options',
+      'settings' => array(
+        'display_label' => 1,
+      ),
+      'type' => 'options_onoff',
+      'weight' => 2,
+    ),
+  );
+
   // Exported field_instance: 'field_collection_item-field_participants-field_participant'
   $field_instances['field_collection_item-field_participants-field_participant'] = array(
     'bundle' => 'field_participants',
@@ -26,7 +62,7 @@ function luz_field_default_field_instances() {
           'link' => FALSE,
         ),
         'type' => 'entityreference_label',
-        'weight' => 1,
+        'weight' => 0,
       ),
     ),
     'entity_type' => 'field_collection_item',
@@ -64,7 +100,7 @@ function luz_field_default_field_instances() {
         'label' => 'hidden',
         'settings' => array(),
         'type' => 'hidden',
-        'weight' => 0,
+        'weight' => 2,
       ),
     ),
     'entity_type' => 'field_collection_item',
@@ -163,7 +199,7 @@ function luz_field_default_field_instances() {
     'description' => '',
     'display' => array(
       'default' => array(
-        'label' => 'inline',
+        'label' => 'above',
         'module' => 'field_collection',
         'settings' => array(
           'empty_fields_emptyfieldtext_empty_text' => '<span class="empty"></span>',
@@ -318,6 +354,7 @@ function luz_field_default_field_instances() {
 
   // Translatables
   // Included for use with string extractors like potx.
+  t('Active');
   t('Attendees');
   t('Date');
   t('On every Friday evening, the workshops for a new week will be created automatically, copying the workshops marked as "Repeat" from the latest week found in the system. ');
