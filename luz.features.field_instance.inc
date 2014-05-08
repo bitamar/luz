@@ -318,6 +318,43 @@ function luz_field_default_field_instances() {
     ),
   );
 
+  // Exported field_instance: 'user-user-field_he_name'
+  $field_instances['user-user-field_he_name'] = array(
+    'bundle' => 'user',
+    'default_value' => NULL,
+    'deleted' => 0,
+    'description' => '',
+    'display' => array(
+      'default' => array(
+        'label' => 'above',
+        'module' => 'text',
+        'settings' => array(
+          'empty_fields_emptyfieldtext_empty_text' => '',
+          'empty_fields_handler' => '',
+        ),
+        'type' => 'text_default',
+        'weight' => 2,
+      ),
+    ),
+    'entity_type' => 'user',
+    'field_name' => 'field_he_name',
+    'label' => 'Hebrew name',
+    'required' => 1,
+    'settings' => array(
+      'text_processing' => 0,
+      'user_register_form' => 1,
+    ),
+    'widget' => array(
+      'active' => 1,
+      'module' => 'text',
+      'settings' => array(
+        'size' => 60,
+      ),
+      'type' => 'text_textfield',
+      'weight' => 1,
+    ),
+  );
+
   // Exported field_instance: 'user-user-field_workshop_types'
   $field_instances['user-user-field_workshop_types'] = array(
     'bundle' => 'user',
@@ -348,7 +385,7 @@ function luz_field_default_field_instances() {
       'module' => 'options',
       'settings' => array(),
       'type' => 'options_buttons',
-      'weight' => 7,
+      'weight' => 3,
     ),
   );
 
@@ -357,6 +394,7 @@ function luz_field_default_field_instances() {
   t('Active');
   t('Attendees');
   t('Date');
+  t('Hebrew name');
   t('On every Friday evening, the workshops for a new week will be created automatically, copying the workshops marked as "Repeat" from the latest week found in the system. ');
   t('Participant');
   t('Recurrent');
