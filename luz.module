@@ -21,7 +21,7 @@ function luz_menu() {
 
   $items['luz/get-video'] = array (
     'page callback' => 'luz_get_video',
-    'access arguments' => array('view content'),
+    'access arguments' => array('access content'),
   );
 
   return $items;
