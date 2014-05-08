@@ -7,6 +7,7 @@ include_once 'luz.features.inc';
  */
 function luz_menu_alter(&$items) {
   $items['node']['page callback'] = 'luz_page_default';
+  $items['user/%user']['page callback'] = 'luz_view_user_page';
 }
 
 /**
@@ -25,6 +26,40 @@ function luz_menu() {
   );
 
   return $items;
+}
+
+/**
+ * Redirecting user view to user edit.
+ */
+function luz_view_user_page($account) {
+  global $user;
+
+  if (in_array('administrator', $user->roles)) {
+    return user_view_page($account);
+  }
+  elseif ($account->uid == $user->uid || user_access('administer users')) {
+    drupal_goto('user/' . $account->uid . '/edit');
+  }
+  else {
+    drupal_access_denied();
+  }
+}
+
+/**
+ * hook_menu_local_tasks_alter
+ *
+ * Removing user view tab.
+ */
+function luz_menu_local_tasks_alter(&$data, $router_item, $root_path) {
+  if ($router_item['path'] == 'user/%/edit') {
+    foreach ($data['tabs'] as $tabs_index => $tabs) {
+      foreach ($tabs['output'] as $output_index => $tab) {
+        if ($tab['#link']['path'] == 'user/%/view') {
+          unset($data['tabs'][$tabs_index]['output'][$output_index]);
+        }
+      }
+    }
+  }
 }
 
 function luz_page_default() {
