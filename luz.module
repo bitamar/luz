@@ -513,7 +513,11 @@ function luz_form_workshop_node_form_alter(&$form, &$form_state) {
  * hook_form_FROM_ID_alter
  */
 function luz_form_user_profile_form_alter(&$form, &$form_state) {
-  $form['field_he_name']['#weight'] = -10;
+  // Insert the hebrew name into the account fieldset.
+  $form['field_he_name']['#weight'] = -9;
+  $form['account']['field_he_name'] = $form['field_he_name'];
+  unset($form['field_he_name']);
+
   $form['account']['name']['#title'] = t('English name');
 
   // Remove the language settings fieldset.
