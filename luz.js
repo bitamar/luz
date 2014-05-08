@@ -34,5 +34,10 @@
        });
 
         $("#navbar .primary-nav a.active").click();
+
+        if (window.innerWidth > 1200) {
+            $("#video-wrapper").load(Drupal.settings.basePath + 'luz/get-video');
+        }
+
     });
 })(jQuery);

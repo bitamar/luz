@@ -19,6 +19,11 @@ function luz_menu() {
     'access arguments' => array('administer content'),
   );
 
+  $items['luz/get-video'] = array (
+    'page callback' => 'luz_get_video',
+    'access arguments' => array('view content'),
+  );
+
   return $items;
 }
 
@@ -481,6 +486,19 @@ function luz_copy_previous_week($this_week_timestamp) {
   luz_copy_repeating_workshops($previous_week->getTimestamp(), $this_week_timestamp);
 
   drupal_goto('<front>', array('query' => array('week' => 0)));
+}
+
+/**
+ * Menu callback
+ */
+function luz_get_video() {
+  $video_url = variable_get('luz_background_video', 'https://embed-ssl.wistia.com/deliveries/3528024b12fdc2f49b3ce8027422347c9dc99244/file.mp4');
+
+  echo <<<EOT
+  <video autoplay loop class="background" muted>
+    <source src="$video_url" type="video/mp4">
+  </video>
+EOT;
 }
 
 /**
