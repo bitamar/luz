@@ -67,7 +67,7 @@ function luz_page_default() {
 
   drupal_add_js(drupal_get_path('module', 'luz') . '/luz.js');
   if ($user->uid) {
-    drupal_add_js(array('luz' => array('user_name' => $user->name)), 'setting');
+    drupal_add_js(array('luz' => array('user_name' => luz_get_user_name($user))), 'setting');
   }
 
   $days = 6;
@@ -217,16 +217,16 @@ function luz_flag_unflag($flag, $entity_id, $account, $flagging) {
 
       $wrapper = entity_metadata_wrapper('field_collection_item', $item);
       if ($wrapper->field_participant->getIdentifier() == $account->uid) {
-          // If the participant is recurrent, leave her in the list but set her is inactive, otherwise remove her from
-          // the list.
-          if ($wrapper->field_repeat->value()) {
-            $wrapper->field_active->set(FALSE);
-            $wrapper->save();
-          }
-          else {
-            unset($node->field_participants[LANGUAGE_NONE][$delta]);
-            entity_delete('field_collection_item', $item->item_id);
-          }
+        // If the participant is recurrent, leave her in the list but set her is inactive, otherwise remove her from
+        // the list.
+        if ($wrapper->field_repeat->value()) {
+          $wrapper->field_active->set(FALSE);
+          $wrapper->save();
+        }
+        else {
+          unset($node->field_participants[LANGUAGE_NONE][$delta]);
+          entity_delete('field_collection_item', $item->item_id);
+        }
       }
     }
 
@@ -246,6 +246,15 @@ function luz_count_participants($node) {
   }
 
   return $count;
+}
+
+function luz_get_user_name($account) {
+  global $language;
+  if ($language->language == 'he') {
+    $wrapper = entity_metadata_wrapper('user', $account);
+    return $wrapper->field_he_name->value();
+  }
+  return $account->name;
 }
 
 /**
@@ -475,9 +484,9 @@ function luz_copy_repeating_workshops($from_week, $to_week) {
         continue;
       }
 
-        if (!$uid = $item->field_participant->getIdentifier()) {
-            continue;
-        }
+      if (!$uid = $item->field_participant->getIdentifier()) {
+        continue;
+      }
 
       // Create an item for each participant.
       $new_item = entity_create('field_collection_item', array('field_name' => 'field_participants'));
@@ -540,8 +549,8 @@ EOT;
  * hook_form_FROM_ID_alter
  */
 function luz_form_workshop_node_form_alter(&$form, &$form_state) {
-    $form['#attached']['js'][] = drupal_get_path('module', 'luz') . '/luz_workshop.js';
-    $form['field_participants'][LANGUAGE_NONE]['add_more']['#value'] = t('Add a participant');
+  $form['#attached']['js'][] = drupal_get_path('module', 'luz') . '/luz_workshop.js';
+  $form['field_participants'][LANGUAGE_NONE]['add_more']['#value'] = t('Add a participant');
 }
 
 /**
