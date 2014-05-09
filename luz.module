@@ -560,3 +560,13 @@ function luz_form_user_profile_form_alter(&$form, &$form_state) {
   unset($form['locale']);
 
 }
+
+/**
+ * hook_mail_alter
+ */
+function luz_mail_alter(&$message) {
+  if (isset($message['params']['account'])) {
+    $wrapper = entity_metadata_wrapper('user', $message['params']['account']);
+    $message['body'][0] = str_replace('[user:field_he_name]', $wrapper->field_he_name->value(), $message['body'][0]);
+  }
+}
