@@ -4,7 +4,6 @@ core = 7.x
 package = Ceramikaza
 version = 7.x-1.0
 project = luz
-dependencies[] = admin_menu
 dependencies[] = auto_nodetitle
 dependencies[] = backup_migrate
 dependencies[] = ctools
