@@ -25,6 +25,7 @@ dependencies[] = i18n_taxonomy
 dependencies[] = list
 dependencies[] = locale
 dependencies[] = menu
+dependencies[] = node
 dependencies[] = options
 dependencies[] = taxonomy
 dependencies[] = text

@@ -551,6 +551,20 @@ EOT;
 function luz_form_workshop_node_form_alter(&$form, &$form_state) {
   $form['#attached']['js'][] = drupal_get_path('module', 'luz') . '/luz_workshop.js';
   $form['field_participants'][LANGUAGE_NONE]['add_more']['#value'] = t('Add a participant');
+
+  // Instead of end date, display length in hours.
+  $seconds = $form['field_date'][LANGUAGE_NONE][0]['#default_value']['value2'] - $form['field_date'][LANGUAGE_NONE][0]['#default_value']['value'];
+  $time = new DateTime('now', new DateTimeZone('UTC'));
+  $time->setTimestamp($seconds);
+
+  $form['field_date'][LANGUAGE_NONE][0]['length'] = array(
+    '#title' => t('Duration'),
+    '#description' => t('E.g., @date', array('@date' => '03:00')),
+    '#type' => 'textfield',
+    '#default_value' => $time->format('H:i'),
+    '#weight' => 4,
+    '#size' => 5,
+  );
 }
 
 /**
