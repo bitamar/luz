@@ -51,6 +51,14 @@ function luz_flag_default_flags() {
  */
 function luz_node_info() {
   $items = array(
+    'event' => array(
+      'name' => t('Event'),
+      'base' => 'node_content',
+      'description' => '',
+      'has_title' => '1',
+      'title_label' => t('Title'),
+      'help' => '',
+    ),
     'workshop' => array(
       'name' => t('Workshop'),
       'base' => 'node_content',

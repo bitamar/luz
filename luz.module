@@ -95,7 +95,6 @@ function luz_page_default() {
   $weeks_items = array();
   for ($week = 0; $week < $weeks; $week++, $start_date->add(DateInterval::createFromDateString('+1 week'))) {
     $items = array();
-
     $date = clone $start_date;
 
     for ($i = 0; $i < $days; $i++, $date->add(DateInterval::createFromDateString('+1 day'))) {
@@ -104,17 +103,30 @@ function luz_page_default() {
       if ($i == 0 && user_access('administer content')) {
         $item['data'] .= l(t('Copy previous week'), 'luz/copy-previous-week/' . $date->getTimestamp(), array('attributes' => array('class' => array('copy-week'))));
       }
-      $item['data'] .= '<h4>' . t($date->format('l')) . ', ' . $date->format(variable_get('date_format_shorter')) . '</h4><div class="day">';
+      $item['data'] .= '<h4>' . t($date->format('l')) . ', ' . $date->format(variable_get('date_format_shorter')) . '</h4>';
 
+      $item['data'] .= '<div class="events">';
       if (array_key_exists($date->format('Y-m-d'), $workshops)) {
-        foreach ($workshops[$date->format('Y-m-d')] as $node) {
+        // Add daily events.
+        foreach ($workshops[$date->format('Y-m-d')]['event'] as $node) {
           $node_view = node_view($node);
           // The week the node is displayed on - For destination.
           $node_view['#link_to_week'] = $week;
           $item['data'] .= render($node_view);
         }
       }
+      $item['data'] .= '</div>';
 
+      $item['data'] .= '<div class="day">';
+      if (array_key_exists($date->format('Y-m-d'), $workshops)) {
+        // Add workshops.
+        foreach ($workshops[$date->format('Y-m-d')]['workshop'] as $node) {
+          $node_view = node_view($node);
+          // The week the node is displayed on - For destination.
+          $node_view['#link_to_week'] = $week;
+          $item['data'] .= render($node_view);
+        }
+      }
       $item['data'] .= '</div>';
 
       if (user_access('create workshop content')) {
@@ -134,15 +146,14 @@ function luz_page_default() {
 
     $weeks_items[] = theme('item_list', array('items' => $items, 'attributes' => array('id' => "week-$week", 'class' => array('luz', $week == $current_week ? 'active' : ''))));
   }
-  $luz = theme('item_list', array('items' => $weeks_items, 'attributes' => array('id' => 'luz-wrapper')));
 
-  return $luz;
+  return theme('item_list', array('items' => $weeks_items, 'attributes' => array('id' => 'luz-wrapper')));
 }
 
 function luz_get_workshops($start, $end) {
   $query = new EntityFieldQuery();
   $query->entityCondition('entity_type', 'node')
-    ->entityCondition('bundle', 'workshop')
+    ->entityCondition('bundle', array('workshop', 'event'), 'IN')
     ->propertyCondition('status', NODE_PUBLISHED)
     ->fieldCondition('field_date', 'value', array($start, $end), 'BETWEEN')
     ->fieldOrderBy('field_date', 'value');
@@ -154,9 +165,10 @@ function luz_get_workshops($start, $end) {
     $wrapper = entity_metadata_wrapper('node', $node);
     $date = date('Y-m-d', $wrapper->field_date->value->value());
     if (!array_key_exists($date, $by_date)) {
-      $by_date[$date] = array();
+      $by_date[$date]['workshop'] = array();
+      $by_date[$date]['event'] = array();
     }
-    $by_date[$date][] = $node;
+    $by_date[$date][$node->type][] = $node;
   }
 
   return $by_date;
@@ -549,7 +561,7 @@ EOT;
  * hook_form_FROM_ID_alter
  */
 function luz_form_workshop_node_form_alter(&$form, &$form_state) {
-  $form['#attached']['js'][] = drupal_get_path('module', 'luz') . '/luz_workshop.js';
+  $form['#attached']['js'][] = drupal_get_path('module', 'luz') . '/luz_date.js';
   $form['field_participants'][LANGUAGE_NONE]['add_more']['#value'] = t('Add a participant');
 
   // Instead of end date, display length in hours.
@@ -565,6 +577,13 @@ function luz_form_workshop_node_form_alter(&$form, &$form_state) {
     '#weight' => 4,
     '#size' => 5,
   );
+}
+
+/**
+ * hook_form_FROM_ID_alter
+ */
+function luz_form_event_node_form_alter(&$form, &$form_state) {
+  $form['#attached']['js'][] = drupal_get_path('module', 'luz') . '/luz_date.js';
 }
 
 /**
