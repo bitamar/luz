@@ -33,9 +33,5 @@
         if (window.innerWidth > 1200) {
             $("#video-wrapper").load(Drupal.settings.basePath + "luz/get-video");
         }
-
-        $("#luz-wrapper .node").hover(function(event){
-            $(event.currentTarget).toggleClass("inactive", event.type == 'mouseleave');
-        });
     });
 })(jQuery);
