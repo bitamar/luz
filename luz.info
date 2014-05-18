@@ -50,6 +50,7 @@ features[field_instance][] = user-user-field_workshop_types
 features[flag][] = attend
 features[language][] = en
 features[language][] = he
+features[menu_custom][] = menu-content-management
 features[menu_custom][] = menu-luz
 features[node][] = event
 features[node][] = workshop

@@ -134,11 +134,12 @@ function luz_page_default() {
           'attributes' => array('class' => array('add-workshop')),
           'query' => array(
             'destination' => '<front>?week=' . $week,
-            'edit[field_date][und][0][value][date]' => $date->format('m/d/Y'),
-            'edit[field_date][und][0][value2][date]' => $date->format('m/d/Y'),
+            'edit[field_date][und][0][value][date]' => $date->format('d/m/Y'),
+            'edit[field_date][und][0][value2][date]' => $date->format('d/m/Y'),
           ),
         );
         $item['data'] .= l(t('Add workshop'), 'node/add/workshop', $attributes);
+        $item['data'] .= ' ' . l(t('Add event'), 'node/add/event', $attributes);
       }
 
       $items[] = $item;
