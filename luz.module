@@ -616,6 +616,8 @@ function luz_form_user_register_form_alter(&$form, &$form_state) {
     $form['actions']['submit']['#attributes'] = array('class' => array('btn-success'));
   }
 
+
+
 }
 
 function _luz_alter_user_form(&$form) {
@@ -633,6 +635,14 @@ function _luz_alter_user_form(&$form) {
   // Remove the language settings fieldset.
   $form['language'] = $form['locale']['language'];
   unset($form['locale']);
+
+
+  $form['#submit'][] = 'luz_redirect_to_front';
+}
+
+function luz_redirect_to_front($form, &$form_state) {
+  unset($_REQUEST['destination']);
+  $form_state['redirect'] = '<front>';
 }
 
 /**
