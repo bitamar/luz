@@ -591,17 +591,48 @@ function luz_form_event_node_form_alter(&$form, &$form_state) {
  * hook_form_FROM_ID_alter
  */
 function luz_form_user_profile_form_alter(&$form, &$form_state) {
-  // Insert the hebrew name into the account fieldset.
+  _luz_alter_user_form($form);
+}
+
+/**
+ * hook_form_FROM_ID_alter
+ */
+function luz_form_user_register_form_alter(&$form, &$form_state) {
+  global $user;
+  _luz_alter_user_form($form);
+
+  // If the account is being registered by a manager, hide the password fields.
+  if ($user->uid) {
+    $form['account']['pass']['#required'] = FALSE;
+    $form['account']['pass']['#access'] = FALSE;
+
+    $form['account']['notify']['#default_value'] = TRUE;
+    $form['account']['notify']['#access'] = FALSE;
+
+    $form['account']['status']['#access'] = FALSE;
+
+    // TODO: It seems that changing the button text causes the form to not create the user.
+//    $form['actions']['submit']['#value'] = t('Create account');
+    $form['actions']['submit']['#attributes'] = array('class' => array('btn-success'));
+  }
+
+}
+
+function _luz_alter_user_form(&$form) {
+  // Insert the hebrew name and phone into the account field-set.
   $form['field_he_name']['#weight'] = -9;
   $form['account']['field_he_name'] = $form['field_he_name'];
   unset($form['field_he_name']);
+
+  $form['field_phone']['#weight'] = -8;
+  $form['account']['field_phone'] = $form['field_phone'];
+  unset($form['field_phone']);
 
   $form['account']['name']['#title'] = t('English name');
 
   // Remove the language settings fieldset.
   $form['language'] = $form['locale']['language'];
   unset($form['locale']);
-
 }
 
 /**

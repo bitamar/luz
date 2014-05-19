@@ -440,7 +440,7 @@ function luz_field_default_field_instances() {
     'label' => 'Workshop types',
     'required' => 0,
     'settings' => array(
-      'user_register_form' => 0,
+      'user_register_form' => 1,
     ),
     'widget' => array(
       'active' => 1,
