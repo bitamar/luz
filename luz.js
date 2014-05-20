@@ -13,6 +13,7 @@
             }).remove();
         }
         else if (data.flagStatus == "flagged") {
+            participants.find('.empty').parent().remove();
             var item = '<div class="field-item">' + Drupal.settings.luz.user_name + "</div>";
             participants.append(item);
         }
