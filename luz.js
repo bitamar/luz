@@ -27,6 +27,8 @@
            $("#navbar .primary-nav .active").removeClass("active");
            link.addClass("active").parent().addClass("active");
            $("#luz-wrapper").removeClass("week-0 week-1 week-2 week-3").addClass("week-" + link.data("week"));
+
+           $("#navbar button.navbar-toggle:visible").click();
        });
 
         $("#navbar .primary-nav a.active").click();
