@@ -70,8 +70,11 @@ function luz_page_default() {
     drupal_add_js(array('luz' => array('user_name' => luz_get_user_name($user))), 'setting');
   }
 
+  $wrapper = entity_metadata_wrapper('user', $user);
+
   $days = 6;
-  $weeks = 4;
+  // Recurrent students see four weeks.
+  $weeks = $wrapper->field_repeat->value() ? 4 : 1;
 
   $current_week = array_key_exists('week', $_GET) ? (int)$_GET['week'] : 0;
   if ($current_week < 0 || $current_week >= $weeks) {
@@ -517,10 +520,10 @@ function luz_copy_repeating_workshops($from_week, $to_week) {
 /**
  * hook_field_access
  *
- * Disallow normal users to access the workshop types field.
+ * Disallow normal users to access the workshop types field, and the user recurrence field.
  */
 function luz_field_access($op, $field, $entity_type, $entity, $account) {
-  if ($field['field_name'] == 'field_workshop_types') {
+  if (in_array($field['field_name'], array('field_workshop_types', 'field_repeat'))) {
     return (bool)array_intersect(array('administrator', 'content manager'), $account->roles);
   }
 }
