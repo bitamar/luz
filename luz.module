@@ -25,7 +25,137 @@ function luz_menu() {
     'access arguments' => array('access content'),
   );
 
+  $items['luz/attendance'] = array (
+    'page callback' => 'luz_attendance_summary',
+    'access arguments' => array('administer content'),
+  );
+
+  $items['luz/attendance/%/%'] = array (
+    'page callback' => 'luz_attendance',
+    'access arguments' => array('administer content'),
+    'page arguments' => array(2, 3),
+  );
+
   return $items;
+}
+
+function luz_attendance_summary() {
+  $query = "SELECT DATE_FORMAT(FROM_UNIXTIME(field_date_value), '%Y-%m') AS month, u.name, COUNT(*) AS count
+    FROM field_data_field_active fa
+    INNER JOIN field_data_field_participant fp ON fa.entity_id = fp.entity_id
+    INNER JOIN field_data_field_participants fps ON fa.entity_id = fps.field_participants_value
+    INNER JOIN node n on fps.entity_id = n.nid
+    INNER JOIN field_data_field_date fd ON fps.entity_id = fd.entity_id
+    INNER JOIN users u ON u.uid = fp.field_participant_target_id
+    WHERE fa.entity_type = 'field_collection_item'
+    AND fa.bundle = 'field_participants'
+    AND fa.field_active_value
+    AND fps.entity_type = 'node'
+    AND fps.bundle = 'workshop'
+    AND u.status AND n.status
+    GROUP BY month, name
+    ORDER BY month, name";
+
+  $rows = array();
+  $header = array(array('data' => t('Name')));
+  $result = db_query($query);
+
+  $months = array();
+  $records = array();
+  foreach ($result as $record) {
+    $months[$record->month] = TRUE;
+    $records[] = $record;
+  }
+
+  foreach ($records as $record) {
+    if (!array_key_exists($record->month, $header)) {
+      list($year, $month) = explode('-', $record->month);
+      $date = new DateTime();
+      $date->setDate($year, $month, 1);
+      $header[$record->month] = array('data' => l($date->format('F y'), "luz/attendance/$year/$month"));
+    }
+
+    if (!array_key_exists($record->name, $rows)) {
+      $rows[$record->name] = array(array('data' => $record->name)) + array_fill_keys(array_keys($months), array('data' => 0, 'class' => array($year . '-' . $month)));
+    }
+
+    $rows[$record->name][$record->month] = array('data' => $record->count);
+  }
+
+  uasort($rows, '_luz_sort_participants');
+
+  return theme('table', array('rows' => $rows, 'header' => $header));
+}
+
+function _luz_sort_participants($a, $b) {
+  return strtolower($a[0]['data']) > strtolower($b[0]['data']);
+}
+
+function luz_attendance($year, $month) {
+  drupal_set_title(t('Attendance report @month @year', array('@month' => $month, '@year' => $year)));
+
+  $start_date = new DateTime();
+  $start_date->setTime(0, 0);
+  $start_date->setDate($year, $month, 1);
+  $end_date = clone $start_date;
+  $end_date->add(DateInterval::createFromDateString('+1 month'));
+  $workshops = luz_get_workshops($start_date->getTimestamp(), $end_date->getTimestamp(), FALSE);
+
+  $header = array(t('Name'));
+  $dates = array_keys($workshops);
+  $rows = array();
+  foreach ($workshops as $date => $date_workshops) {
+    list($year, $month, $day) = explode('-', $date);
+
+    foreach ($date_workshops['workshop'] as $node) {
+      $wrapper = entity_metadata_wrapper('node', $node);
+
+      foreach($wrapper->field_participants as $participant_wrapper) {
+        if (!$uid = $participant_wrapper->field_participant->getIdentifier()) {
+          continue;
+        }
+
+        if (!array_key_exists($uid, $rows)) {
+          $rows[$uid] = array(array('data' => $participant_wrapper->field_participant->label())) + array_fill_keys($dates, array('data' => 0, 'class' => array($year . '-' . $month)));
+        }
+
+        if ($participant_wrapper->field_active->value()) {
+          $rows[$uid][$date]['data']++;
+
+          if (!$participant_wrapper->field_repeat->value()) {
+            $rows[$uid][$date]['class'][] = 'irregular';
+          }
+        }
+      }
+    }
+
+
+    $date = new DateTime();
+    $date->setDate($year, $month, $day);
+    $header[] = array('data' => '<div>' . $date->format('D j') . '</div>', 'class' => array('day'));
+  }
+
+  // Add row total.
+  foreach ($rows as &$row) {
+    $participant_total = 0;
+    foreach ($row as $day => &$value) {
+      if (is_array($value)) {
+        $participant_total += $value['data'];
+        // Hide zeros.
+        if (!$value['data']) {
+          $value['data'] = '';
+        }
+      }
+    }
+
+    $row[] = array('data' => $participant_total, 'class' => array('total', ));
+  }
+
+  uasort($rows, '_luz_sort_participants');
+
+  $header[] = $date->format('F');
+
+  return theme('table', array('rows' => $rows, 'header' => $header));
 }
 
 /**
@@ -92,9 +222,6 @@ function luz_page_default() {
 
   $workshops = luz_get_workshops($start_date->getTimestamp(), $end_date->getTimestamp());
 
-  $labels = theme('item_list', array('items' => range(8, 22), 'attributes' => array('class' => array('hour-labels'))));
-  // The hour labels are added twice for when the week is shown in two rows.
-//  $weeks_items = array($labels . $labels);
   $weeks_items = array();
   for ($week = 0; $week < $weeks; $week++, $start_date->add(DateInterval::createFromDateString('+1 week'))) {
     $items = array();
@@ -154,10 +281,14 @@ function luz_page_default() {
   return theme('item_list', array('items' => $weeks_items, 'attributes' => array('id' => 'luz-wrapper')));
 }
 
-function luz_get_workshops($start, $end) {
+function luz_get_workshops($start, $end, $fetch_events = TRUE) {
+  $types = array('workshop');
+  if ($fetch_events) {
+    $types[] = 'event';
+  }
   $query = new EntityFieldQuery();
   $query->entityCondition('entity_type', 'node')
-    ->entityCondition('bundle', array('workshop', 'event'), 'IN')
+    ->entityCondition('bundle', $types, 'IN')
     ->propertyCondition('status', NODE_PUBLISHED)
     ->fieldCondition('field_date', 'value', array($start, $end), 'BETWEEN')
     ->fieldOrderBy('field_date', 'value');
