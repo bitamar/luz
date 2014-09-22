@@ -17,7 +17,7 @@ function luz_menu() {
   $items['luz/copy-previous-week/%'] = array(
     'page callback' => 'luz_copy_previous_week',
     'page arguments' => array(2),
-    'access arguments' => array('administer content'),
+    'access arguments' => array('administer nodes'),
   );
 
   $items['luz/get-video'] = array (
@@ -27,12 +27,12 @@ function luz_menu() {
 
   $items['luz/attendance'] = array (
     'page callback' => 'luz_attendance_summary',
-    'access arguments' => array('administer content'),
+    'access arguments' => array('administer nodes'),
   );
 
   $items['luz/attendance/%/%'] = array (
     'page callback' => 'luz_attendance',
-    'access arguments' => array('administer content'),
+    'access arguments' => array('administer nodes'),
     'page arguments' => array(2, 3),
   );
 
@@ -230,7 +230,7 @@ function luz_page_default() {
     for ($i = 0; $i < $days; $i++, $date->add(DateInterval::createFromDateString('+1 day'))) {
 
       $item = array('data' => '', 'class' => array(date('Y-m-d') == $date->format('Y-m-d') ? 'current-date' : ''));
-      if ($i == 0 && user_access('administer content')) {
+      if ($i == 0 && user_access('administer nodes')) {
         $item['data'] .= l(t('Copy previous week'), 'luz/copy-previous-week/' . $date->getTimestamp(), array('attributes' => array('class' => array('copy-week'))));
       }
       $item['data'] .= '<h4>' . t($date->format('l')) . ', ' . $date->format(variable_get('date_format_shorter')) . '</h4>';
