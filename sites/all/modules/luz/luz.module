@@ -1,0 +1,790 @@
+<?php
+
+include_once 'luz.features.inc';
+
+/**
+ * hook_menu_alter
+ */
+function luz_menu_alter(&$items) {
+  $items['node']['page callback'] = 'luz_page_default';
+  $items['user/%user']['page callback'] = 'luz_view_user_page';
+}
+
+/**
+ * hook_menu
+ */
+function luz_menu() {
+  $items['luz/copy-previous-week/%'] = array(
+    'page callback' => 'luz_copy_previous_week',
+    'page arguments' => array(2),
+    'access arguments' => array('administer nodes'),
+  );
+
+  $items['luz/get-video'] = array (
+    'page callback' => 'luz_get_video',
+    'access arguments' => array('access content'),
+  );
+
+  $items['luz/attendance'] = array (
+    'page callback' => 'luz_attendance_summary',
+    'access arguments' => array('administer nodes'),
+  );
+
+  $items['luz/attendance/%/%'] = array (
+    'page callback' => 'luz_attendance',
+    'access arguments' => array('administer nodes'),
+    'page arguments' => array(2, 3),
+  );
+
+  return $items;
+}
+
+function luz_attendance_summary() {
+  $query = "SELECT DATE_FORMAT(FROM_UNIXTIME(field_date_value), '%Y-%m') AS month, u.name, COUNT(*) AS count
+    FROM field_data_field_active fa
+    INNER JOIN field_data_field_participant fp ON fa.entity_id = fp.entity_id
+    INNER JOIN field_data_field_participants fps ON fa.entity_id = fps.field_participants_value
+    INNER JOIN node n on fps.entity_id = n.nid
+    INNER JOIN field_data_field_date fd ON fps.entity_id = fd.entity_id
+    INNER JOIN users u ON u.uid = fp.field_participant_target_id
+    WHERE fa.entity_type = 'field_collection_item'
+    AND fa.bundle = 'field_participants'
+    AND fa.field_active_value
+    AND fps.entity_type = 'node'
+    AND fps.bundle = 'workshop'
+    AND u.status AND n.status
+    GROUP BY month, name
+    ORDER BY month, name";
+
+  $rows = array();
+  $header = array(array('data' => t('Name')));
+  $result = db_query($query);
+
+  $months = array();
+  $records = array();
+  foreach ($result as $record) {
+    $months[$record->month] = TRUE;
+    $records[] = $record;
+  }
+
+  foreach ($records as $record) {
+    if (!array_key_exists($record->month, $header)) {
+      list($year, $month) = explode('-', $record->month);
+      $date = new DateTime();
+      $date->setDate($year, $month, 1);
+      $header[$record->month] = array('data' => l($date->format('F y'), "luz/attendance/$year/$month"));
+    }
+
+    if (!array_key_exists($record->name, $rows)) {
+      $rows[$record->name] = array(array('data' => $record->name)) + array_fill_keys(array_keys($months), array('data' => 0, 'class' => array($year . '-' . $month)));
+    }
+
+    $rows[$record->name][$record->month] = array('data' => $record->count);
+  }
+
+  uasort($rows, '_luz_sort_participants');
+
+  return theme('table', array('rows' => $rows, 'header' => $header));
+}
+
+function _luz_sort_participants($a, $b) {
+  return strtolower($a[0]['data']) > strtolower($b[0]['data']);
+}
+
+function luz_attendance($year, $month) {
+  drupal_set_title(t('Attendance report @month @year', array('@month' => $month, '@year' => $year)));
+
+  $start_date = new DateTime();
+  $start_date->setTime(0, 0);
+  $start_date->setDate($year, $month, 1);
+  $end_date = clone $start_date;
+  $end_date->add(DateInterval::createFromDateString('+1 month'));
+  $workshops = luz_get_workshops($start_date->getTimestamp(), $end_date->getTimestamp(), FALSE);
+
+  $header = array(t('Name'));
+  $dates = array_keys($workshops);
+  $rows = array();
+  foreach ($workshops as $date => $date_workshops) {
+    list($year, $month, $day) = explode('-', $date);
+
+    foreach ($date_workshops['workshop'] as $node) {
+      $wrapper = entity_metadata_wrapper('node', $node);
+
+      foreach($wrapper->field_participants as $participant_wrapper) {
+        if (!$uid = $participant_wrapper->field_participant->getIdentifier()) {
+          continue;
+        }
+
+        if (!array_key_exists($uid, $rows)) {
+          $rows[$uid] = array(array('data' => $participant_wrapper->field_participant->label())) + array_fill_keys($dates, array('data' => 0, 'class' => array($year . '-' . $month)));
+        }
+
+        if ($participant_wrapper->field_active->value()) {
+          $rows[$uid][$date]['data']++;
+
+          if (!$participant_wrapper->field_repeat->value()) {
+            $rows[$uid][$date]['class'][] = 'irregular';
+          }
+        }
+      }
+    }
+
+
+    $date = new DateTime();
+    $date->setDate($year, $month, $day);
+    $header[] = array('data' => '<div>' . $date->format('D j') . '</div>', 'class' => array('day'));
+  }
+
+  // Add row total.
+  foreach ($rows as &$row) {
+    $participant_total = 0;
+    foreach ($row as $day => &$value) {
+      if (is_array($value)) {
+        $participant_total += $value['data'];
+        // Hide zeros.
+        if (!$value['data']) {
+          $value['data'] = '';
+        }
+      }
+    }
+
+    $row[] = array('data' => $participant_total, 'class' => array('total', ));
+  }
+
+  uasort($rows, '_luz_sort_participants');
+
+  $header[] = $date->format('F');
+
+  return theme('table', array('rows' => $rows, 'header' => $header));
+}
+
+/**
+ * Redirecting user view to user edit.
+ */
+function luz_view_user_page($account) {
+  global $user;
+
+  if (in_array('administrator', $user->roles)) {
+    return user_view_page($account);
+  }
+  elseif ($account->uid == $user->uid || user_access('administer users')) {
+    drupal_goto('user/' . $account->uid . '/edit');
+  }
+  else {
+    drupal_access_denied();
+  }
+}
+
+/**
+ * hook_menu_local_tasks_alter
+ *
+ * Removing user view tab.
+ */
+function luz_menu_local_tasks_alter(&$data, $router_item, $root_path) {
+  if ($router_item['path'] == 'user/%/edit') {
+    foreach ($data['tabs'] as $tabs_index => $tabs) {
+      foreach ($tabs['output'] as $output_index => $tab) {
+        if ($tab['#link']['path'] == 'user/%/view') {
+          unset($data['tabs'][$tabs_index]['output'][$output_index]);
+        }
+      }
+    }
+  }
+}
+
+function luz_page_default() {
+  global $user;
+
+  drupal_add_js(drupal_get_path('module', 'luz') . '/luz.js');
+  if ($user->uid) {
+    drupal_add_js(array('luz' => array('user_name' => luz_get_user_name($user))), 'setting');
+  }
+
+  $wrapper = entity_metadata_wrapper('user', $user);
+
+  $days = 6;
+  // Recurrent students see four weeks.
+  $weeks = $wrapper->field_repeat->value() ? 4 : 1;
+
+  $current_week = array_key_exists('week', $_GET) ? (int)$_GET['week'] : 0;
+  if ($current_week < 0 || $current_week >= $weeks) {
+    $current_week = 0;
+  }
+
+  // Set date to last Sunday, or next Sunday of today is Saturday.
+  $start_date = new DateTime();
+  $start_date->setTime(0, 0);
+  $interval = $start_date->format('w') < 6 ?  '-' . $start_date->format('w') : '+1';
+  $start_date->add(DateInterval::createFromDateString("$interval day"));
+
+  $end_date = clone $start_date;
+  $end_date->add(DateInterval::createFromDateString("+$weeks weeks"));
+
+  $workshops = luz_get_workshops($start_date->getTimestamp(), $end_date->getTimestamp());
+
+  $weeks_items = array();
+  for ($week = 0; $week < $weeks; $week++, $start_date->add(DateInterval::createFromDateString('+1 week'))) {
+    $items = array();
+    $date = clone $start_date;
+
+    for ($i = 0; $i < $days; $i++, $date->add(DateInterval::createFromDateString('+1 day'))) {
+
+      $item = array('data' => '', 'class' => array(date('Y-m-d') == $date->format('Y-m-d') ? 'current-date' : ''));
+      if ($i == 0 && user_access('administer nodes')) {
+        $item['data'] .= l(t('Copy previous week'), 'luz/copy-previous-week/' . $date->getTimestamp(), array('attributes' => array('class' => array('copy-week'))));
+      }
+      $item['data'] .= '<h4>' . t($date->format('l')) . ', ' . $date->format(variable_get('date_format_shorter')) . '</h4>';
+
+      $item['data'] .= '<div class="events">';
+      if (array_key_exists($date->format('Y-m-d'), $workshops)) {
+        // Add daily events.
+        foreach ($workshops[$date->format('Y-m-d')]['event'] as $node) {
+          $node_view = node_view($node);
+          // The week the node is displayed on - For destination.
+          $node_view['#link_to_week'] = $week;
+          $item['data'] .= render($node_view);
+        }
+      }
+      $item['data'] .= '</div>';
+
+      $item['data'] .= '<div class="day">';
+      if (array_key_exists($date->format('Y-m-d'), $workshops)) {
+        // Add workshops.
+        foreach ($workshops[$date->format('Y-m-d')]['workshop'] as $node) {
+          $node_view = node_view($node);
+          // The week the node is displayed on - For destination.
+          $node_view['#link_to_week'] = $week;
+          $item['data'] .= render($node_view);
+        }
+      }
+      $item['data'] .= '</div>';
+
+      if (user_access('create workshop content')) {
+        $attributes = array(
+          'attributes' => array('class' => array('add-workshop')),
+          'query' => array(
+            'destination' => '<front>?week=' . $week,
+            'edit[field_date][und][0][value][date]' => $date->format('d/m/Y'),
+            'edit[field_date][und][0][value2][date]' => $date->format('d/m/Y'),
+          ),
+        );
+        $item['data'] .= l(t('Add workshop'), 'node/add/workshop', $attributes);
+        $item['data'] .= ' ' . l(t('Add event'), 'node/add/event', $attributes);
+      }
+
+      $items[] = $item;
+    }
+
+    $weeks_items[] = theme('item_list', array('items' => $items, 'attributes' => array('id' => "week-$week", 'class' => array('luz', $week == $current_week ? 'active' : ''))));
+  }
+
+  return theme('item_list', array('items' => $weeks_items, 'attributes' => array('id' => 'luz-wrapper')));
+}
+
+function luz_get_workshops($start, $end, $fetch_events = TRUE) {
+  $types = array('workshop');
+  if ($fetch_events) {
+    $types[] = 'event';
+  }
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', $types, 'IN')
+    ->propertyCondition('status', NODE_PUBLISHED)
+    ->fieldCondition('field_date', 'value', array($start, $end), 'BETWEEN')
+    ->fieldOrderBy('field_date', 'value');
+  $result = $query->execute();
+
+  $by_date = array();
+  $nodes = !empty($result) ? node_load_multiple(array_keys($result['node'])) : array();
+  foreach ($nodes as $node) {
+    $wrapper = entity_metadata_wrapper('node', $node);
+    $date = date('Y-m-d', $wrapper->field_date->value->value());
+    if (!array_key_exists($date, $by_date)) {
+      $by_date[$date]['workshop'] = array();
+      $by_date[$date]['event'] = array();
+    }
+    $by_date[$date][$node->type][] = $node;
+  }
+
+  return $by_date;
+}
+
+function luz_flag_flag($flag, $entity_id, $account, $flagging) {
+  if ($flagging->flag_name != 'attend') {
+    return;
+  }
+
+  // Only create the participant item if the flag was triggered directly by the user.
+  if (isset($account->flag_from_sync)) {
+    return;
+  }
+
+  $node = node_load($entity_id);
+  $wrapper = entity_metadata_wrapper('node', $node);
+  foreach ($wrapper->field_participants as $item) {
+    if (!$item->value()) {
+      continue;
+    }
+
+      // If the participant is already listed, no need to add it, but make sure the its active.
+    if ($item->field_participant->getIdentifier() == $account->uid) {
+        if (!$item->field_active->value()) {
+            $item->field_active->set(TRUE);
+            $item->save();
+        }
+      return;
+    }
+  }
+
+  // Create a participant item and attach it to the workshop node.
+  $item = entity_create('field_collection_item', array('field_name' => 'field_participants'));
+  $item->setHostEntity('node', $node);
+  $item->field_participant[LANGUAGE_NONE][0]['target_id'] = $account->uid;
+  $wrapper->field_participants[] = $item;
+  $wrapper->save();
+}
+
+function luz_flag_unflag($flag, $entity_id, $account, $flagging) {
+  if ($flagging->flag_name != 'attend') {
+    return;
+  }
+
+  // Only remove the participant item if the flag was triggered directly by the user.
+  if (isset($account->flag_from_sync)) {
+    return;
+  }
+
+  $node = node_load($entity_id);
+
+  if ($node->field_participants) {
+    foreach ($node->field_participants[LANGUAGE_NONE] as $delta => $item) {
+      if (!$item = field_collection_item_load($item['value'])) {
+        continue;
+      }
+
+      $wrapper = entity_metadata_wrapper('field_collection_item', $item);
+      if ($wrapper->field_participant->getIdentifier() == $account->uid) {
+        // If the participant is recurrent, leave her in the list but set her is inactive, otherwise remove her from
+        // the list.
+        if ($wrapper->field_repeat->value()) {
+          $wrapper->field_active->set(FALSE);
+          $wrapper->save();
+        }
+        else {
+          unset($node->field_participants[LANGUAGE_NONE][$delta]);
+          entity_delete('field_collection_item', $item->item_id);
+        }
+      }
+    }
+
+    // For avoiding an endless loop when syncing after node save.
+    $node->unflagged = $flagging->uid;
+    node_save($node);
+  }
+}
+
+function luz_count_participants($node) {
+  $wrapper = entity_metadata_wrapper('node', $node);
+  $count = 0;
+  foreach ($wrapper->field_participants as $item) {
+    if ($item->value() && $item->field_participant && $item->field_participant->value() && $item->field_active->value()) {
+      $count++;
+    }
+  }
+
+  return $count;
+}
+
+function luz_get_user_name($account) {
+  global $language;
+  if ($language->language == 'he') {
+    $wrapper = entity_metadata_wrapper('user', $account);
+    return $wrapper->field_he_name->value();
+  }
+  return $account->name;
+}
+
+/**
+ * hook_node_update
+ */
+function luz_node_update($node) {
+  if ($node->type == 'workshop') {
+    luz_sync_participants_flaggings($node);
+  }
+}
+
+/**
+ * hook_node_insert
+ */
+function luz_node_insert($node) {
+  if ($node->type == 'workshop') {
+    luz_sync_participants_flaggings($node);
+  }
+}
+
+/**
+ * hook_node_presave
+ */
+function luz_node_presave($node) {
+  if ($node->type != 'workshop') {
+    return;
+  }
+
+  $node->language = LANGUAGE_NONE;
+
+  // Remove empty participant items.
+  if (!empty($node->field_participants)) {
+    foreach ($node->field_participants[LANGUAGE_NONE] as $delta => $item) {
+      if (!empty($item['entity']) && $item['entity']->item_id && empty($item['entity']->field_participant[LANGUAGE_NONE][0]['target_id'])) {
+        unset($node->field_participants[LANGUAGE_NONE][$delta]);
+        entity_delete('field_collection_item', $item['entity']->item_id);
+      }
+    }
+  }
+}
+
+/**
+ * hook_node_validate
+ *
+ * Make sure there are no two workshops starting at the same time.
+ */
+function luz_node_validate($node, $form, &$form_state) {
+  if ($node->type != 'workshop') {
+    return;
+  }
+
+  $wrapper = entity_metadata_wrapper('node', $node);
+  $timestamp = $wrapper->field_date->value->value();
+
+  if ($nid = luz_workshops_conflict($node)) {
+    form_set_error('field_date', t("There's already another workshop (#@id) on @date starting at @time. Saving cancelled.", array('@id' => $nid, '@date' => date('j/n', $timestamp), '@time' => date('H:i', $timestamp))));
+  }
+}
+
+/**
+ * Check if the given workshop is conflicting with another workshop (Currently a conflict is to start at the same time).
+ */
+function luz_workshops_conflict($node) {
+  $wrapper = entity_metadata_wrapper('node', $node);
+  $timestamp = $wrapper->field_date->value->value();
+
+  $query = new EntityFieldQuery();
+  $result = $query->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', 'workshop')
+    ->propertyCondition('status', NODE_PUBLISHED)
+    ->fieldCondition('field_date', 'value', $timestamp)
+    ->execute();
+
+  if (!empty($result)) {
+    $nid = key($result['node']);
+    return $nid != $node->nid ? $nid : FALSE;
+  }
+  return FALSE;
+}
+
+function luz_sync_participants_flaggings($node) {
+  // Create an array of the participants IDs and remove empty items.
+  $participants = array();
+  if (!empty($node->field_participants)) {
+    foreach ($node->field_participants[LANGUAGE_NONE] as $item) {
+      if (!$item = field_collection_item_load($item['value'])) {
+        continue;
+      }
+      $wrapper = entity_metadata_wrapper('field_collection_item', $item);
+      $uid = $wrapper->field_participant->getIdentifier();
+      if ($uid && $wrapper->field_active->value()) {
+        $participants[$uid] = true;
+      }
+    }
+  }
+
+  // In case a user unflagged the node on their own, avoid calling unflag for them again.
+  $flagged_by = isset($node->unflagged) ? $node->unflagged : NULL;
+
+  $flaggings = flag_get_entity_flags('node', $node->nid, 'attend');
+  $flagging_participants = array();
+  foreach ($flaggings as $flagging) {
+    $flagging_participants[$flagging->uid] = true;
+
+    if ($flagged_by == $flagging->uid) {
+      continue;
+    }
+
+    if (!array_key_exists($flagging->uid, $participants)) {
+      $account = user_load($flagging->uid);
+      $account->flag_from_sync = TRUE;
+      flag('unflag', 'attend', $node->nid, $account);
+    }
+  }
+
+  foreach (array_keys($participants) as $uid) {
+    if (!array_key_exists($uid, $flagging_participants)) {
+      $account = user_load($uid);
+      $account->flag_from_sync = TRUE;
+      flag('flag', 'attend', $node->nid, user_load($uid));
+    }
+  }
+}
+
+function luz_user_attending_workshop($workshop_node, $uid) {
+  if (!$uid) {
+    return FALSE;
+  }
+
+  $wrapper = entity_metadata_wrapper('node', $workshop_node);
+  foreach ($wrapper->field_participants as $item) {
+    if (!$item->value()) {
+      continue;
+    }
+
+    if ($item->field_participant->getIdentifier() == $uid && $item->field_active->value()) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+function luz_flag_access($flag, $entity_id, $action, $account) {
+  if ($flag->name != 'attend' || !$account->uid) {
+    return;
+  }
+
+  $now = time();
+  $node = node_load($entity_id);
+  $node_wrapper = entity_metadata_wrapper('node', $node);
+
+  $node_time = $node_wrapper->field_date->value->value();
+  if ($node_time < $now) {
+    return FALSE;
+  }
+
+  if ($action == 'flag') {
+    $tid = $node_wrapper->field_type->tid->value();
+
+    $type_access = FALSE;
+    $user_wrapper = entity_metadata_wrapper('user', $account);
+    foreach ($user_wrapper->field_workshop_types->value() as $term) {
+      if ($term->tid == $tid) {
+        $type_access = TRUE;
+      }
+    }
+
+    return $type_access && luz_count_participants($node_wrapper->value()) < 5;
+  }
+  else {
+    // No unflagging in the last 24 hours.
+    if ($node_time < $now + 86400) {
+      return FALSE;
+    }
+  }
+}
+
+function luz_copy_repeating_workshops($from_week, $to_week) {
+  global $user;
+
+  $from = new DateTime();
+  $from->setTimestamp($from_week);
+  $from_week_end = $from->add(DateInterval::createFromDateString('+1 week'))->getTimestamp();
+
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', 'workshop')
+    ->propertyCondition('status', NODE_PUBLISHED)
+    ->fieldCondition('field_date', 'value', array($from_week, $from_week_end), 'BETWEEN')
+    ->fieldCondition('field_repeat', 'value', TRUE)
+    ->fieldOrderBy('field_date', 'value');
+  $result = $query->execute();
+
+  if (empty($result['node'])) {
+    drupal_set_message(t('No repeating workshops found.'));
+    return;
+  }
+
+  $weeks_delta = $to_week - $from_week;
+  foreach (node_load_multiple(array_keys($result['node'])) as $original_node) {
+    $values = array(
+      'nid' => NULL, // auto_nodetitle is expecting an nid property.
+      'type' => 'workshop',
+      'uid' => $user->uid,
+      'status' => NODE_PUBLISHED,
+      'promote' => NODE_NOT_PROMOTED,
+    );
+    $new_node = entity_create('node', $values);
+
+    $original_wrapper = entity_metadata_wrapper('node', $original_node);
+    $new_wrapper = entity_metadata_wrapper('node', $new_node);
+
+    $date = $original_wrapper->field_date->value();
+    $date['value'] += $weeks_delta;
+    $date['value2'] += $weeks_delta;
+    $new_node->field_date[LANGUAGE_NONE][0] = $date;
+
+    $new_wrapper->field_type->set($original_wrapper->field_type->getIdentifier());
+
+    if (luz_workshops_conflict($new_node)) {
+      continue;
+    }
+
+    foreach ($original_wrapper->field_participants as $item) {
+      if (!$item->field_repeat->value()) {
+        continue;
+      }
+
+      if (!$uid = $item->field_participant->getIdentifier()) {
+        continue;
+      }
+
+      // Create an item for each participant.
+      $new_item = entity_create('field_collection_item', array('field_name' => 'field_participants'));
+      $new_item->setHostEntity('node', $new_node);
+      $new_item->field_participant[LANGUAGE_NONE][0]['target_id'] = $uid;
+      $new_item->field_repeat[LANGUAGE_NONE][0]['value'] = TRUE;
+      $new_item->field_active[LANGUAGE_NONE][0]['value'] = TRUE;
+      entity_save('field_collection_item', $new_item);
+    }
+
+    $new_wrapper->save();
+  }
+}
+
+/**
+ * hook_field_access
+ *
+ * Disallow normal users to access the workshop types field, and the user recurrence field.
+ */
+function luz_field_access($op, $field, $entity_type, $entity, $account) {
+  if (in_array($field['field_name'], array('field_workshop_types', 'field_repeat'))) {
+    return (bool)array_intersect(array('administrator', 'content manager'), $account->roles);
+  }
+}
+
+/**
+ * hook_user_login
+ */
+function luz_user_login(&$edit, $account) {
+  $edit['redirect'] = '<front>';
+}
+
+/**
+ * Menu callback
+ */
+function luz_copy_previous_week($this_week_timestamp) {
+  $previous_week = new DateTime();
+  $previous_week->setTimestamp($this_week_timestamp);
+  $previous_week->add(DateInterval::createFromDateString('-1 weeks'));
+
+  luz_copy_repeating_workshops($previous_week->getTimestamp(), $this_week_timestamp);
+
+  drupal_goto('<front>', array('query' => array('week' => 0)));
+}
+
+/**
+ * Menu callback
+ */
+function luz_get_video() {
+  $video_url = variable_get('luz_background_video', 'https://embed-ssl.wistia.com/deliveries/3528024b12fdc2f49b3ce8027422347c9dc99244/file.mp4');
+
+  echo <<<EOT
+  <video autoplay loop class="background" muted>
+    <source src="$video_url" type="video/mp4">
+  </video>
+EOT;
+}
+
+/**
+ * hook_form_FROM_ID_alter
+ */
+function luz_form_workshop_node_form_alter(&$form, &$form_state) {
+  $form['#attached']['js'][] = drupal_get_path('module', 'luz') . '/luz_date.js';
+  $form['field_participants'][LANGUAGE_NONE]['add_more']['#value'] = t('Add a participant');
+
+  // Instead of end date, display length in hours.
+  $seconds = $form['field_date'][LANGUAGE_NONE][0]['#default_value']['value2'] - $form['field_date'][LANGUAGE_NONE][0]['#default_value']['value'];
+  $time = new DateTime('now', new DateTimeZone('UTC'));
+  $time->setTimestamp($seconds);
+
+  $form['field_date'][LANGUAGE_NONE][0]['length'] = array(
+    '#title' => t('Duration'),
+    '#description' => t('E.g., @date', array('@date' => '03:00')),
+    '#type' => 'textfield',
+    '#default_value' => $time->format('H:i'),
+    '#weight' => 4,
+    '#size' => 5,
+  );
+}
+
+/**
+ * hook_form_FROM_ID_alter
+ */
+function luz_form_event_node_form_alter(&$form, &$form_state) {
+  $form['#attached']['js'][] = drupal_get_path('module', 'luz') . '/luz_date.js';
+}
+
+/**
+ * hook_form_FROM_ID_alter
+ */
+function luz_form_user_profile_form_alter(&$form, &$form_state) {
+  _luz_alter_user_form($form);
+}
+
+/**
+ * hook_form_FROM_ID_alter
+ */
+function luz_form_user_register_form_alter(&$form, &$form_state) {
+  global $user;
+  _luz_alter_user_form($form);
+
+  // If the account is being registered by a manager, hide the password fields.
+  if ($user->uid) {
+    $form['account']['pass']['#required'] = FALSE;
+    $form['account']['pass']['#access'] = FALSE;
+
+    $form['account']['notify']['#default_value'] = TRUE;
+    $form['account']['notify']['#access'] = FALSE;
+
+    $form['account']['status']['#access'] = FALSE;
+
+    // TODO: It seems that changing the button text causes the form to not create the user.
+//    $form['actions']['submit']['#value'] = t('Create account');
+    $form['actions']['submit']['#attributes'] = array('class' => array('btn-success'));
+  }
+
+
+
+}
+
+function _luz_alter_user_form(&$form) {
+  // Insert the hebrew name and phone into the account field-set.
+  $form['field_he_name']['#weight'] = -9;
+  $form['account']['field_he_name'] = $form['field_he_name'];
+  unset($form['field_he_name']);
+
+  $form['field_phone']['#weight'] = -8;
+  $form['account']['field_phone'] = $form['field_phone'];
+  unset($form['field_phone']);
+
+  $form['account']['name']['#title'] = t('English name');
+
+  // Remove the language settings fieldset.
+  $form['language'] = $form['locale']['language'];
+  unset($form['locale']);
+
+
+  $form['#submit'][] = 'luz_redirect_to_front';
+}
+
+function luz_redirect_to_front($form, &$form_state) {
+  unset($_REQUEST['destination']);
+  $form_state['redirect'] = '<front>';
+}
+
+/**
+ * hook_mail_alter
+ */
+function luz_mail_alter(&$message) {
+  if (isset($message['params']['account'])) {
+    $wrapper = entity_metadata_wrapper('user', $message['params']['account']);
+    $message['body'][0] = str_replace('[user:field_he_name]', $wrapper->field_he_name->value(), $message['body'][0]);
+  }
+}
