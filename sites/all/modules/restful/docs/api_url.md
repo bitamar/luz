@@ -10,11 +10,21 @@ passed in the URL itself.
 
 ## Getting information about the resource
 
-
 ### Exploring the resource
 
 Using a HTTP `GET` request on a resource's root URL will return information
 about that resource, in addition to the data itself.
+
+``` shell
+curl https://example.com/api/
+```
+This will output all the available **latest** resources (of course, if you have enabled the "Discovery Resource" option). For example, if there are 3 different api version plugins for content type Article (1.0, 1.1, 2.0) it will display the latest only (2.0 in this case).
+
+If you want to display all the versions of all the resources declared add the query **?all=true** like this.
+
+``` shell
+curl https://example.com/api?all=true
+```
 
 The data results are stored in the `data` property of the JSON response, while
 the `self` and `next` objects contain information about the resource.
@@ -116,6 +126,21 @@ and another equal to 10.
 
 ```
 curl https://example.com/api/articles?filter[integer_multiple][value][0]=5&filter[integer_multiple][value][1]=10&filter[integer_multiple][operator][0]=">"&filter[integer_multiple][operator][0]="="
+```
+
+## Applying a query sort
+RESTful allows specifying of a sort property to the database query used to generate the list.
+
+```php
+# Handler v1.0
+curl https://example.com/api/v1/articles?sort=label
+```
+
+The sort order will default to ascending, however it can be set to descending by prepending a minus (-) sign the sort parameter value.
+
+```shell
+# Handler v1.0
+curl https://example.com/api/v1/articles?sort=-label
 ```
 
 ## Loading by an alternate ID.
