@@ -696,6 +696,8 @@ EOT;
  * hook_form_FROM_ID_alter
  */
 function luz_form_workshop_node_form_alter(&$form, &$form_state) {
+  global $user;
+
   $form['#attached']['js'][] = drupal_get_path('module', 'luz') . '/luz_date.js';
   $form['field_participants'][LANGUAGE_NONE]['add_more']['#value'] = t('Add a participant');
 
@@ -712,6 +714,24 @@ function luz_form_workshop_node_form_alter(&$form, &$form_state) {
     '#weight' => 4,
     '#size' => 5,
   );
+
+  // Load only teachers for the teacher field.
+  $role = user_role_load_by_name('teacher');
+  $teachers = db_select('users_roles', 'ur')
+    ->fields('ur', array('uid'))
+    ->condition('rid', $role->rid)
+    ->execute()
+    ->fetchAllAssoc('uid');
+  // Unset all users that are not teachers.
+  foreach (array_keys($form['field_teacher'][LANGUAGE_NONE]['#options']) as $uid) {
+    if (is_int($uid) && !isset($teachers[$uid])) {
+      unset($form['field_teacher'][LANGUAGE_NONE]['#options'][$uid]);
+    }
+  }
+
+  if (isset($teachers[$user->uid])) {
+    $form['field_teacher'][LANGUAGE_NONE]['#default_value'] = $user->uid;
+  }
 }
 
 /**

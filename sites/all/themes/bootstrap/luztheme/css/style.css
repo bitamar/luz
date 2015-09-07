@@ -82,7 +82,7 @@ body.front #luz-wrapper {
       width: 192px; }
     .luz > li > .day {
       height: 376px;
-      background: repeating-linear-gradient(0deg, transparent, transparent 24px, #ccddcc 25px);
+      background: repeating-linear-gradient(0deg, transparent, transparent 24px, #cdc 25px);
       background-size: 100% 25px;
       position: relative; }
     .luz > li h4, .luz > li h5 {
@@ -532,3 +532,5 @@ body.lang-he ul.action-links .glyphicon {
     margin-left: 0; }
   body.lang-he.front .main-container #luz-wrapper .luz > li .node-workshop:hover {
     margin-right: 0; } }
+
+/*# sourceMappingURL=style.css.map */
