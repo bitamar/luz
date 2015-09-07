@@ -10,7 +10,8 @@
 function luz_field_default_field_instances() {
   $field_instances = array();
 
-  // Exported field_instance: 'field_collection_item-field_participants-field_active'
+  // Exported field_instance:
+  // 'field_collection_item-field_participants-field_active'
   $field_instances['field_collection_item-field_participants-field_active'] = array(
     'bundle' => 'field_participants',
     'default_value' => array(
@@ -46,7 +47,8 @@ function luz_field_default_field_instances() {
     ),
   );
 
-  // Exported field_instance: 'field_collection_item-field_participants-field_participant'
+  // Exported field_instance:
+  // 'field_collection_item-field_participants-field_participant'
   $field_instances['field_collection_item-field_participants-field_participant'] = array(
     'bundle' => 'field_participants',
     'default_value' => NULL,
@@ -85,7 +87,8 @@ function luz_field_default_field_instances() {
     ),
   );
 
-  // Exported field_instance: 'field_collection_item-field_participants-field_repeat'
+  // Exported field_instance:
+  // 'field_collection_item-field_participants-field_repeat'
   $field_instances['field_collection_item-field_participants-field_repeat'] = array(
     'bundle' => 'field_participants',
     'default_value' => array(
@@ -320,6 +323,47 @@ function luz_field_default_field_instances() {
     ),
   );
 
+  // Exported field_instance: 'node-workshop-field_teacher'
+  $field_instances['node-workshop-field_teacher'] = array(
+    'bundle' => 'workshop',
+    'default_value' => NULL,
+    'deleted' => 0,
+    'description' => '',
+    'display' => array(
+      'default' => array(
+        'label' => 'above',
+        'module' => 'entityreference',
+        'settings' => array(
+          'empty_fields_emptyfieldtext_empty_text' => '',
+          'empty_fields_handler' => '',
+          'link' => FALSE,
+        ),
+        'type' => 'entityreference_label',
+        'weight' => 4,
+      ),
+      'teaser' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+    ),
+    'entity_type' => 'node',
+    'field_name' => 'field_teacher',
+    'label' => 'Teacher',
+    'required' => 0,
+    'settings' => array(
+      'user_register_form' => FALSE,
+    ),
+    'widget' => array(
+      'active' => 1,
+      'module' => 'options',
+      'settings' => array(),
+      'type' => 'options_select',
+      'weight' => 6,
+    ),
+  );
+
   // Exported field_instance: 'node-workshop-field_type'
   $field_instances['node-workshop-field_type'] = array(
     'bundle' => 'workshop',
@@ -538,6 +582,7 @@ function luz_field_default_field_instances() {
   t('Participant');
   t('Phone');
   t('Recurrent');
+  t('Teacher');
   t('Type');
   t('Whether this participant will be joined automatically to the next instance of this workshop.');
   t('Workshop types');
