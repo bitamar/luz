@@ -170,3 +170,7 @@ function luztheme_date_part_label_time($variables) {
     return t('Ending time');
   }
 }
+
+function luztheme_preprocess_user($variables) {
+  dpm($variables);
+}

@@ -131,7 +131,13 @@ body.front #luz-wrapper {
       font-weight: bold;
       font-size: 12px;
       display: inline-block;
-      margin-left: 4px; }
+      margin-left: 4px;
+      margin-right: 4px; }
+    .luz .node-workshop .field-name-field-teacher {
+      display: inline-block;
+      font-size: 12px; }
+      .luz .node-workshop .field-name-field-teacher .field-item:before {
+        content: " - "; }
     .luz .node-workshop .field-name-field-participants {
       margin-top: 5px; }
       .luz .node-workshop .field-name-field-participants * {
@@ -424,9 +430,6 @@ body.lang-he .luz {
       border-radius: 0;
       border-top-right-radius: 4px;
       border-bottom-left-radius: 4px; }
-    body.lang-he .luz .node-workshop .field-name-field-type {
-      margin-left: 0;
-      margin-right: 4px; }
   body.lang-he .luz .edit {
     right: auto;
     left: 5px; }
