@@ -1,0 +1,12 @@
+{
+  "name": "luz",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "format": "prettier \"api/**/*.{js,jsx,ts,tsx,json,md,css,scss,html,yml,yaml}\" \"front/**/*.{js,jsx,ts,tsx,json,md,css,scss,html,yml,yaml}\" --write",
+    "format:check": "prettier \"api/**/*.{js,jsx,ts,tsx,json,md,css,scss,html,yml,yaml}\" \"front/**/*.{js,jsx,ts,tsx,json,md,css,scss,html,yml,yaml}\" --check"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  }
+}

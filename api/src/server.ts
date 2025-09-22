@@ -1,0 +1,18 @@
+import { env } from './env';
+import cookie from '@fastify/cookie';
+import cors from '@fastify/cors';
+import Fastify from 'fastify';
+
+const app = Fastify({ logger: true });
+
+await app.register(cors, { origin: env.APP_ORIGIN, credentials: true });
+await app.register(cookie, { secret: env.JWT_SECRET });
+
+app.get('/health', async () => ({ ok: true }));
+
+try {
+  await app.listen({ port: env.PORT, host: '0.0.0.0' });
+} catch (err) {
+  app.log.error(err);
+  process.exit(1);
+}
