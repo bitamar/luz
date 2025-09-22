@@ -1,4 +1,4 @@
-import { env } from './env';
+import { env } from './env.js';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import Fastify from 'fastify';
