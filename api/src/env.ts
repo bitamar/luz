@@ -5,6 +5,7 @@ const Env = z.object({
   PORT: z.coerce.number().default(3000),
   APP_ORIGIN: z.string().url(),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be ≥32 chars'),
+  DATABASE_URL: z.string().url(),
 });
 
 export const env = Env.parse(process.env);
