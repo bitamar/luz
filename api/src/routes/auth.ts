@@ -63,6 +63,23 @@ export async function authRoutes(app: FastifyInstance) {
     const { nonce } = parsed;
     reply.clearCookie('oidc', { path: '/' });
 
-    return reply.send({ ok: true, codeReceived: Boolean(code), noncePresent: Boolean(nonce) });
+    // Exchange code at Google
+    const currentUrl = new URL(req.raw.url!, env.URL); // full URL with ?code&state
+    const tokens = await oidc.authorizationCodeGrant(config, currentUrl, {
+      expectedNonce: nonce,
+      idTokenExpected: true,
+      // we've already checked state; no need to pass expectedState
+    });
+    const claims = tokens.claims();
+
+    // temporary response (will be replaced by DB+JWT next step)
+    return reply.send({
+      ok: true,
+      sub: claims!.sub,
+      email: claims!['email'],
+      email_verified: claims!['email_verified'],
+      name: claims!['name'],
+      picture: claims!['picture'],
+    });
   });
 }
