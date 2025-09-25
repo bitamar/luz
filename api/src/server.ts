@@ -2,11 +2,14 @@ import { env } from './env.js';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import Fastify from 'fastify';
+import { authRoutes } from './routes/auth.js';
 
 const app = Fastify({ logger: true });
 
 await app.register(cors, { origin: env.APP_ORIGIN, credentials: true });
 await app.register(cookie, { secret: env.JWT_SECRET });
+
+await app.register(authRoutes);
 
 app.get('/health', async () => ({ ok: true }));
 
