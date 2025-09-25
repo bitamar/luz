@@ -6,8 +6,8 @@ const Env = z.object({
   APP_ORIGIN: z.string().url(),
   JWT_SECRET: z.string().min(32),
   DATABASE_URL: z.string().url(),
-  GOOGLE_CLIENT_ID: z.string().url(),
-  GOOGLE_CLIENT_SECRET: z.string().min(10),
+  GOOGLE_CLIENT_ID: z.string(),
+  GOOGLE_CLIENT_SECRET: z.string(),
   URL: z.string().url(),
 });
 
