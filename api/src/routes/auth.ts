@@ -7,7 +7,8 @@ export async function authRoutes(app: FastifyInstance) {
   const config = await oidc.discovery(
     new URL('https://accounts.google.com'),
     env.GOOGLE_CLIENT_ID,
-    env.GOOGLE_CLIENT_SECRET
+    undefined,
+    oidc.ClientSecretPost(env.GOOGLE_CLIENT_SECRET)
   );
 
   app.get('/auth/google', async (_req, reply) => {
@@ -34,16 +35,13 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   app.get('/auth/google/callback', async (req, reply) => {
-    const Q = z.object({
-      code: z.string().min(1),
-      state: z.string().min(1),
-    });
-    const parseQuery = Q.safeParse(req.query);
-    if (!parseQuery.success) return reply.code(400).send({ error: 'invalid_query' });
+    // validate query
+    const Q = z.object({ code: z.string().min(1), state: z.string().min(1) });
+    const q = Q.safeParse(req.query);
+    if (!q.success) return reply.code(400).send({ error: 'invalid_query' });
+    const { state } = q.data;
 
-    const { code, state } = parseQuery.data;
-
-    // read & validate cookie
+    // 2) read & validate temp cookie (state/nonce)
     const raw = req.cookies['oidc'];
     if (!raw) return reply.code(400).send({ error: 'missing_cookie' });
 
@@ -54,32 +52,37 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: 'bad_cookie' });
     }
     if (!parsed || parsed.state !== state) {
-      // clear the temp cookie on mismatch
       reply.clearCookie('oidc', { path: '/' });
       return reply.code(400).send({ error: 'state_mismatch' });
     }
 
-    // keep nonce in memory for next step; clear temp cookie now
     const { nonce } = parsed;
     reply.clearCookie('oidc', { path: '/' });
 
-    // Exchange code at Google
-    const currentUrl = new URL(req.raw.url!, env.URL); // full URL with ?code&state
-    const tokens = await oidc.authorizationCodeGrant(config, currentUrl, {
-      expectedNonce: nonce,
-      idTokenExpected: true,
-      // we've already checked state; no need to pass expectedState
-    });
-    const claims = tokens.claims();
+    // exchange code → tokens, verify nonce, extract claims
+    try {
+      const currentUrl = new URL(req.raw.url!, env.URL);
+      const tokens = await oidc.authorizationCodeGrant(
+        config,
+        currentUrl,
+        { expectedState: state, expectedNonce: nonce, idTokenExpected: true },
+        { redirect_uri: env.OAUTH_REDIRECT_URI }
+      );
 
-    // temporary response (will be replaced by DB+JWT next step)
-    return reply.send({
-      ok: true,
-      sub: claims!.sub,
-      email: claims!['email'],
-      email_verified: claims!['email_verified'],
-      name: claims!['name'],
-      picture: claims!['picture'],
-    });
+      const claims = tokens.claims?.();
+      if (!claims?.sub) return reply.code(400).send({ error: 'missing_sub' });
+
+      return reply.send({
+        ok: true,
+        sub: claims.sub,
+        email: claims['email'],
+        email_verified: claims['email_verified'],
+        name: claims['name'],
+        picture: claims['picture'],
+      });
+    } catch (err) {
+      req.log.error({ err }, 'google_callback_exchange_failed');
+      return reply.code(500).send({ error: 'oauth_exchange_failed' });
+    }
   });
 }
