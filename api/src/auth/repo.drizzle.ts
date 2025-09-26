@@ -1,0 +1,41 @@
+import type { DbUser, UserRepository } from './types.js';
+import { db as defaultDb } from '../db/client.js';
+import { users } from '../db/schema.js';
+
+export class DrizzleUserRepository implements UserRepository {
+  constructor(private readonly db = defaultDb) {}
+
+  async upsertByEmail(input: {
+    email: string;
+    googleId: string;
+    name: string | null;
+    avatarUrl: string | null;
+    now: Date;
+  }): Promise<DbUser> {
+    const { email, googleId, name, avatarUrl, now } = input;
+
+    const [user] = await this.db
+      .insert(users)
+      .values({
+        email,
+        googleId,
+        name,
+        avatarUrl,
+        updatedAt: now,
+        lastLoginAt: now,
+      })
+      .onConflictDoUpdate({
+        target: users.email,
+        set: {
+          googleId,
+          name,
+          avatarUrl,
+          updatedAt: now,
+          lastLoginAt: now,
+        },
+      })
+      .returning();
+
+    return user as unknown as DbUser;
+  }
+}

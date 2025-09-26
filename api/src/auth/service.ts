@@ -1,0 +1,75 @@
+import type { AuthError, DbUser, Result, UserRepository } from './types.js';
+import { serializeOidcCookie, parseOidcCookie, verifyStateMatch } from './cookies.js';
+import { validateCallbackQuery, validateClaims } from './validation.js';
+import {
+  buildAuthUrl,
+  buildCallbackVerificationUrl,
+  exchangeAuthorizationCode,
+  generateStateNonce,
+} from './oidc.js';
+import type { DiscoveredConfig } from './oidc.js';
+
+export function startGoogleAuth(config: DiscoveredConfig, opts: { redirectUri: string }) {
+  const { state, nonce } = generateStateNonce();
+  const authUrl = buildAuthUrl(config, { state, nonce }, { redirectUri: opts.redirectUri });
+
+  const cookie = {
+    name: 'oidc',
+    value: serializeOidcCookie({ state, nonce }),
+    options: {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none' as const,
+      path: '/',
+      maxAge: 300,
+    },
+  };
+
+  return { cookie, redirectUrl: authUrl.href };
+}
+
+export async function finishGoogleAuth(
+  deps: {
+    config: DiscoveredConfig;
+    repo: UserRepository;
+    now: () => Date;
+    redirectUri: string;
+  },
+  input: { requestUrl: string; query: unknown; rawCookie: string | undefined }
+): Promise<Result<{ user: DbUser }, AuthError>> {
+  // validate query
+  const q = validateCallbackQuery(input.query);
+  if (!q.ok) return { ok: false, error: q.error };
+
+  // parse cookie
+  const parsedCookie = parseOidcCookie(input.rawCookie);
+  if (!parsedCookie.ok) return { ok: false, error: parsedCookie.error };
+
+  // verify state
+  const match = verifyStateMatch(parsedCookie.data.state, q.data.state);
+  if (!match.ok) return { ok: false, error: match.error };
+
+  // exchange code -> tokens and claims
+  const verificationUrl = buildCallbackVerificationUrl(deps.redirectUri, input.requestUrl);
+  const exchanged = await exchangeAuthorizationCode(deps.config, verificationUrl, {
+    expectedState: q.data.state,
+    expectedNonce: parsedCookie.data.nonce,
+    redirectUri: deps.redirectUri,
+  });
+  if (!exchanged.ok) return { ok: false, error: exchanged.error };
+
+  const rawClaims = exchanged.data.claims?.();
+  const claimsRes = validateClaims(rawClaims);
+  if (!claimsRes.ok) return { ok: false, error: claimsRes.error };
+
+  const { sub, email, name, picture } = claimsRes.data;
+  const user = await deps.repo.upsertByEmail({
+    email,
+    googleId: sub,
+    name: name ?? null,
+    avatarUrl: picture ?? null,
+    now: deps.now(),
+  });
+
+  return { ok: true, data: { user } };
+}
