@@ -36,6 +36,8 @@ export class DrizzleUserRepository implements UserRepository {
       })
       .returning();
 
-    return user as unknown as DbUser;
+    if (!user) throw new Error('user_upsert_returned_no_row');
+
+    return user;
   }
 }

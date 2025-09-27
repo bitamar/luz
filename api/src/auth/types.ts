@@ -20,16 +20,10 @@ export interface Claims {
   picture?: string | null | undefined;
 }
 
-export interface DbUser {
-  id: string;
-  email: string;
-  googleId: string | null;
-  name: string | null;
-  avatarUrl: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  lastLoginAt: Date | null;
-}
+import type { InferSelectModel } from 'drizzle-orm';
+import { users } from '../db/schema.js';
+
+export type DbUser = InferSelectModel<typeof users>;
 
 export interface UserRepository {
   upsertByEmail(input: {

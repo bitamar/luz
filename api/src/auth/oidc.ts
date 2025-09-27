@@ -1,10 +1,14 @@
 import * as oidc from 'openid-client';
 import type { Result } from './types.js';
+import { OIDC_SCOPE } from './constants.js';
 
 export type DiscoveredConfig = Parameters<typeof oidc.buildAuthorizationUrl>[0];
 export type TokensType = Awaited<ReturnType<typeof oidc.authorizationCodeGrant>>;
 
-export async function getGoogleOidcConfig(clientId: string, clientSecret: string): Promise<DiscoveredConfig> {
+export async function getGoogleOidcConfig(
+  clientId: string,
+  clientSecret: string
+): Promise<DiscoveredConfig> {
   return oidc.discovery(
     new URL('https://accounts.google.com'),
     clientId,
@@ -17,9 +21,13 @@ export function generateStateNonce(): { state: string; nonce: string } {
   return { state: oidc.randomState(), nonce: oidc.randomNonce() };
 }
 
-export function buildAuthUrl(config: DiscoveredConfig, params: { state: string; nonce: string }, opts: { redirectUri: string }) {
+export function buildAuthUrl(
+  config: DiscoveredConfig,
+  params: { state: string; nonce: string },
+  opts: { redirectUri: string }
+) {
   return oidc.buildAuthorizationUrl(config, {
-    scope: 'openid email profile',
+    scope: OIDC_SCOPE,
     redirect_uri: opts.redirectUri,
     state: params.state,
     nonce: params.nonce,
@@ -42,7 +50,11 @@ export async function exchangeAuthorizationCode(
     const tokens = await oidc.authorizationCodeGrant(
       config,
       verificationUrl,
-      { expectedState: opts.expectedState, expectedNonce: opts.expectedNonce, idTokenExpected: true },
+      {
+        expectedState: opts.expectedState,
+        expectedNonce: opts.expectedNonce,
+        idTokenExpected: true,
+      },
       { redirect_uri: opts.redirectUri }
     );
     return { ok: true, data: tokens };
@@ -50,5 +62,3 @@ export async function exchangeAuthorizationCode(
     return { ok: false, error: 'oauth_exchange_failed' };
   }
 }
-
-

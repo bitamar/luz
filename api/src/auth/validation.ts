@@ -11,10 +11,10 @@ export function validateCallbackQuery(query: unknown): Result<z.infer<typeof Cal
 
 const ClaimsSchema = z.object({
   sub: z.string().min(1),
-  email: z.string().min(1),
+  email: z.string().email(),
   email_verified: z.boolean().optional(),
   name: z.string().optional().nullable(),
-  picture: z.string().optional().nullable(),
+  picture: z.string().url().optional().nullable(),
 });
 
 export function validateClaims(raw: unknown): Result<Claims, 'missing_claims' | 'invalid_claims' | 'email_unverified'> {

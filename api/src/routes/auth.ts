@@ -3,6 +3,7 @@ import * as oidc from 'openid-client';
 import { env } from '../env.js';
 import { DrizzleUserRepository } from '../auth/repo.drizzle.js';
 import { startGoogleAuth, finishGoogleAuth } from '../auth/service.js';
+import { OIDC_COOKIE_NAME } from '../auth/constants.js';
 
 export async function authRoutes(app: FastifyInstance) {
   const config = await oidc.discovery(
@@ -28,7 +29,7 @@ export async function authRoutes(app: FastifyInstance) {
     );
 
     // Clear temporary cookie regardless of outcome
-    reply.clearCookie('oidc', { path: '/' });
+    reply.clearCookie(OIDC_COOKIE_NAME, { path: '/' });
 
     if (!result.ok) {
       const isServer = result.error === 'oauth_exchange_failed';
@@ -36,7 +37,9 @@ export async function authRoutes(app: FastifyInstance) {
         req.log.error({ error: result.error }, 'google_callback_exchange_failed');
         return reply.code(500).send({ error: result.error });
       }
-      return reply.code(400).send({ error: result.error });
+      const status = result.error === 'email_unverified' ? 403 : 400;
+      req.log.debug({ error: result.error }, 'google_callback_client_error');
+      return reply.code(status).send({ error: result.error });
     }
 
     return reply.send({ ok: true, user: result.data.user });

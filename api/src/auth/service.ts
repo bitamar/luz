@@ -7,6 +7,7 @@ import {
   exchangeAuthorizationCode,
   generateStateNonce,
 } from './oidc.js';
+import { OIDC_COOKIE_NAME, OIDC_COOKIE_OPTIONS } from './constants.js';
 import type { DiscoveredConfig } from './oidc.js';
 
 export function startGoogleAuth(config: DiscoveredConfig, opts: { redirectUri: string }) {
@@ -14,15 +15,9 @@ export function startGoogleAuth(config: DiscoveredConfig, opts: { redirectUri: s
   const authUrl = buildAuthUrl(config, { state, nonce }, { redirectUri: opts.redirectUri });
 
   const cookie = {
-    name: 'oidc',
+    name: OIDC_COOKIE_NAME,
     value: serializeOidcCookie({ state, nonce }),
-    options: {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none' as const,
-      path: '/',
-      maxAge: 300,
-    },
+    options: OIDC_COOKIE_OPTIONS,
   };
 
   return { cookie, redirectUrl: authUrl.href };
