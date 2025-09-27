@@ -8,6 +8,14 @@ export default defineConfig({
       provider: 'v8',
       enabled: false,
       reporter: ['text', 'lcov'],
+      include: ['src/**/*.ts'],
+      exclude: [
+        'src/auth/types.ts',
+        'src/db/**',
+        'src/env.ts',
+        'drizzle.config.ts',
+        'src/server.ts',
+      ],
     },
   },
 });
