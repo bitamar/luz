@@ -8,6 +8,13 @@
       "when": 1758624939851,
       "tag": "0000_tan_vertigo",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1759258303086,
+      "tag": "0001_spicy_ikaris",
+      "breakpoints": true
     }
   ]
 }

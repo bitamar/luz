@@ -3,14 +3,12 @@ import * as oidc from 'openid-client';
 import { env } from '../env.js';
 import { DrizzleUserRepository } from '../auth/repo.drizzle.js';
 import { startGoogleAuth, finishGoogleAuth } from '../auth/service.js';
-import { OIDC_COOKIE_NAME } from '../auth/constants.js';
 import {
-  createSession,
-  deleteSession,
-  getSession,
+  OIDC_COOKIE_NAME,
   SESSION_COOKIE_NAME,
   SESSION_COOKIE_OPTIONS,
-} from '../auth/session.js';
+} from '../auth/constants.js';
+import { createSession, deleteSession, getSession } from '../auth/session.js';
 
 export async function authRoutes(app: FastifyInstance) {
   const config = await oidc.discovery(
@@ -60,7 +58,7 @@ export async function authRoutes(app: FastifyInstance) {
   // Return current user from session
   app.get('/me', async (req, reply) => {
     const sessionId = req.cookies[SESSION_COOKIE_NAME];
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) return reply.code(401).send({ error: 'unauthorized' });
     return reply.send({ user: session.user });
   });
