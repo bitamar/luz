@@ -37,7 +37,13 @@ describe('service', () => {
     (exchangeAuthorizationCode as unknown as Mock).mockResolvedValue({
       ok: true,
       data: {
-        claims: () => ({ sub: '1', email: 'a@example.com', email_verified: true, name: null, picture: null }),
+        claims: () => ({
+          sub: '1',
+          email: 'a@example.com',
+          email_verified: true,
+          name: null,
+          picture: null,
+        }),
       },
     });
     const fakeUser: DbUser = {
@@ -66,57 +72,99 @@ describe('service', () => {
   });
 
   it('finishGoogleAuth handles invalid_query', async () => {
-    const repo: UserRepository = { upsertByEmail: vi.fn() as unknown as UserRepository['upsertByEmail'] };
+    const repo: UserRepository = {
+      upsertByEmail: vi.fn() as unknown as UserRepository['upsertByEmail'],
+    };
     const res = await finishGoogleAuth(
       { config, repo, now: () => new Date(0), redirectUri: 'https://app/cb' },
-      { requestUrl: 'https://app/cb?bad', query: {}, rawCookie: JSON.stringify({ state: 's', nonce: 'n' }) }
+      {
+        requestUrl: 'https://app/cb?bad',
+        query: {},
+        rawCookie: JSON.stringify({ state: 's', nonce: 'n' }),
+      }
     );
     expect(res).toEqual({ ok: false, error: 'invalid_query' });
   });
 
   it('finishGoogleAuth handles missing_cookie', async () => {
-    const repo: UserRepository = { upsertByEmail: vi.fn() as unknown as UserRepository['upsertByEmail'] };
+    const repo: UserRepository = {
+      upsertByEmail: vi.fn() as unknown as UserRepository['upsertByEmail'],
+    };
     const res = await finishGoogleAuth(
       { config, repo, now: () => new Date(0), redirectUri: 'https://app/cb' },
-      { requestUrl: 'https://app/cb?code=x&state=s', query: { code: 'x', state: 's' }, rawCookie: undefined }
+      {
+        requestUrl: 'https://app/cb?code=x&state=s',
+        query: { code: 'x', state: 's' },
+        rawCookie: undefined,
+      }
     );
     expect(res).toEqual({ ok: false, error: 'missing_cookie' });
   });
 
   it('finishGoogleAuth handles bad_cookie', async () => {
-    const repo: UserRepository = { upsertByEmail: vi.fn() as unknown as UserRepository['upsertByEmail'] };
+    const repo: UserRepository = {
+      upsertByEmail: vi.fn() as unknown as UserRepository['upsertByEmail'],
+    };
     const res = await finishGoogleAuth(
       { config, repo, now: () => new Date(0), redirectUri: 'https://app/cb' },
-      { requestUrl: 'https://app/cb?code=x&state=s', query: { code: 'x', state: 's' }, rawCookie: '{bad' }
+      {
+        requestUrl: 'https://app/cb?code=x&state=s',
+        query: { code: 'x', state: 's' },
+        rawCookie: '{bad',
+      }
     );
     expect(res).toEqual({ ok: false, error: 'bad_cookie' });
   });
 
   it('finishGoogleAuth handles state_mismatch', async () => {
-    const repo: UserRepository = { upsertByEmail: vi.fn() as unknown as UserRepository['upsertByEmail'] };
+    const repo: UserRepository = {
+      upsertByEmail: vi.fn() as unknown as UserRepository['upsertByEmail'],
+    };
     const res = await finishGoogleAuth(
       { config, repo, now: () => new Date(0), redirectUri: 'https://app/cb' },
-      { requestUrl: 'https://app/cb?code=x&state=DIFF', query: { code: 'x', state: 'DIFF' }, rawCookie: JSON.stringify({ state: 's', nonce: 'n' }) }
+      {
+        requestUrl: 'https://app/cb?code=x&state=DIFF',
+        query: { code: 'x', state: 'DIFF' },
+        rawCookie: JSON.stringify({ state: 's', nonce: 'n' }),
+      }
     );
     expect(res).toEqual({ ok: false, error: 'state_mismatch' });
   });
 
   it('finishGoogleAuth handles invalid_claims', async () => {
-    (exchangeAuthorizationCode as unknown as Mock).mockResolvedValue({ ok: true, data: { claims: () => ({}) } });
-    const repo: UserRepository = { upsertByEmail: vi.fn() as unknown as UserRepository['upsertByEmail'] };
+    (exchangeAuthorizationCode as unknown as Mock).mockResolvedValue({
+      ok: true,
+      data: { claims: () => ({}) },
+    });
+    const repo: UserRepository = {
+      upsertByEmail: vi.fn() as unknown as UserRepository['upsertByEmail'],
+    };
     const res = await finishGoogleAuth(
       { config, repo, now: () => new Date(0), redirectUri: 'https://app/cb' },
-      { requestUrl: 'https://app/cb?code=x&state=s', query: { code: 'x', state: 's' }, rawCookie: JSON.stringify({ state: 's', nonce: 'n' }) }
+      {
+        requestUrl: 'https://app/cb?code=x&state=s',
+        query: { code: 'x', state: 's' },
+        rawCookie: JSON.stringify({ state: 's', nonce: 'n' }),
+      }
     );
     expect(res).toEqual({ ok: false, error: 'invalid_claims' });
   });
 
   it('finishGoogleAuth handles missing_claims', async () => {
-    (exchangeAuthorizationCode as unknown as Mock).mockResolvedValue({ ok: true, data: { claims: () => undefined } });
-    const repo: UserRepository = { upsertByEmail: vi.fn() as unknown as UserRepository['upsertByEmail'] };
+    (exchangeAuthorizationCode as unknown as Mock).mockResolvedValue({
+      ok: true,
+      data: { claims: () => undefined },
+    });
+    const repo: UserRepository = {
+      upsertByEmail: vi.fn() as unknown as UserRepository['upsertByEmail'],
+    };
     const res = await finishGoogleAuth(
       { config, repo, now: () => new Date(0), redirectUri: 'https://app/cb' },
-      { requestUrl: 'https://app/cb?code=x&state=s', query: { code: 'x', state: 's' }, rawCookie: JSON.stringify({ state: 's', nonce: 'n' }) }
+      {
+        requestUrl: 'https://app/cb?code=x&state=s',
+        query: { code: 'x', state: 's' },
+        rawCookie: JSON.stringify({ state: 's', nonce: 'n' }),
+      }
     );
     expect(res).toEqual({ ok: false, error: 'missing_claims' });
   });

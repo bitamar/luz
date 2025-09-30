@@ -4,6 +4,13 @@ import { env } from '../env.js';
 import { DrizzleUserRepository } from '../auth/repo.drizzle.js';
 import { startGoogleAuth, finishGoogleAuth } from '../auth/service.js';
 import { OIDC_COOKIE_NAME } from '../auth/constants.js';
+import {
+  createSession,
+  deleteSession,
+  getSession,
+  SESSION_COOKIE_NAME,
+  SESSION_COOKIE_OPTIONS,
+} from '../auth/session.js';
 
 export async function authRoutes(app: FastifyInstance) {
   const config = await oidc.discovery(
@@ -42,6 +49,27 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.code(status).send({ error: result.error });
     }
 
-    return reply.send({ ok: true, user: result.data.user });
+    // Create session and set cookie
+    const session = createSession(result.data.user);
+    reply.setCookie(SESSION_COOKIE_NAME, session.id, SESSION_COOKIE_OPTIONS);
+
+    // On success, redirect back to the SPA (dashboard)
+    return reply.redirect(`${env.APP_ORIGIN}/`);
+  });
+
+  // Return current user from session
+  app.get('/me', async (req, reply) => {
+    const sessionId = req.cookies[SESSION_COOKIE_NAME];
+    const session = getSession(sessionId);
+    if (!session) return reply.code(401).send({ error: 'unauthorized' });
+    return reply.send({ user: session.user });
+  });
+
+  // Logout: delete session and clear cookie
+  app.post('/auth/logout', async (req, reply) => {
+    const sessionId = req.cookies[SESSION_COOKIE_NAME];
+    deleteSession(sessionId);
+    reply.clearCookie(SESSION_COOKIE_NAME, { path: '/' });
+    return reply.send({ ok: true });
   });
 }

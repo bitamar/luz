@@ -34,5 +34,3 @@ export interface UserRepository {
     now: Date;
   }): Promise<DbUser>;
 }
-
-

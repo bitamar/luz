@@ -1,12 +1,19 @@
 {
   "name": "luz",
   "private": true,
+  "type": "module",
   "version": "0.0.0",
   "scripts": {
     "format": "prettier \"api/**/*.{js,jsx,ts,tsx,json,md,css,scss,html,yml,yaml}\" \"front/**/*.{js,jsx,ts,tsx,json,md,css,scss,html,yml,yaml}\" --write",
-    "format:check": "prettier \"api/**/*.{js,jsx,ts,tsx,json,md,css,scss,html,yml,yaml}\" \"front/**/*.{js,jsx,ts,tsx,json,md,css,scss,html,yml,yaml}\" --check"
+    "format:check": "prettier \"api/**/*.{js,jsx,ts,tsx,json,md,css,scss,html,yml,yaml}\" \"front/**/*.{js,jsx,ts,tsx,json,md,css,scss,html,yml,yaml}\" --check",
+    "lint": "eslint ."
   },
   "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
+    "eslint": "^9.36.0",
+    "globals": "^16.4.0",
     "prettier": "^3.6.2"
   }
 }

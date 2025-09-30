@@ -12,13 +12,25 @@ describe('validation', () => {
   it('validates claims and email_verified', () => {
     expect(validateClaims(undefined)).toEqual({ ok: false, error: 'missing_claims' });
     expect(
-      validateClaims({ sub: '1', email: 'e@example.com', name: null, picture: null, email_verified: true })
+      validateClaims({
+        sub: '1',
+        email: 'e@example.com',
+        name: null,
+        picture: null,
+        email_verified: true,
+      })
     ).toEqual({
       ok: true,
       data: { sub: '1', email: 'e@example.com', name: null, picture: null, email_verified: true },
     });
     expect(
-      validateClaims({ sub: '1', email: 'e@example.com', name: null, picture: null, email_verified: false })
+      validateClaims({
+        sub: '1',
+        email: 'e@example.com',
+        name: null,
+        picture: null,
+        email_verified: false,
+      })
     ).toEqual({ ok: false, error: 'email_unverified' });
   });
 });

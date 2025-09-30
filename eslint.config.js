@@ -6,17 +6,18 @@ import globals from 'globals';
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [
-  { ignores: ['dist/**', 'node_modules/**'] },
-  { languageOptions: { globals: { ...globals.node, ...globals.es2022 } } },
+  { ignores: ['**/dist/**', '**/node_modules/**'] },
   js.configs.recommended,
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       parser: tsparser,
       parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
+      globals: { ...globals.es2022 },
     },
     plugins: { '@typescript-eslint': tseslint },
     rules: {
+      'no-undef': 'off',
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -24,5 +25,15 @@ export default [
       ],
       '@typescript-eslint/no-explicit-any': 'error',
     },
+  },
+  // Backend (Node) files
+  {
+    files: ['api/**/*.{ts,tsx,js,jsx}'],
+    languageOptions: { globals: { ...globals.node, ...globals.es2022 } },
+  },
+  // Frontend (Browser) files
+  {
+    files: ['front/**/*.{ts,tsx,js,jsx}'],
+    languageOptions: { globals: { ...globals.browser, ...globals.es2022 } },
   },
 ];
