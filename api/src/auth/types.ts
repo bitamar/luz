@@ -34,3 +34,15 @@ export interface UserRepository {
     now: Date;
   }): Promise<DbUser>;
 }
+
+export interface SessionData {
+  id: string;
+  user: DbUser;
+  createdAt: Date;
+  lastAccessedAt: Date;
+}
+
+export interface OidcCookie {
+  state: string;
+  nonce: string;
+}

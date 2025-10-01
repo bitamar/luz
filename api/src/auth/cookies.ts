@@ -1,10 +1,5 @@
 import { z } from 'zod';
-import type { Result } from './types.js';
-
-export interface OidcCookie {
-  state: string;
-  nonce: string;
-}
+import type { OidcCookie, Result } from './types.js';
 
 const OidcCookieSchema = z.object({ state: z.string().min(1), nonce: z.string().min(1) });
 

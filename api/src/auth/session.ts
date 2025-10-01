@@ -1,16 +1,9 @@
 import crypto from 'node:crypto';
-import type { DbUser } from './types.js';
+import type { DbUser, SessionData } from './types.js';
 import { db } from '../db/client.js';
 import { sessions as sessionsTable } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { SESSION_TTL } from './constants.js';
-
-export interface SessionData {
-  id: string;
-  user: DbUser;
-  createdAt: Date;
-  lastAccessedAt: Date;
-}
 
 export function createSession(user: DbUser): SessionData {
   const id = crypto.randomUUID();

@@ -41,21 +41,18 @@ export function buildCallbackVerificationUrl(redirectUri: string, requestUrl: st
   return currentUrl;
 }
 
+type Options = { expectedState: string; expectedNonce: string; redirectUri: string };
 export async function exchangeAuthorizationCode(
   config: DiscoveredConfig,
   verificationUrl: URL,
-  opts: { expectedState: string; expectedNonce: string; redirectUri: string }
+  { expectedState, expectedNonce, redirectUri }: Options
 ): Promise<Result<TokensType, 'oauth_exchange_failed'>> {
   try {
     const tokens = await oidc.authorizationCodeGrant(
       config,
       verificationUrl,
-      {
-        expectedState: opts.expectedState,
-        expectedNonce: opts.expectedNonce,
-        idTokenExpected: true,
-      },
-      { redirect_uri: opts.redirectUri }
+      { expectedState, expectedNonce, idTokenExpected: true },
+      { redirect_uri: redirectUri }
     );
     return { ok: true, data: tokens };
   } catch {
