@@ -19,6 +19,7 @@
   "dependencies": {
     "@fastify/cookie": "^10.0.1",
     "@fastify/cors": "^10.1.0",
+    "@fastify/formbody": "8.0.2",
     "dotenv": "^17.2.2",
     "drizzle-kit": "^0.24.0",
     "drizzle-orm": "^0.33.0",
@@ -27,6 +28,7 @@
     "openid-client": "^6",
     "pg": "^8",
     "pino-pretty": "^11",
+    "twilio": "^5.10.2",
     "zod": "^3"
   },
   "devDependencies": {

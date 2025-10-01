@@ -15,5 +15,8 @@
     "eslint": "^9.36.0",
     "globals": "^16.4.0",
     "prettier": "^3.6.2"
+  },
+  "dependencies": {
+    "@fastify/formbody": "8.0.2"
   }
 }

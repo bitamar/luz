@@ -8,6 +8,8 @@ const Env = z.object({
   DATABASE_URL: z.string().url(),
   GOOGLE_CLIENT_ID: z.string(),
   GOOGLE_CLIENT_SECRET: z.string(),
+  TWILIO_SID: z.string(),
+  TWILIO_AUTH_TOKEN: z.string(),
   URL: z.string().url(),
 });
 
