@@ -29,6 +29,13 @@
       "when": 1759381548785,
       "tag": "0003_bored_talisman",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1759382580787,
+      "tag": "0004_talented_bulldozer",
+      "breakpoints": true
     }
   ]
 }
