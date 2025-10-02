@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, Route, Routes, Navigate, useLocation } from 'react-router-dom';
-import { AppShell, Burger, Center, Group, Loader, NavLink, ScrollArea, Title } from '@mantine/core';
+import { AppShell, Burger, Center, Group, Loader, NavLink, ScrollArea, Title, Button } from '@mantine/core';
 import { IconLayoutDashboard, IconTable } from '@tabler/icons-react';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
@@ -21,10 +21,71 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return children;
 }
 
+function SidebarFooter() {
+  const { user, logout } = useAuth();
+  if (!user) return null;
+  return (
+    <div style={{ paddingTop: 12 }}>
+      <Button size="xs" variant="light" fullWidth onClick={logout}>
+        Logout
+      </Button>
+    </div>
+  );
+}
+
+function Sidebar() {
+  const { user } = useAuth();
+  const location = useLocation();
+  if (!user) return null;
+  return (
+    <AppShell.Navbar p="md">
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <ScrollArea style={{ flex: 1 }}>
+          <NavLink
+            component={Link}
+            to="/"
+            label="Dashboard"
+            leftSection={<IconLayoutDashboard size={16} />}
+            active={location.pathname === '/'}
+          />
+          <NavLink
+            component={Link}
+            to="/treatments"
+            label="Treatments"
+            leftSection={<IconTable size={16} />}
+            active={location.pathname.startsWith('/treatments')}
+          />
+        </ScrollArea>
+        <SidebarFooter />
+      </div>
+    </AppShell.Navbar>
+  );
+}
+
+function HeaderBurgerControls({
+  mobileOpened,
+  setMobileOpened,
+  desktopOpened,
+  setDesktopOpened,
+}: {
+  mobileOpened: boolean;
+  setMobileOpened: React.Dispatch<React.SetStateAction<boolean>>;
+  desktopOpened: boolean;
+  setDesktopOpened: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
+  const { user } = useAuth();
+  if (!user) return null;
+  return (
+    <>
+      <Burger opened={mobileOpened} onClick={() => setMobileOpened((open) => !open)} hiddenFrom="sm" size="sm" />
+      <Burger opened={desktopOpened} onClick={() => setDesktopOpened((open) => !open)} visibleFrom="sm" size="sm" />
+    </>
+  );
+}
+
 export default function App() {
   const [mobileOpened, setMobileOpened] = React.useState(false);
   const [desktopOpened, setDesktopOpened] = React.useState(true);
-  const location = useLocation();
 
   return (
     <AuthProvider>
@@ -36,33 +97,18 @@ export default function App() {
         <AppShell.Header>
           <Group h="100%" px="md" justify="space-between">
             <Group gap="sm">
-              <Burger opened={mobileOpened} onClick={() => setMobileOpened((open) => !open)} hiddenFrom="sm" size="sm" />
-              <Burger opened={desktopOpened} onClick={() => setDesktopOpened((open) => !open)} visibleFrom="sm" size="sm" />
+              <HeaderBurgerControls
+                mobileOpened={mobileOpened}
+                setMobileOpened={setMobileOpened}
+                desktopOpened={desktopOpened}
+                setDesktopOpened={setDesktopOpened}
+              />
               <Title order={3}>kalimere:vet</Title>
             </Group>
           </Group>
         </AppShell.Header>
 
-        <AppShell.Navbar p="md">
-          <ScrollArea style={{ height: '100%' }}>
-            <NavLink
-              component={Link}
-              to="/"
-              label="Dashboard"
-              leftSection={<IconLayoutDashboard size={16} />}
-              active={location.pathname === '/'}
-              onClick={() => setMobileOpened(false)}
-            />
-            <NavLink
-              component={Link}
-              to="/treatments"
-              label="Treatments"
-              leftSection={<IconTable size={16} />}
-              active={location.pathname.startsWith('/treatments')}
-              onClick={() => setMobileOpened(false)}
-            />
-          </ScrollArea>
-        </AppShell.Navbar>
+        <Sidebar />
 
         <AppShell.Main>
           <Routes>
