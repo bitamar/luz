@@ -15,6 +15,20 @@
       "when": 1759258303086,
       "tag": "0001_spicy_ikaris",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1759381325660,
+      "tag": "0002_lumpy_secret_warriors",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1759381548785,
+      "tag": "0003_bored_talisman",
+      "breakpoints": true
     }
   ]
 }
