@@ -1,11 +1,13 @@
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { AppHeader } from './components/AppHeader';
 import { AppShell, Center, Loader } from '@mantine/core';
-import { LoginPage } from './pages/LoginPage';
-import { DashboardPage } from './pages/DashboardPage';
+import { Login } from './pages/Login';
+import { Dashboard } from './pages/Dashboard';
+import { Treatments } from './pages/Treatments';
 import { AuthProvider, useAuth } from './auth/AuthContext';
+import type { ReactNode } from 'react';
 
-function ProtectedRoute({ children }: { children: JSX.Element }) {
+function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, isHydrated } = useAuth();
   if (!isHydrated) {
     return (
@@ -27,12 +29,20 @@ export default function App() {
         </AppShell.Header>
         <AppShell.Main>
           <Routes>
-            <Route path="/login" element={<LoginPage />} />
+            <Route path="/login" element={<Login />} />
             <Route
               path="/"
               element={
                 <ProtectedRoute>
-                  <DashboardPage />
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/treatments"
+              element={
+                <ProtectedRoute>
+                  <Treatments />
                 </ProtectedRoute>
               }
             />

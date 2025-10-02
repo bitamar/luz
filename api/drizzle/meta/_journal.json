@@ -50,6 +50,27 @@
       "when": 1759398629789,
       "tag": "0006_flat_mother_askani",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1762060800000,
+      "tag": "0007_soft_delete_treatments",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1759409382507,
+      "tag": "0008_confused_logan",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1759414513491,
+      "tag": "0009_remarkable_shinko_yamashiro",
+      "breakpoints": true
     }
   ]
 }

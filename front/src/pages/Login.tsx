@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { IconBrandGoogle } from '@tabler/icons-react';
 import { useAuth } from '../auth/AuthContext';
 
-export function LoginPage() {
+export function Login() {
   const { loginWithGoogle, user } = useAuth();
 
   if (user) {

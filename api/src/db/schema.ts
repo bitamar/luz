@@ -50,6 +50,7 @@ export const customers = pgTable('customers', {
   email: text('email'),
   phone: text('phone'),
   address: text('address'),
+  isDeleted: boolean('is_deleted').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => {
@@ -71,6 +72,7 @@ export const pets = pgTable('pets', {
   gender: petGenderEnum('gender').notNull(),
   isSterilized: boolean('is_sterilized'),
   isCastrated: boolean('is_castrated'),
+  isDeleted: boolean('is_deleted').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -98,7 +100,9 @@ export const treatments = pgTable('treatments', {
     .notNull()
     .references(() => users.id),
   name: text('name').notNull(),
-  durationMonths: integer('duration_months').notNull(),
+  defaultIntervalMonths: integer('default_interval_months'),
+  price: integer('price'),
+  isDeleted: boolean('is_deleted').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => {
@@ -115,6 +119,7 @@ export const visits = pgTable('visits', {
     .references(() => pets.id),
   visitDate: date('visit_date').notNull(),
   summary: text('summary').notNull(),
+  isDeleted: boolean('is_deleted').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -129,6 +134,7 @@ export const visitTreatments = pgTable('visit_treatments', {
     .notNull()
     .references(() => treatments.id),
   nextDueDate: date('next_due_date'),
+  isDeleted: boolean('is_deleted').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -146,6 +152,7 @@ export const appointments = pgTable('appointments', {
   endTime: timestamp('end_time', { withTimezone: true }),
   title: text('title').notNull(),
   notes: text('notes'),
+  isDeleted: boolean('is_deleted').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
