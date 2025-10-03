@@ -28,7 +28,6 @@ export class DrizzleUserRepository implements UserRepository {
         target: users.email,
         set: {
           googleId,
-          name,
           avatarUrl,
           updatedAt: now,
           lastLoginAt: now,
