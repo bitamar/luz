@@ -155,7 +155,7 @@ export function Treatments() {
   return (
     <Container size="lg" mt="xl">
       <Group justify="space-between" mb="md">
-        <Title order={2}>טיפולים</Title>
+        <Title order={2}>סוגי טיפולים</Title>
         <Button onClick={openCreate} disabled={loading}>
           טיפול חדש
         </Button>

@@ -1,8 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Button, Group, Stack, TextInput, Title } from '@mantine/core';
+import {
+  Button,
+  Group,
+  Stack,
+  Switch,
+  TextInput,
+  Title,
+  useMantineColorScheme,
+} from '@mantine/core';
+import { IconMoon, IconSun } from '@tabler/icons-react';
 import { getSettings, updateSettings } from '../auth/api';
 
 export function Settings() {
+  const { colorScheme, setColorScheme } = useMantineColorScheme();
   const [name, setName] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -17,8 +27,8 @@ export function Settings() {
           setName(data.user.name ?? '');
           setPhone(data.user.phone ?? '');
         }
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'failed');
+      } catch (error) {
+        if (!cancelled) setError(error instanceof Error ? error.message : 'failed');
       }
     })();
     return () => {
@@ -43,17 +53,23 @@ export function Settings() {
     <form onSubmit={onSubmit}>
       <Stack gap="md">
         <Title order={3}>הגדרות משתמש</Title>
+        <Switch
+          checked={colorScheme === 'dark'}
+          onChange={({ currentTarget }) => setColorScheme(currentTarget.checked ? 'dark' : 'light')}
+          onLabel={<IconMoon size={14} />}
+          offLabel={<IconSun size={14} />}
+        />
         <TextInput
           label="שם"
           required
           value={name}
-          onChange={(e) => setName(e.currentTarget.value)}
+          onChange={({ currentTarget }) => setName(currentTarget.value)}
         />
         <TextInput
           label="טלפון"
           required
           value={phone}
-          onChange={(e) => setPhone(e.currentTarget.value)}
+          onChange={({ currentTarget }) => setPhone(currentTarget.value)}
         />
         {error && <div style={{ color: 'var(--mantine-color-red-6)' }}>{error}</div>}
         <Group justify="flex-end">

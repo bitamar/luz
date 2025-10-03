@@ -1,23 +1,5 @@
-import {
-  ActionIcon,
-  AppShell,
-  Avatar,
-  Burger,
-  Button,
-  Divider,
-  Group,
-  Menu,
-  Title,
-  useMantineColorScheme,
-} from '@mantine/core';
-import {
-  IconChevronDown,
-  IconLogout,
-  IconMoon,
-  IconPawFilled,
-  IconSettings,
-  IconSun,
-} from '@tabler/icons-react';
+import { AppShell, Avatar, Burger, Button, Divider, Group, Menu, Title } from '@mantine/core';
+import { IconChevronDown, IconLogout, IconPawFilled, IconSettings } from '@tabler/icons-react';
 import { useAuth } from './auth/AuthContext';
 import { Link } from 'react-router-dom';
 
@@ -28,8 +10,6 @@ export default function Header({
   opened: boolean;
   setOpened: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
-  const { colorScheme, setColorScheme } = useMantineColorScheme();
-  const toggleColorScheme = () => setColorScheme(colorScheme === 'dark' ? 'light' : 'dark');
   const { logout, user } = useAuth();
 
   return (
@@ -49,12 +29,6 @@ export default function Header({
         </Group>
 
         <Group>
-          {/*<ActionIcon variant="subtle">*/}
-          {/*  <IconBell size={18} />*/}
-          {/*</ActionIcon>*/}
-          <ActionIcon variant="subtle" onClick={toggleColorScheme}>
-            {colorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
-          </ActionIcon>
           <Menu shadow="md" width={220}>
             <Menu.Target>
               <Button
