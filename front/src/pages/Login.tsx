@@ -13,7 +13,7 @@ export function Login() {
       <Card dir="rtl" shadow="sm" padding="lg" radius="md" withBorder w={360}>
         <Stack>
           <Title order={5} ta="center">
-            KALIMERE <IconPawFilled />
+            kalimere::vet <IconPawFilled />
           </Title>
           <Text ta="center" c="dimmed">
             בשביל להמשיך צריך להתחבר עם Google

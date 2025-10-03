@@ -30,7 +30,7 @@ export default function Header({
 }) {
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const toggleColorScheme = () => setColorScheme(colorScheme === 'dark' ? 'light' : 'dark');
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   return (
     <AppShell.Header>
@@ -44,7 +44,7 @@ export default function Header({
           />
 
           <Title order={6}>
-            <IconPawFilled /> KALIMERE
+            <IconPawFilled /> kalimere::vet
           </Title>
         </Group>
 
@@ -59,10 +59,10 @@ export default function Header({
             <Menu.Target>
               <Button
                 variant="subtle"
-                leftSection={<Avatar size={20} radius="xl" />}
+                leftSection={<Avatar size={20} radius="xl" src={user?.avatarUrl ?? null} />}
                 rightSection={<IconChevronDown size={16} />}
               >
-                איתמר
+                {user?.name || user?.email || ''}
               </Button>
             </Menu.Target>
             <Menu.Dropdown>

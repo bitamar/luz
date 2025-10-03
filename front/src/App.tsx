@@ -1,9 +1,9 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import 'dayjs/locale/he';
 import { AppShell, Center, Loader, ScrollArea } from '@mantine/core';
 import Header from './Header';
 import Navbar from './Navbar';
-import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { Dashboard } from './pages/Dashboard';
@@ -29,6 +29,12 @@ function PlainLayout() {
 
 function ProtectedLayout() {
   const [opened, setOpened] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    // Close mobile navbar when navigating to a new route
+    setOpened(false);
+  }, [location.pathname]);
 
   return (
     <AppShell
