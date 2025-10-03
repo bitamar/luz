@@ -6,9 +6,6 @@ export interface Treatment {
   name: string;
   defaultIntervalMonths: number | null;
   price: number | null;
-  isDeleted: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export async function listTreatments(): Promise<Treatment[]> {

@@ -1,4 +1,4 @@
-import { Button, Card, Container, Group, Stack, Text, Title } from '@mantine/core';
+import { Button, Card, Center, Group, Stack, Text, Title } from '@mantine/core';
 import { Navigate } from 'react-router-dom';
 import { IconBrandGoogle } from '@tabler/icons-react';
 import { useAuth } from '../auth/AuthContext';
@@ -6,13 +6,11 @@ import { useAuth } from '../auth/AuthContext';
 export function Login() {
   const { loginWithGoogle, user } = useAuth();
 
-  if (user) {
-    return <Navigate to="/" replace />;
-  }
+  if (user) return <Navigate to="/" replace />;
 
   return (
-    <Container size="xs" mt="xl">
-      <Card shadow="sm" padding="lg" radius="md" withBorder>
+    <Center style={{ minHeight: 'calc(100dvh - 56px)' }}>
+      <Card shadow="sm" padding="lg" radius="md" withBorder w={360}>
         <Stack>
           <Title order={2} ta="center">
             Welcome
@@ -31,6 +29,6 @@ export function Login() {
           </Group>
         </Stack>
       </Card>
-    </Container>
+    </Center>
   );
 }

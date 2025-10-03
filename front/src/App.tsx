@@ -1,12 +1,13 @@
-import React from 'react';
-import { Link, Route, Routes, Navigate, useLocation } from 'react-router-dom';
-import { AppShell, Burger, Center, Group, Loader, NavLink, ScrollArea, Title, Button } from '@mantine/core';
-import { IconLayoutDashboard, IconTable } from '@tabler/icons-react';
+import { type ReactNode, useState } from 'react';
+import 'dayjs/locale/he';
+import { AppShell, Center, Loader, ScrollArea } from '@mantine/core';
+import Header from './Header';
+import Navbar from './Navbar';
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { Login } from './pages/Login';
+import { AuthProvider, useAuth } from './auth/AuthContext';
 import { Dashboard } from './pages/Dashboard';
 import { Treatments } from './pages/Treatments';
-import { AuthProvider, useAuth } from './auth/AuthContext';
-import type { ReactNode } from 'react';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, isHydrated } = useAuth();
@@ -21,118 +22,57 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return children;
 }
 
-function SidebarFooter() {
-  const { user, logout } = useAuth();
-  if (!user) return null;
-  return (
-    <div style={{ paddingTop: 12 }}>
-      <Button size="xs" variant="light" fullWidth onClick={logout}>
-        Logout
-      </Button>
-    </div>
-  );
+function PlainLayout() {
+  return <Outlet />;
 }
 
-function Sidebar() {
-  const { user } = useAuth();
-  const location = useLocation();
-  if (!user) return null;
+function ProtectedLayout() {
+  const [opened, setOpened] = useState(false);
+
   return (
-    <AppShell.Navbar p="md">
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <ScrollArea style={{ flex: 1 }}>
-          <NavLink
-            component={Link}
-            to="/"
-            label="Dashboard"
-            leftSection={<IconLayoutDashboard size={16} />}
-            active={location.pathname === '/'}
-          />
-          <NavLink
-            component={Link}
-            to="/treatments"
-            label="Treatments"
-            leftSection={<IconTable size={16} />}
-            active={location.pathname.startsWith('/treatments')}
-          />
+    <AppShell
+      header={{ height: 64 }}
+      navbar={{ width: 280, breakpoint: 'sm', collapsed: { mobile: !opened } }}
+      padding="md"
+    >
+      <AppShell.Header>
+        <Header opened={opened} setOpened={setOpened} />
+      </AppShell.Header>
+
+      <AppShell.Navbar>
+        <Navbar />
+      </AppShell.Navbar>
+
+      <AppShell.Main>
+        <ScrollArea type="auto" style={{ height: 'calc(100dvh - 64px)' }}>
+          <Outlet />
         </ScrollArea>
-        <SidebarFooter />
-      </div>
-    </AppShell.Navbar>
+      </AppShell.Main>
+    </AppShell>
   );
 }
 
-function HeaderBurgerControls({
-  mobileOpened,
-  setMobileOpened,
-  desktopOpened,
-  setDesktopOpened,
-}: {
-  mobileOpened: boolean;
-  setMobileOpened: React.Dispatch<React.SetStateAction<boolean>>;
-  desktopOpened: boolean;
-  setDesktopOpened: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
-  const { user } = useAuth();
-  if (!user) return null;
-  return (
-    <>
-      <Burger opened={mobileOpened} onClick={() => setMobileOpened((open) => !open)} hiddenFrom="sm" size="sm" />
-      <Burger opened={desktopOpened} onClick={() => setDesktopOpened((open) => !open)} visibleFrom="sm" size="sm" />
-    </>
-  );
-}
-
-export default function App() {
-  const [mobileOpened, setMobileOpened] = React.useState(false);
-  const [desktopOpened, setDesktopOpened] = React.useState(true);
-
+export default function AppRoutes() {
   return (
     <AuthProvider>
-      <AppShell
-        header={{ height: 56 }}
-        navbar={{ width: 260, breakpoint: 'sm', collapsed: { mobile: !mobileOpened, desktop: !desktopOpened } }}
-        padding="md"
-      >
-        <AppShell.Header>
-          <Group h="100%" px="md" justify="space-between">
-            <Group gap="sm">
-              <HeaderBurgerControls
-                mobileOpened={mobileOpened}
-                setMobileOpened={setMobileOpened}
-                desktopOpened={desktopOpened}
-                setDesktopOpened={setDesktopOpened}
-              />
-              <Title order={3}>kalimere:vet</Title>
-            </Group>
-          </Group>
-        </AppShell.Header>
+      <Routes>
+        <Route element={<PlainLayout />}>
+          <Route path="/login" element={<Login />} />
+        </Route>
 
-        <Sidebar />
+        <Route
+          element={
+            <ProtectedRoute>
+              <ProtectedLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/treatments" element={<Treatments />} />
+        </Route>
 
-        <AppShell.Main>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/treatments"
-              element={
-                <ProtectedRoute>
-                  <Treatments />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AppShell.Main>
-      </AppShell>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </AuthProvider>
   );
 }

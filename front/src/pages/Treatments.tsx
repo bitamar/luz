@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  ActionIcon,
   Badge,
   Button,
   Card,
@@ -20,6 +21,7 @@ import {
   deleteTreatment,
   type Treatment,
 } from '../api/treatments';
+import { IconX } from '@tabler/icons-react';
 
 export function Treatments() {
   const [treatments, setTreatments] = useState<Treatment[]>([]);
@@ -52,11 +54,16 @@ export function Treatments() {
     setModalOpen(true);
   }
 
-  function openEdit(t: Treatment) {
-    setEditId(t.id);
-    setName(t.name);
-    setDefaultIntervalMonths(t.defaultIntervalMonths ?? '');
-    setPrice(t.price ?? '');
+  function openEdit({
+    id,
+    name,
+    defaultIntervalMonths,
+    price,
+  }: Pick<Treatment, 'id' | 'name' | 'defaultIntervalMonths' | 'price'>) {
+    setEditId(id);
+    setName(name);
+    setDefaultIntervalMonths(defaultIntervalMonths ?? '');
+    setPrice(price ?? '');
     setModalOpen(true);
   }
 
@@ -84,40 +91,73 @@ export function Treatments() {
 
   const cards = useMemo(
     () =>
-      treatments.map((t) => (
-        <Card key={t.id} withBorder shadow="sm" padding="lg">
-          <Group justify="space-between" mb="xs">
-            <Title order={4}>{t.name}</Title>
-            {typeof t.price === 'number' && (
-              <Badge variant="light">
-                {(t.price / 100).toLocaleString(undefined, { style: 'currency', currency: 'USD' })}
-              </Badge>
-            )}
-          </Group>
-          <Text c="dimmed" size="sm">
-            {typeof t.defaultIntervalMonths === 'number'
-              ? `Default interval: ${t.defaultIntervalMonths} months`
-              : 'No default interval'}
-          </Text>
-          <Group justify="right" mt="md">
-            <Button size="xs" variant="light" onClick={() => openEdit(t)}>
-              Edit
-            </Button>
-            <Button size="xs" variant="subtle" color="red" onClick={() => onDelete(t.id)}>
-              Delete
-            </Button>
-          </Group>
-        </Card>
-      )),
+      treatments.map(({ id, name, price, defaultIntervalMonths }) => {
+        const hasPrice = typeof price === 'number';
+
+        return (
+          <Card
+            key={id}
+            withBorder
+            shadow="sm"
+            radius="md"
+            padding="md"
+            style={{ display: 'flex', flexDirection: 'column' }}
+          >
+            <Group justify="space-between" align="center" mb="sm">
+              <ActionIcon
+                size="sm"
+                variant="subtle"
+                color="red"
+                aria-label="מחק"
+                onClick={() => onDelete(id)}
+              >
+                <IconX size={16} />
+              </ActionIcon>
+
+              {hasPrice && (
+                <Badge variant="light" size="sm" color="blue">
+                  {price.toLocaleString('he-IL', {
+                    style: 'currency',
+                    currency: 'ILS',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })}
+                </Badge>
+              )}
+            </Group>
+
+            <Stack gap="xs" style={{ flexGrow: 1 }}>
+              <Title order={4} style={{ wordBreak: 'break-word' }}>
+                {name}
+              </Title>
+              <Text c="dimmed" size="sm">
+                {typeof defaultIntervalMonths === 'number'
+                  ? `מרווח ברירת מחדל: ${defaultIntervalMonths} חודשים`
+                  : 'חד פעמי'}
+              </Text>
+            </Stack>
+
+            <Group justify="flex-end" mt="md">
+              <Button
+                size="xs"
+                variant="light"
+                onClick={() => openEdit({ id, name, price, defaultIntervalMonths })}
+              >
+                ערוך
+              </Button>
+            </Group>
+          </Card>
+        );
+      }),
     [treatments]
   );
 
   return (
     <Container size="lg" mt="xl">
       <Group justify="space-between" mb="md">
-        <Title order={2}>Treatments</Title>
+        <Title order={2}>טיפולים</Title>
         <Button onClick={openCreate} disabled={loading}>
-          New treatment
+          טיפול חדש
         </Button>
       </Group>
 
@@ -128,35 +168,35 @@ export function Treatments() {
       <Modal
         opened={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editId ? 'Edit treatment' : 'New treatment'}
+        title={editId ? 'עריכת טיפול' : 'טיפול חדש'}
       >
         <Stack>
           <TextInput
-            label="Name"
+            label="שם"
             value={name}
             onChange={({ currentTarget }) => setName(currentTarget.value)}
             required
           />
           <NumberInput
-            label="Default interval (months)"
+            label="מרווח ברירת מחדל (חודשים)"
             value={defaultIntervalMonths}
             onChange={(val) => setDefaultIntervalMonths(typeof val === 'number' ? val : '')}
             min={0}
             clampBehavior="strict"
           />
           <NumberInput
-            label="Price (in cents)"
+            label="מחיר"
             value={price}
             onChange={(val) => setPrice(typeof val === 'number' ? val : '')}
             min={0}
             clampBehavior="strict"
-            leftSection={<Text size="sm">$</Text>}
+            leftSection={<Text size="sm">₪</Text>}
           />
           <Group justify="right" mt="sm">
             <Button variant="default" onClick={() => setModalOpen(false)}>
-              Cancel
+              ביטול
             </Button>
-            <Button onClick={onSubmit}>{editId ? 'Save' : 'Create'}</Button>
+            <Button onClick={onSubmit}>{editId ? 'שמור' : 'הוסף'}</Button>
           </Group>
         </Stack>
       </Modal>
