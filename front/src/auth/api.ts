@@ -17,3 +17,19 @@ export async function logout(): Promise<void> {
 export function getGoogleLoginUrl(): string {
   return `${API_BASE_URL}/auth/google`;
 }
+
+export async function getSettings(): Promise<{ user: AuthUser }> {
+  return await fetchJson<{ user: AuthUser }>('/settings');
+}
+
+export async function updateSettings(input: { name: string | null; phone: string }): Promise<{
+  user: AuthUser;
+}> {
+  return await fetchJson<{ user: AuthUser }>(
+    '/settings',
+    {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }
+  );
+}

@@ -8,6 +8,7 @@ import { Login } from './pages/Login';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { Dashboard } from './pages/Dashboard';
 import { Treatments } from './pages/Treatments';
+import { Settings } from './pages/Settings';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, isHydrated } = useAuth();
@@ -69,6 +70,7 @@ export default function AppRoutes() {
         >
           <Route path="/" element={<Dashboard />} />
           <Route path="/treatments" element={<Treatments />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -4,6 +4,7 @@ import cors from '@fastify/cors';
 import formbody from '@fastify/formbody';
 import Fastify from 'fastify';
 import { authRoutes } from './routes/auth.js';
+import { userRoutes } from './routes/users.js';
 import { inboundRoutes } from './routes/inbound.js';
 import { treatmentRoutes } from './routes/treatments.js';
 import { customerRoutes } from './routes/customers.js';
@@ -17,6 +18,7 @@ await app.register(formbody);
 await app.register(authPlugin);
 
 await app.register(authRoutes);
+await app.register(userRoutes);
 await app.register(inboundRoutes);
 await app.register(treatmentRoutes);
 await app.register(customerRoutes);

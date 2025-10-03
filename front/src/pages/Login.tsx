@@ -1,6 +1,6 @@
 import { Button, Card, Center, Group, Stack, Text, Title } from '@mantine/core';
 import { Navigate } from 'react-router-dom';
-import { IconBrandGoogle } from '@tabler/icons-react';
+import { IconBrandGoogle, IconPawFilled } from '@tabler/icons-react';
 import { useAuth } from '../auth/AuthContext';
 
 export function Login() {
@@ -10,13 +10,13 @@ export function Login() {
 
   return (
     <Center style={{ minHeight: 'calc(100dvh - 56px)' }}>
-      <Card shadow="sm" padding="lg" radius="md" withBorder w={360}>
+      <Card dir="rtl" shadow="sm" padding="lg" radius="md" withBorder w={360}>
         <Stack>
-          <Title order={2} ta="center">
-            Welcome
+          <Title order={5} ta="center">
+            KALIMERE <IconPawFilled />
           </Title>
           <Text ta="center" c="dimmed">
-            Sign in to continue
+            בשביל להמשיך צריך להתחבר עם Google
           </Text>
           <Group justify="center" mt="md">
             <Button
@@ -24,7 +24,7 @@ export function Login() {
               onClick={loginWithGoogle}
               variant="filled"
             >
-              Sign in with Google
+              התחברות באמצעות Google
             </Button>
           </Group>
         </Stack>

@@ -11,9 +11,7 @@ import {
   useMantineColorScheme,
 } from '@mantine/core';
 import {
-  IconBell,
   IconChevronDown,
-  IconInbox,
   IconLogout,
   IconMoon,
   IconPawFilled,
@@ -21,6 +19,7 @@ import {
   IconSun,
 } from '@tabler/icons-react';
 import { useAuth } from './auth/AuthContext';
+import { Link } from 'react-router-dom';
 
 export default function Header({
   opened,
@@ -50,9 +49,9 @@ export default function Header({
         </Group>
 
         <Group>
-          <ActionIcon variant="subtle">
-            <IconBell size={18} />
-          </ActionIcon>
+          {/*<ActionIcon variant="subtle">*/}
+          {/*  <IconBell size={18} />*/}
+          {/*</ActionIcon>*/}
           <ActionIcon variant="subtle" onClick={toggleColorScheme}>
             {colorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
           </ActionIcon>
@@ -67,8 +66,10 @@ export default function Header({
               </Button>
             </Menu.Target>
             <Menu.Dropdown>
-              <Menu.Item leftSection={<IconSettings size={16} />}>הגדרות</Menu.Item>
-              <Menu.Item leftSection={<IconInbox size={16} />}>דואר נכנס</Menu.Item>
+              <Menu.Item component={Link} to="/settings" leftSection={<IconSettings size={16} />}>
+                הגדרות
+              </Menu.Item>
+
               <Divider my="xs" />
               <Menu.Item leftSection={<IconLogout size={16} />} color="red" onClick={logout}>
                 התנתקות

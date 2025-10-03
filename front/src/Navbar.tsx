@@ -1,5 +1,5 @@
 import { AppShell, Divider, NavLink, rem, ScrollArea, Title } from '@mantine/core';
-import { IconHome2, IconChevronRight, IconChevronLeft, IconFirstAidKit } from '@tabler/icons-react';
+import { IconHome2, IconChevronRight, IconChevronLeft, IconFirstAidKit, IconSettings } from '@tabler/icons-react';
 import { DatePicker } from '@mantine/dates';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -21,6 +21,14 @@ export default function Navbar() {
           label="סוגי טיפולים"
           leftSection={<IconFirstAidKit size={18} />}
           active={pathname.startsWith('/treatments')}
+        />
+
+        <NavLink
+          component={Link}
+          to="/settings"
+          label="הגדרות"
+          leftSection={<IconSettings size={18} />}
+          active={pathname.startsWith('/settings')}
         />
 
         <Divider my="md" />
