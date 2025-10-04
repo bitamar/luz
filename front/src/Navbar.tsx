@@ -1,5 +1,12 @@
 import { AppShell, Divider, NavLink, rem, ScrollArea, Title } from '@mantine/core';
-import { IconHome2, IconChevronRight, IconChevronLeft, IconFirstAidKit, IconSettings, IconUsers } from '@tabler/icons-react';
+import {
+  IconHome2,
+  IconChevronRight,
+  IconChevronLeft,
+  IconFirstAidKit,
+  IconSettings,
+  IconUsers,
+} from '@tabler/icons-react';
 import { DatePicker } from '@mantine/dates';
 import { Link, useLocation } from 'react-router-dom';
 

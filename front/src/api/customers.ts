@@ -66,12 +66,9 @@ export async function addPetToCustomer(
     isCastrated?: boolean | null;
   }
 ) {
-  const result = await fetchJson<{ pet: any }>(`/customers/${customerId}/pets`, {
+  const result = await fetchJson<{ pet: Pet }>(`/customers/${customerId}/pets`, {
     method: 'POST',
     body: JSON.stringify(input),
   });
-  return result.pet as { id: string };
+  return result.pet;
 }
-
-
-

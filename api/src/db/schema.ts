@@ -1,4 +1,14 @@
-import { pgTable, text, timestamp, uuid, boolean, date, pgEnum, integer, uniqueIndex } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  boolean,
+  date,
+  pgEnum,
+  integer,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 export const users = pgTable('users', {
@@ -36,28 +46,33 @@ export const usersRelations = relations(users, ({ many }) => ({
   treatments: many(treatments),
 }));
 
-// Domain enums
 export const petTypeEnum = pgEnum('pet_type', ['dog', 'cat']);
 export const petGenderEnum = pgEnum('pet_gender', ['male', 'female']);
 
-// Customers
-export const customers = pgTable('customers', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id),
-  name: text('name').notNull(),
-  email: text('email'),
-  phone: text('phone'),
-  address: text('address'),
-  isDeleted: boolean('is_deleted').notNull().default(false),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => {
-  return {
-    customersUserPhoneUnique: uniqueIndex('customers_user_id_phone_unique').on(table.userId, table.phone),
-  };
-});
+export const customers = pgTable(
+  'customers',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    name: text('name').notNull(),
+    email: text('email'),
+    phone: text('phone'),
+    address: text('address'),
+    isDeleted: boolean('is_deleted').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => {
+    return {
+      customersUserPhoneUnique: uniqueIndex('customers_user_id_phone_unique').on(
+        table.userId,
+        table.phone
+      ),
+    };
+  }
+);
 
 // Pets
 export const pets = pgTable('pets', {
@@ -96,25 +111,30 @@ export const petsRelations = relations(pets, ({ one, many }) => ({
   appointments: many(appointments),
 }));
 
-// Treatments (e.g., vaccines, medications)
-export const treatments = pgTable('treatments', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id),
-  name: text('name').notNull(),
-  defaultIntervalMonths: integer('default_interval_months'),
-  price: integer('price'),
-  isDeleted: boolean('is_deleted').notNull().default(false),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => {
-  return {
-    treatmentsUserNameUnique: uniqueIndex('treatments_user_id_name_unique').on(table.userId, table.name),
-  };
-});
+export const treatments = pgTable(
+  'treatments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    name: text('name').notNull(),
+    defaultIntervalMonths: integer('default_interval_months'),
+    price: integer('price'),
+    isDeleted: boolean('is_deleted').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => {
+    return {
+      treatmentsUserNameUnique: uniqueIndex('treatments_user_id_name_unique').on(
+        table.userId,
+        table.name
+      ),
+    };
+  }
+);
 
-// Visits
 export const visits = pgTable('visits', {
   id: uuid('id').defaultRandom().primaryKey(),
   petId: uuid('pet_id')
@@ -142,7 +162,6 @@ export const visitTreatments = pgTable('visit_treatments', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-// Appointments
 export const appointments = pgTable('appointments', {
   id: uuid('id').defaultRandom().primaryKey(),
   petId: uuid('pet_id')
@@ -160,7 +179,6 @@ export const appointments = pgTable('appointments', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-// Relations for new tables
 export const treatmentsRelations = relations(treatments, ({ one, many }) => ({
   user: one(users, {
     fields: [treatments.userId],
@@ -198,4 +216,3 @@ export const appointmentsRelations = relations(appointments, ({ one }) => ({
     references: [customers.id],
   }),
 }));
-
