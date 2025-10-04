@@ -67,7 +67,7 @@ export const pets = pgTable('pets', {
     .references(() => customers.id),
   name: text('name').notNull(),
   type: petTypeEnum('type').notNull(),
-  dateOfBirth: date('date_of_birth'),
+  dateOfBirth: date('date_of_birth', { mode: 'date' }),
   breed: text('breed'),
   gender: petGenderEnum('gender').notNull(),
   isSterilized: boolean('is_sterilized'),
@@ -84,13 +84,16 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
     references: [users.id],
   }),
   pets: many(pets),
+  appointments: many(appointments),
 }));
 
-export const petsRelations = relations(pets, ({ one }) => ({
+export const petsRelations = relations(pets, ({ one, many }) => ({
   customer: one(customers, {
     fields: [pets.customerId],
     references: [customers.id],
   }),
+  visits: many(visits),
+  appointments: many(appointments),
 }));
 
 // Treatments (e.g., vaccines, medications)
@@ -117,7 +120,7 @@ export const visits = pgTable('visits', {
   petId: uuid('pet_id')
     .notNull()
     .references(() => pets.id),
-  visitDate: date('visit_date').notNull(),
+  visitDate: date('visit_date', { mode: 'date' }).notNull(),
   summary: text('summary').notNull(),
   isDeleted: boolean('is_deleted').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -133,7 +136,7 @@ export const visitTreatments = pgTable('visit_treatments', {
   treatmentId: uuid('treatment_id')
     .notNull()
     .references(() => treatments.id),
-  nextDueDate: date('next_due_date'),
+  nextDueDate: date('next_due_date', { mode: 'date' }),
   isDeleted: boolean('is_deleted').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -196,12 +199,3 @@ export const appointmentsRelations = relations(appointments, ({ one }) => ({
   }),
 }));
 
-// Extend existing entity relations
-export const petsExtendedRelations = relations(pets, ({ many }) => ({
-  visits: many(visits),
-  appointments: many(appointments),
-}));
-
-export const customersExtendedRelations = relations(customers, ({ many }) => ({
-  appointments: many(appointments),
-}));
