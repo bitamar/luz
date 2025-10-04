@@ -4,22 +4,27 @@ import {
   Anchor,
   Badge,
   Breadcrumbs,
+  Button,
   Card,
   Center,
   Container,
   Group,
   Loader,
+  Menu,
+  Modal,
   Stack,
   Text,
   Title,
 } from '@mantine/core';
-import { getPet, type Pet } from '../api/customers';
+import { IconDots, IconX } from '@tabler/icons-react';
+import { getPet, deletePet, type Pet } from '../api/customers';
 
 export function PetDetail() {
   const { customerId, petId } = useParams<{ customerId: string; petId: string }>();
   const navigate = useNavigate();
   const [pet, setPet] = useState<Pet | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     async function fetchPet() {
@@ -34,6 +39,17 @@ export function PetDetail() {
     }
     fetchPet();
   }, [customerId, petId]);
+
+  function openDeleteModal() {
+    setDeleteModalOpen(true);
+  }
+
+  async function onDeletePet() {
+    if (!customerId || !petId) return;
+    await deletePet(customerId, petId);
+    setDeleteModalOpen(false);
+    navigate(`/customers/${customerId}`);
+  }
 
   if (loading || !pet) {
     return (
@@ -73,7 +89,39 @@ export function PetDetail() {
     <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
       <Breadcrumbs mb="md">{breadcrumbItems}</Breadcrumbs>
 
-      <Group mb="xl" align="center" gap="md">
+      <Group mb="xl" align="center" gap="md" className="pet-title-group" style={{ position: 'relative' }}>
+        <Menu shadow="md" width={150} position="bottom-start">
+          <Menu.Target>
+            <Button
+              variant="subtle"
+              size="xs"
+              style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                padding: '4px',
+                width: '24px',
+                height: '24px',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <IconDots size={14} />
+            </Button>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item
+              color="red"
+              leftSection={<IconX size={16} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                openDeleteModal();
+              }}
+            >
+              מחק חיית מחמד
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
+
         <Title order={2}>{pet.name}</Title>
         <Badge variant="light" size="lg" color={pet.type === 'dog' ? 'teal' : 'grape'}>
           {typeLabel}
@@ -165,6 +213,23 @@ export function PetDetail() {
           </Group>
         </Stack>
       </Card>
+
+      <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="מחיקת חיית מחמד">
+        <Stack>
+          <Text>
+            האם אתה בטוח שברצונך למחוק את חיית המחמד "{pet?.name}"?
+            פעולה זו אינה ניתנת לביטול.
+          </Text>
+          <Group justify="right" mt="sm">
+            <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
+              ביטול
+            </Button>
+            <Button color="red" onClick={onDeletePet}>
+              מחק
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Container>
   );
 }

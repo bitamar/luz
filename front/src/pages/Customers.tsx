@@ -5,6 +5,7 @@ import {
   Card,
   Container,
   Group,
+  Menu,
   Modal,
   SimpleGrid,
   Stack,
@@ -12,14 +13,17 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
+import { IconDots, IconX } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
-import { listCustomers, createCustomer, type Customer } from '../api/customers';
+import { listCustomers, createCustomer, deleteCustomer, type Customer } from '../api/customers';
 
 export function Customers() {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerEmail, setNewCustomerEmail] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
@@ -59,6 +63,19 @@ export function Customers() {
     await refresh();
   }
 
+  function openDeleteModal(customer: Customer) {
+    setCustomerToDelete(customer);
+    setDeleteModalOpen(true);
+  }
+
+  async function onDeleteCustomer() {
+    if (!customerToDelete) return;
+    await deleteCustomer(customerToDelete.id);
+    setDeleteModalOpen(false);
+    setCustomerToDelete(null);
+    await refresh();
+  }
+
   const cards = useMemo(
     () =>
       customers.map((c) => {
@@ -71,9 +88,42 @@ export function Customers() {
             shadow="sm"
             radius="md"
             padding="md"
-            style={{ display: 'flex', flexDirection: 'column', cursor: 'pointer' }}
+            className="customer-card"
+            style={{ display: 'flex', flexDirection: 'column', cursor: 'pointer', position: 'relative' }}
             onClick={() => navigate(`/customers/${c.id}`)}
           >
+            <Menu shadow="md" width={150} position="bottom-start">
+              <Menu.Target>
+                <Button
+                  variant="subtle"
+                  size="xs"
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    left: 8,
+                    padding: '4px',
+                    width: '24px',
+                    height: '24px',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <IconDots size={14} />
+                </Button>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item
+                  color="red"
+                  leftSection={<IconX size={16} />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openDeleteModal(c);
+                  }}
+                >
+                  מחק לקוח
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+
             <Stack gap="xs" style={{ flexGrow: 1 }}>
               <Group justify="space-between" align="center">
                 <Title order={4} style={{ wordBreak: 'break-word' }}>
@@ -167,6 +217,23 @@ export function Customers() {
             </Button>
             <Button onClick={onCreateCustomer} disabled={!newCustomerName}>
               הוסף
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="מחיקת לקוח">
+        <Stack>
+          <Text>
+            האם אתה בטוח שברצונך למחוק את הלקוח "{customerToDelete?.name}"?
+            פעולה זו אינה ניתנת לביטול.
+          </Text>
+          <Group justify="right" mt="sm">
+            <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
+              ביטול
+            </Button>
+            <Button color="red" onClick={onDeleteCustomer}>
+              מחק
             </Button>
           </Group>
         </Stack>

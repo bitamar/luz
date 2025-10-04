@@ -72,3 +72,15 @@ export async function addPetToCustomer(
   });
   return result.pet;
 }
+
+export async function deleteCustomer(customerId: string): Promise<void> {
+  await fetchJson(`/customers/${customerId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function deletePet(customerId: string, petId: string): Promise<void> {
+  await fetchJson(`/customers/${customerId}/pets/${petId}`, {
+    method: 'DELETE',
+  });
+}
