@@ -18,7 +18,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   if (!isHydrated) {
     return (
       <Center h="100%">
-        <Loader size="sm" />
+        <Loader size="sm" aria-label="Loading user" role="status" />
       </Center>
     );
   }

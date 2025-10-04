@@ -18,7 +18,13 @@ import {
   Title,
 } from '@mantine/core';
 import { IconDots, IconX } from '@tabler/icons-react';
-import { listCustomers, addPetToCustomer, deleteCustomer, deletePet, type Customer } from '../api/customers';
+import {
+  listCustomers,
+  addPetToCustomer,
+  deleteCustomer,
+  deletePet,
+  type Customer,
+} from '../api/customers';
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -28,7 +34,11 @@ export function CustomerDetail() {
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [petDeleteModalOpen, setPetDeleteModalOpen] = useState(false);
-  const [petToDelete, setPetToDelete] = useState<{ customerId: string; petId: string; petName: string } | null>(null);
+  const [petToDelete, setPetToDelete] = useState<{
+    customerId: string;
+    petId: string;
+    petName: string;
+  } | null>(null);
   const [petName, setPetName] = useState('');
   const [petType, setPetType] = useState<'dog' | 'cat' | ''>('');
   const [petGender, setPetGender] = useState<'male' | 'female' | ''>('');
@@ -95,7 +105,7 @@ export function CustomerDetail() {
     // Update the customer state directly to remove the deleted pet
     setCustomer({
       ...customer,
-      pets: customer.pets.filter(pet => pet.id !== petToDelete.petId)
+      pets: customer.pets.filter((pet) => pet.id !== petToDelete.petId),
     });
   }
 
@@ -133,7 +143,12 @@ export function CustomerDetail() {
     <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
       <Breadcrumbs mb="md">{breadcrumbItems}</Breadcrumbs>
 
-      <Group mb="xl" align="center" className="customer-title-group" style={{ position: 'relative' }}>
+      <Group
+        mb="xl"
+        align="center"
+        className="customer-title-group"
+        style={{ position: 'relative' }}
+      >
         <Menu shadow="md" width={150} position="bottom-start">
           <Menu.Target>
             <Button
@@ -166,9 +181,7 @@ export function CustomerDetail() {
           </Menu.Dropdown>
         </Menu>
 
-        <Title order={2}>
-          {customer.name}
-        </Title>
+        <Title order={2}>{customer.name}</Title>
       </Group>
 
       <Card withBorder shadow="sm" radius="md" padding="lg" mb="xl">
@@ -337,8 +350,8 @@ export function CustomerDetail() {
       <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="מחיקת לקוח">
         <Stack>
           <Text>
-            האם אתה בטוח שברצונך למחוק את הלקוח "{customer?.name}"?
-            פעולה זו תמחק גם את כל חיות המחמד שלו ותהיה בלתי הפיכה.
+            האם אתה בטוח שברצונך למחוק את הלקוח "{customer?.name}"? פעולה זו תמחק גם את כל חיות
+            המחמד שלו ותהיה בלתי הפיכה.
           </Text>
           <Group justify="right" mt="sm">
             <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
@@ -351,11 +364,15 @@ export function CustomerDetail() {
         </Stack>
       </Modal>
 
-      <Modal opened={petDeleteModalOpen} onClose={() => setPetDeleteModalOpen(false)} title="מחיקת חיית מחמד">
+      <Modal
+        opened={petDeleteModalOpen}
+        onClose={() => setPetDeleteModalOpen(false)}
+        title="מחיקת חיית מחמד"
+      >
         <Stack>
           <Text>
-            האם אתה בטוח שברצונך למחוק את חיית המחמד "{petToDelete?.petName}"?
-            פעולה זו אינה ניתנת לביטול.
+            האם אתה בטוח שברצונך למחוק את חיית המחמד "{petToDelete?.petName}"? פעולה זו אינה ניתנת
+            לביטול.
           </Text>
           <Group justify="right" mt="sm">
             <Button variant="default" onClick={() => setPetDeleteModalOpen(false)}>

@@ -238,8 +238,8 @@ export function Treatments() {
       <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="מחיקת טיפול">
         <Stack>
           <Text>
-            האם אתה בטוח שברצונך למחוק את הטיפול "{treatmentToDelete?.name}"?
-            פעולה זו אינה ניתנת לביטול.
+            האם אתה בטוח שברצונך למחוק את הטיפול "{treatmentToDelete?.name}"? פעולה זו אינה ניתנת
+            לביטול.
           </Text>
           <Group justify="right" mt="sm">
             <Button variant="default" onClick={() => setDeleteModalOpen(false)}>

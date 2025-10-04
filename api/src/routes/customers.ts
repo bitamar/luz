@@ -18,7 +18,7 @@ export async function customerRoutes(app: FastifyInstance) {
       with: {
         pets: {
           columns: { id: true, name: true, type: true },
-          where: and(eq(pets.customerId, customers.id), eq(pets.isDeleted, false))
+          where: and(eq(pets.customerId, customers.id), eq(pets.isDeleted, false)),
         },
       },
     })) as CustomerRow[];
