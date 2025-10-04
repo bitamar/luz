@@ -89,7 +89,12 @@ export function Customers() {
             radius="md"
             padding="md"
             className="customer-card"
-            style={{ display: 'flex', flexDirection: 'column', cursor: 'pointer', position: 'relative' }}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              cursor: 'pointer',
+              position: 'relative',
+            }}
             onClick={() => navigate(`/customers/${c.id}`)}
           >
             <Menu shadow="md" width={150} position="bottom-start">
@@ -225,8 +230,8 @@ export function Customers() {
       <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="מחיקת לקוח">
         <Stack>
           <Text>
-            האם אתה בטוח שברצונך למחוק את הלקוח "{customerToDelete?.name}"?
-            פעולה זו אינה ניתנת לביטול.
+            האם אתה בטוח שברצונך למחוק את הלקוח "{customerToDelete?.name}"? פעולה זו אינה ניתנת
+            לביטול.
           </Text>
           <Group justify="right" mt="sm">
             <Button variant="default" onClick={() => setDeleteModalOpen(false)}>

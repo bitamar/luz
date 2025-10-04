@@ -89,7 +89,13 @@ export function PetDetail() {
     <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
       <Breadcrumbs mb="md">{breadcrumbItems}</Breadcrumbs>
 
-      <Group mb="xl" align="center" gap="md" className="pet-title-group" style={{ position: 'relative' }}>
+      <Group
+        mb="xl"
+        align="center"
+        gap="md"
+        className="pet-title-group"
+        style={{ position: 'relative' }}
+      >
         <Menu shadow="md" width={150} position="bottom-start">
           <Menu.Target>
             <Button
@@ -214,11 +220,14 @@ export function PetDetail() {
         </Stack>
       </Card>
 
-      <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="מחיקת חיית מחמד">
+      <Modal
+        opened={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="מחיקת חיית מחמד"
+      >
         <Stack>
           <Text>
-            האם אתה בטוח שברצונך למחוק את חיית המחמד "{pet?.name}"?
-            פעולה זו אינה ניתנת לביטול.
+            האם אתה בטוח שברצונך למחוק את חיית המחמד "{pet?.name}"? פעולה זו אינה ניתנת לביטול.
           </Text>
           <Group justify="right" mt="sm">
             <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
