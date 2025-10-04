@@ -98,7 +98,7 @@ export function CustomerDetail() {
   return (
     <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
       <Breadcrumbs mb="md">{breadcrumbItems}</Breadcrumbs>
-      
+
       <Title order={2} mb="xl">
         {customer.name}
       </Title>
@@ -235,4 +235,3 @@ export function CustomerDetail() {
     </Container>
   );
 }
-

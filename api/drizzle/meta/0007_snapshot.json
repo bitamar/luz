@@ -8,13 +8,42 @@
       "name": "treatments",
       "schema": "",
       "columns": {
-        "id": { "name": "id", "type": "uuid", "primaryKey": true, "notNull": true, "default": "gen_random_uuid()" },
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
         "user_id": { "name": "user_id", "type": "uuid", "primaryKey": false, "notNull": true },
         "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true },
-        "duration_months": { "name": "duration_months", "type": "integer", "primaryKey": false, "notNull": true },
-        "is_deleted": { "name": "is_deleted", "type": "boolean", "primaryKey": false, "notNull": true, "default": "false" },
-        "created_at": { "name": "created_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" },
-        "updated_at": { "name": "updated_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" }
+        "duration_months": {
+          "name": "duration_months",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_deleted": {
+          "name": "is_deleted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "false"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
       },
       "indexes": {
         "treatments_user_id_name_unique": {
@@ -49,4 +78,3 @@
   "sequences": {},
   "_meta": { "columns": {}, "schemas": {}, "tables": {} }
 }
-

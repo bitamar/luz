@@ -13,7 +13,7 @@ export default [
     languageOptions: {
       parser: tsparser,
       parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
-      globals: { ...globals.es2022 },
+      globals: { ...globals.browser, ...globals.es2022 },
     },
     plugins: { '@typescript-eslint': tseslint },
     rules: {
@@ -25,15 +25,5 @@ export default [
       ],
       '@typescript-eslint/no-explicit-any': 'error',
     },
-  },
-  // Backend (Node) files
-  {
-    files: ['api/**/*.{ts,tsx,js,jsx}'],
-    languageOptions: { globals: { ...globals.node, ...globals.es2022 } },
-  },
-  // Frontend (Browser) files
-  {
-    files: ['front/**/*.{ts,tsx,js,jsx}'],
-    languageOptions: { globals: { ...globals.browser, ...globals.es2022 } },
   },
 ];

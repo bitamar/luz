@@ -63,7 +63,7 @@ export function Customers() {
     () =>
       customers.map((c) => {
         const petCount = c.pets?.length ?? 0;
-        
+
         return (
           <Card
             key={c.id}
@@ -136,11 +136,7 @@ export function Customers() {
         {cards}
       </SimpleGrid>
 
-      <Modal
-        opened={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="לקוח חדש"
-      >
+      <Modal opened={modalOpen} onClose={() => setModalOpen(false)} title="לקוח חדש">
         <Stack>
           <TextInput
             label="שם"
@@ -178,6 +174,3 @@ export function Customers() {
     </Container>
   );
 }
-
-
-

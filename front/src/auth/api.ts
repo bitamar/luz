@@ -25,11 +25,8 @@ export async function getSettings(): Promise<{ user: AuthUser }> {
 export async function updateSettings(input: { name: string | null; phone: string }): Promise<{
   user: AuthUser;
 }> {
-  return await fetchJson<{ user: AuthUser }>(
-    '/settings',
-    {
-      method: 'PUT',
-      body: JSON.stringify(input),
-    }
-  );
+  return await fetchJson<{ user: AuthUser }>('/settings', {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
 }
