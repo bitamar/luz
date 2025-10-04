@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ActionIcon,
   Badge,
   Button,
   Card,
   Container,
   Group,
+  Menu,
   Modal,
   NumberInput,
   SimpleGrid,
@@ -14,6 +14,7 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
+import { IconDots, IconX } from '@tabler/icons-react';
 import {
   listTreatments,
   createTreatment,
@@ -21,12 +22,13 @@ import {
   deleteTreatment,
   type Treatment,
 } from '../api/treatments';
-import { IconX } from '@tabler/icons-react';
 
 export function Treatments() {
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [treatmentToDelete, setTreatmentToDelete] = useState<Treatment | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [defaultIntervalMonths, setDefaultIntervalMonths] = useState<number | ''>('');
@@ -84,14 +86,23 @@ export function Treatments() {
     await refresh();
   }
 
-  async function onDelete(id: string) {
-    await deleteTreatment(id);
+  function openDeleteModal(treatment: Treatment) {
+    setTreatmentToDelete(treatment);
+    setDeleteModalOpen(true);
+  }
+
+  async function onDeleteTreatment() {
+    if (!treatmentToDelete) return;
+    await deleteTreatment(treatmentToDelete.id);
+    setDeleteModalOpen(false);
+    setTreatmentToDelete(null);
     await refresh();
   }
 
   const cards = useMemo(
     () =>
-      treatments.map(({ id, name, price, defaultIntervalMonths }) => {
+      treatments.map((treatment) => {
+        const { id, name, price, defaultIntervalMonths } = treatment;
         const hasPrice = typeof price === 'number';
 
         return (
@@ -101,19 +112,42 @@ export function Treatments() {
             shadow="sm"
             radius="md"
             padding="md"
-            style={{ display: 'flex', flexDirection: 'column' }}
+            className="treatment-card"
+            style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}
           >
-            <Group justify="space-between" align="center" mb="sm">
-              <ActionIcon
-                size="sm"
-                variant="subtle"
-                color="red"
-                aria-label="מחק"
-                onClick={() => onDelete(id)}
-              >
-                <IconX size={16} />
-              </ActionIcon>
+            <Menu shadow="md" width={150} position="bottom-start">
+              <Menu.Target>
+                <Button
+                  variant="subtle"
+                  size="xs"
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    left: 8,
+                    padding: '4px',
+                    width: '24px',
+                    height: '24px',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <IconDots size={14} />
+                </Button>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item
+                  color="red"
+                  leftSection={<IconX size={16} />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openDeleteModal(treatment);
+                  }}
+                >
+                  מחק טיפול
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
 
+            <Group justify="space-between" align="center" mb="sm">
               {hasPrice && (
                 <Badge variant="light" size="sm" color="blue">
                   {price.toLocaleString('he-IL', {
@@ -197,6 +231,23 @@ export function Treatments() {
               ביטול
             </Button>
             <Button onClick={onSubmit}>{editId ? 'שמור' : 'הוסף'}</Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="מחיקת טיפול">
+        <Stack>
+          <Text>
+            האם אתה בטוח שברצונך למחוק את הטיפול "{treatmentToDelete?.name}"?
+            פעולה זו אינה ניתנת לביטול.
+          </Text>
+          <Group justify="right" mt="sm">
+            <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
+              ביטול
+            </Button>
+            <Button color="red" onClick={onDeleteTreatment}>
+              מחק
+            </Button>
           </Group>
         </Stack>
       </Modal>

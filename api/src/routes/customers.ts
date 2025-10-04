@@ -16,7 +16,10 @@ export async function customerRoutes(app: FastifyInstance) {
       where: and(eq(customers.userId, userId), eq(customers.isDeleted, false)),
       columns: { id: true, name: true, email: true, phone: true, address: true },
       with: {
-        pets: { columns: { id: true, name: true, type: true } },
+        pets: {
+          columns: { id: true, name: true, type: true },
+          where: and(eq(pets.customerId, customers.id), eq(pets.isDeleted, false))
+        },
       },
     })) as CustomerRow[];
 
@@ -193,5 +196,31 @@ export async function customerRoutes(app: FastifyInstance) {
       .returning();
 
     return reply.code(201).send({ pet });
+  });
+
+  app.delete<{
+    Params: { customerId: string; petId: string };
+  }>('/customers/:customerId/pets/:petId', { preHandler: app.authenticate }, async (req, reply) => {
+    ensureAuthed(req);
+    const userId = req.user.id;
+    const { customerId, petId } = req.params;
+
+    // Ensure pet exists and belongs to user's customer
+    const pet = await db.query.pets.findFirst({
+      where: and(eq(pets.id, petId), eq(pets.customerId, customerId)),
+      with: {
+        customer: {
+          columns: { id: true, userId: true, isDeleted: true },
+        },
+      },
+    });
+
+    if (!pet || pet.customer.userId !== userId || pet.customer.isDeleted) {
+      return reply.code(404).send({ error: 'not_found' });
+    }
+
+    await db.update(pets).set({ isDeleted: true, updatedAt: new Date() }).where(eq(pets.id, petId));
+
+    return reply.send({ ok: true });
   });
 }
