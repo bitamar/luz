@@ -1,6 +1,6 @@
 import { Button, Card, Center, Group, Stack, Text, Title } from '@mantine/core';
 import { Navigate } from 'react-router-dom';
-import { IconBrandGoogle, IconPawFilled } from '@tabler/icons-react';
+import { IconBrandGoogleFilled, IconPawFilled } from '@tabler/icons-react';
 import { useAuth } from '../auth/AuthContext';
 
 export function Login() {
@@ -20,7 +20,7 @@ export function Login() {
           </Text>
           <Group justify="center" mt="md">
             <Button
-              leftSection={<IconBrandGoogle size={18} />}
+              leftSection={<IconBrandGoogleFilled size={18} />}
               onClick={loginWithGoogle}
               variant="filled"
             >

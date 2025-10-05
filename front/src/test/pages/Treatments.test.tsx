@@ -95,7 +95,9 @@ describe('Treatments page', () => {
     await waitFor(() => expect(listTreatmentsMock).toHaveBeenCalled());
 
     const user = userEvent.setup();
-    const firstCard = screen.getByText('Vaccination').closest('.treatment-card') as HTMLElement | null;
+    const firstCard = screen
+      .getByText('Vaccination')
+      .closest('.treatment-card') as HTMLElement | null;
     if (!firstCard) throw new Error('Treatment card not found');
 
     await user.click(within(firstCard).getByRole('button', { name: 'ערוך' }));
@@ -123,7 +125,9 @@ describe('Treatments page', () => {
     await waitFor(() => expect(listTreatmentsMock).toHaveBeenCalled());
 
     const user = userEvent.setup();
-    const firstCard = screen.getByText('Vaccination').closest('.treatment-card') as HTMLElement | null;
+    const firstCard = screen
+      .getByText('Vaccination')
+      .closest('.treatment-card') as HTMLElement | null;
     if (!firstCard) throw new Error('Treatment card not found');
 
     const menuButtons = within(firstCard).getAllByRole('button', { hidden: true });
