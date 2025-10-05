@@ -22,7 +22,9 @@ export function renderWithProviders(
   const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <DirectionProvider>
       <MantineProvider>
-        <MemoryRouter {...router}>{children}</MemoryRouter>
+        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }} {...router}>
+          {children}
+        </MemoryRouter>
       </MantineProvider>
     </DirectionProvider>
   );
