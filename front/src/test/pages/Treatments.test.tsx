@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Treatments } from '../../pages/Treatments';
 import * as treatmentsApi from '../../api/treatments';
 import { renderWithProviders } from '../utils/renderWithProviders';
+import { suppressConsoleError } from '../utils/suppressConsoleError';
 
 vi.mock('../../api/treatments');
 
@@ -29,10 +30,18 @@ describe('Treatments page', () => {
   const createTreatmentMock = vi.mocked(treatmentsApi.createTreatment);
   const updateTreatmentMock = vi.mocked(treatmentsApi.updateTreatment);
   const deleteTreatmentMock = vi.mocked(treatmentsApi.deleteTreatment);
+  let restoreConsoleError: (() => void) | null = null;
 
   beforeEach(() => {
     vi.clearAllMocks();
     listTreatmentsMock.mockResolvedValue(mockTreatments);
+    restoreConsoleError?.();
+    restoreConsoleError = null;
+  });
+
+  afterEach(() => {
+    restoreConsoleError?.();
+    restoreConsoleError = null;
   });
 
   it('renders treatment cards with key information', async () => {
@@ -139,5 +148,41 @@ describe('Treatments page', () => {
     await user.click(await screen.findByRole('button', { name: 'מחק' }));
 
     await waitFor(() => expect(deleteTreatmentMock).toHaveBeenCalledWith('treat-1'));
+  });
+
+  it('shows empty state when there are no treatments', async () => {
+    listTreatmentsMock.mockResolvedValueOnce([]);
+
+    renderWithProviders(<Treatments />);
+
+    await waitFor(() => expect(screen.getByText('אין עדיין טיפולים')).toBeInTheDocument());
+    expect(screen.getByText('לחץ על "טיפול חדש" כדי ליצור טיפול ראשון.')).toBeInTheDocument();
+  });
+
+  it('shows error state when loading treatments fails', async () => {
+    listTreatmentsMock.mockRejectedValueOnce(new Error('Request failed: 500'));
+    restoreConsoleError = suppressConsoleError(/Failed to load data/);
+
+    renderWithProviders(<Treatments />);
+
+    await screen.findByText('לא ניתן להציג טיפולים כעת');
+    expect(screen.getByText(/אירעה שגיאה בטעינת הטיפולים/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /נסה שוב/ })).toBeInTheDocument();
+  });
+
+  it('allows retry after error', async () => {
+    listTreatmentsMock
+      .mockRejectedValueOnce(new Error('Request failed: 500'))
+      .mockResolvedValueOnce(mockTreatments);
+    restoreConsoleError = suppressConsoleError(/Failed to load data/);
+
+    renderWithProviders(<Treatments />);
+
+    await screen.findByText('לא ניתן להציג טיפולים כעת');
+
+    await userEvent.click(screen.getByRole('button', { name: /נסה שוב/ }));
+
+    await waitFor(() => expect(listTreatmentsMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByText('Vaccination')).toBeInTheDocument());
   });
 });

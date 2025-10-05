@@ -1,6 +1,8 @@
 ## Architecture Improvements (DO NOW)
 
 ### Backend Critical
+- [ ] remove duplicate name constraint on treatment
+- [ ] bug - after adding a pet, the customer is returned without their pets
 - [ ] add request/response validation (Zod or similar) - currently using manual validation
 - [ ] centralized error handling middleware - errors are handled inconsistently
 - [ ] move sessions from in-memory to database - will lose all sessions on restart
@@ -19,6 +21,7 @@
 
 ### DevOps / Infrastructure (DO NOW)
 - [ ] support PR environments - OAuth redirects to prod instead of staying on PR env (e.g., front-luz-pr-1.up.railway.app/login redirects to prod)
+- [ ] run all tests on prs 
 
 ### Security & Data Integrity (DO NOW)
 - [ ] add rate limiting middleware (fastify-rate-limit)
@@ -48,7 +51,7 @@
 - [ ] make sure loading spinner behaviour is consistent
 - [ ] slide animation between customers > customer > pets
 - [x] confirmation dialogs for destructive actions (delete customer, pet, visit)
-- [ ] error states (empty states when no data, error messages)
+- [x] error states (empty states when no data, error messages)
 - [ ] toast notifications for success/error actions
 
 ### Search & Filtering

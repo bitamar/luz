@@ -16,11 +16,22 @@ import {
 import { IconDots, IconX } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { listCustomers, createCustomer, deleteCustomer, type Customer } from '../api/customers';
+import { useListState } from '../hooks/useListState';
+import { StatusCard } from '../components/StatusCard';
 
 export function Customers() {
   const navigate = useNavigate();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(false);
+  const {
+    data: customersData,
+    loading,
+    error,
+    refresh,
+    isEmpty,
+  } = useListState<Customer[]>({
+    fetcher: listCustomers,
+    getEmpty: (rows) => rows.length === 0,
+    formatError: () => 'אירעה שגיאה בטעינת הלקוחות',
+  });
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
@@ -28,20 +39,11 @@ export function Customers() {
   const [newCustomerEmail, setNewCustomerEmail] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
-
-  async function refresh() {
-    setLoading(true);
-    try {
-      const rows = await listCustomers();
-      setCustomers(rows);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
-    refresh();
-  }, []);
+    if (customersData === null) {
+      void refresh();
+    }
+  }, [customersData, refresh]);
 
   function openCreateCustomer() {
     setNewCustomerName('');
@@ -76,9 +78,11 @@ export function Customers() {
     await refresh();
   }
 
+  const customers = customersData ?? [];
+
   const cards = useMemo(
     () =>
-      customers.map((c) => {
+      (customers ?? []).map((c) => {
         const petCount = c.pets?.length ?? 0;
 
         return (
@@ -187,9 +191,26 @@ export function Customers() {
         </Button>
       </Group>
 
-      <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
-        {cards}
-      </SimpleGrid>
+      {loading ? (
+        <StatusCard status="loading" title="טוען לקוחות..." />
+      ) : error ? (
+        <StatusCard
+          status="error"
+          title="לא ניתן להציג לקוחות כעת"
+          description={error}
+          primaryAction={{ label: 'נסה שוב', onClick: () => void refresh() }}
+        />
+      ) : isEmpty ? (
+        <StatusCard
+          status="empty"
+          title="אין עדיין לקוחות"
+          description='לחץ על "לקוח חדש" כדי להוסיף את הלקוח הראשון שלך.'
+        />
+      ) : (
+        <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
+          {cards}
+        </SimpleGrid>
+      )}
 
       <Modal opened={modalOpen} onClose={() => setModalOpen(false)} title="לקוח חדש">
         <Stack>

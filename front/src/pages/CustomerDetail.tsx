@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Anchor,
@@ -25,12 +25,12 @@ import {
   deletePet,
   type Customer,
 } from '../api/customers';
+import { useListState } from '../hooks/useListState';
+import { StatusCard } from '../components/StatusCard';
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [petDeleteModalOpen, setPetDeleteModalOpen] = useState(false);
@@ -44,21 +44,42 @@ export function CustomerDetail() {
   const [petGender, setPetGender] = useState<'male' | 'female' | ''>('');
   const [petBreed, setPetBreed] = useState('');
 
-  async function refresh() {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const customers = await listCustomers();
-      const found = customers.find((c) => c.id === id);
-      setCustomer(found ?? null);
-    } finally {
-      setLoading(false);
+  const fetchCustomer = useCallback(async () => {
+    if (!id) {
+      const error = new Error('Customer id missing');
+      error.name = 'NOT_FOUND';
+      throw error;
     }
-  }
+
+    const customers = await listCustomers();
+    const found = customers.find((c) => c.id === id);
+
+    if (!found) {
+      const error = new Error('Customer not found');
+      error.name = 'NOT_FOUND';
+      throw error;
+    }
+
+    return found;
+  }, [id]);
+
+  const {
+    data: customer,
+    setData: setCustomer,
+    loading,
+    error,
+    notFound,
+    refresh,
+  } = useListState<Customer>({
+    fetcher: fetchCustomer,
+    isNotFoundError: (err) => err instanceof Error && err.name === 'NOT_FOUND',
+    formatError: () => 'אירעה שגיאה בטעינת הלקוח',
+  });
 
   useEffect(() => {
-    refresh();
-  }, [id]);
+    if (!id) return;
+    void refresh();
+  }, [id, refresh]);
 
   function openAddPet() {
     setPetName('');
@@ -109,10 +130,36 @@ export function CustomerDetail() {
     });
   }
 
-  if (!customer) {
+  if (loading) {
     return (
       <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
-        <Text>טוען...</Text>
+        <StatusCard status="loading" title="טוען פרטי לקוח..." />
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
+        <StatusCard
+          status="error"
+          title="לא ניתן להציג את הלקוח כעת"
+          description={error}
+          primaryAction={{ label: 'נסה שוב', onClick: () => void refresh() }}
+        />
+      </Container>
+    );
+  }
+
+  if (notFound || !customer) {
+    return (
+      <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
+        <StatusCard
+          status="notFound"
+          title="הלקוח לא נמצא"
+          description="ייתכן שהלקוח נמחק או שאינך מורשה לצפות בו."
+          primaryAction={{ label: 'חזרה לרשימת הלקוחות', onClick: () => navigate('/customers') }}
+        />
       </Container>
     );
   }
@@ -238,11 +285,11 @@ export function CustomerDetail() {
       </Group>
 
       {petCount === 0 ? (
-        <Card withBorder padding="xl">
-          <Text c="dimmed" ta="center">
-            אין עדיין חיות מחמד ללקוח זה
-          </Text>
-        </Card>
+        <StatusCard
+          status="empty"
+          title="אין עדיין חיות מחמד ללקוח זה"
+          description='לחץ על "+ הוסף חיה" כדי להוסיף חיית מחמד ראשונה.'
+        />
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
           {customer.pets.map((pet) => (

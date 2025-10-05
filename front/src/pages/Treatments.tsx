@@ -22,10 +22,21 @@ import {
   deleteTreatment,
   type Treatment,
 } from '../api/treatments';
+import { useListState } from '../hooks/useListState';
+import { StatusCard } from '../components/StatusCard';
 
 export function Treatments() {
-  const [treatments, setTreatments] = useState<Treatment[]>([]);
-  const [loading, setLoading] = useState(false);
+  const {
+    data: treatments,
+    loading,
+    error,
+    refresh,
+    isEmpty,
+  } = useListState<Treatment[]>({
+    fetcher: listTreatments,
+    getEmpty: (rows) => rows.length === 0,
+    formatError: () => 'אירעה שגיאה בטעינת הטיפולים',
+  });
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [treatmentToDelete, setTreatmentToDelete] = useState<Treatment | null>(null);
@@ -34,19 +45,11 @@ export function Treatments() {
   const [defaultIntervalMonths, setDefaultIntervalMonths] = useState<number | ''>('');
   const [price, setPrice] = useState<number | ''>('');
 
-  async function refresh() {
-    setLoading(true);
-    try {
-      const rows = await listTreatments();
-      setTreatments(rows);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
-    refresh();
-  }, []);
+    if (treatments === null) {
+      void refresh();
+    }
+  }, [treatments, refresh]);
 
   function openCreate() {
     setEditId(null);
@@ -101,7 +104,7 @@ export function Treatments() {
 
   const cards = useMemo(
     () =>
-      treatments.map((treatment) => {
+      (treatments ?? []).map((treatment) => {
         const { id, name, price, defaultIntervalMonths } = treatment;
         const hasPrice = typeof price === 'number';
 
@@ -195,9 +198,26 @@ export function Treatments() {
         </Button>
       </Group>
 
-      <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
-        {cards}
-      </SimpleGrid>
+      {loading ? (
+        <StatusCard status="loading" title="טוען טיפולים..." />
+      ) : error ? (
+        <StatusCard
+          status="error"
+          title="לא ניתן להציג טיפולים כעת"
+          description={error}
+          primaryAction={{ label: 'נסה שוב', onClick: () => void refresh() }}
+        />
+      ) : isEmpty ? (
+        <StatusCard
+          status="empty"
+          title="אין עדיין טיפולים"
+          description='לחץ על "טיפול חדש" כדי ליצור טיפול ראשון.'
+        />
+      ) : (
+        <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
+          {cards}
+        </SimpleGrid>
+      )}
 
       <Modal
         opened={modalOpen}

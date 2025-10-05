@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Anchor,
@@ -6,10 +6,8 @@ import {
   Breadcrumbs,
   Button,
   Card,
-  Center,
   Container,
   Group,
-  Loader,
   Menu,
   Modal,
   Stack,
@@ -18,27 +16,39 @@ import {
 } from '@mantine/core';
 import { IconDots, IconX } from '@tabler/icons-react';
 import { getPet, deletePet, type Pet } from '../api/customers';
+import { useListState } from '../hooks/useListState';
+import { StatusCard } from '../components/StatusCard';
 
 export function PetDetail() {
   const { customerId, petId } = useParams<{ customerId: string; petId: string }>();
   const navigate = useNavigate();
-  const [pet, setPet] = useState<Pet | null>(null);
-  const [loading, setLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
-  useEffect(() => {
-    async function fetchPet() {
-      if (!customerId || !petId) return;
-      setLoading(true);
-      try {
-        const data = await getPet(customerId, petId);
-        setPet(data);
-      } finally {
-        setLoading(false);
-      }
+  const fetchPet = useCallback(async () => {
+    if (!customerId || !petId) {
+      const error = new Error('Pet not found');
+      error.name = 'NOT_FOUND';
+      throw error;
     }
-    fetchPet();
+
+    return await getPet(customerId, petId);
   }, [customerId, petId]);
+
+  const {
+    data: pet,
+    loading,
+    error,
+    notFound,
+    refresh,
+  } = useListState<Pet>({
+    fetcher: fetchPet,
+    isNotFoundError: (err) => err instanceof Error && err.name === 'NOT_FOUND',
+    formatError: () => 'אירעה שגיאה בטעינת פרטי חיית המחמד',
+  });
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   function openDeleteModal() {
     setDeleteModalOpen(true);
@@ -51,12 +61,44 @@ export function PetDetail() {
     navigate(`/customers/${customerId}`);
   }
 
-  if (loading || !pet) {
+  if (loading) {
     return (
       <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
-        <Center h="50vh">
-          <Loader size="md" />
-        </Center>
+        <StatusCard status="loading" title="טוען פרטי חיית מחמד..." />
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
+        <StatusCard
+          status="error"
+          title="לא ניתן להציג את חיית המחמד כעת"
+          description={error}
+          primaryAction={{ label: 'נסה שוב', onClick: () => void refresh() }}
+          secondaryAction={
+            <Button variant="subtle" onClick={() => navigate(`/customers/${customerId}`)}>
+              חזרה ללקוח
+            </Button>
+          }
+        />
+      </Container>
+    );
+  }
+
+  if (notFound || !pet) {
+    return (
+      <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
+        <StatusCard
+          status="notFound"
+          title="חיית המחמד לא נמצאה"
+          description="ייתכן שהחיה נמחקה או שאינך מורשה לצפות בה."
+          primaryAction={{
+            label: 'חזרה ללקוח',
+            onClick: () => navigate(`/customers/${customerId}`),
+          }}
+        />
       </Container>
     );
   }
