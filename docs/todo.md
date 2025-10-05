@@ -10,6 +10,7 @@
 - [ ] API request/response schemas shared with frontend (tRPC or shared types)
 - [ ] structured logging with context (request IDs, user IDs)
 - [ ] global error handler in Fastify (currently errors bubble up inconsistently)
+- [ ] don't pass internal error messages outside on prod
 
 ### Frontend Critical
 - [ ] add state management library (React Query/TanStack Query) - currently no caching
@@ -24,7 +25,7 @@
 - [ ] run all tests on prs 
 
 ### Security & Data Integrity (DO NOW)
-- [ ] add rate limiting middleware (fastify-rate-limit)
+- [x] add rate limiting middleware (fastify-rate-limit)
 - [ ] validate user ownership in middleware - currently each route does it manually
 - [ ] add indexes on foreign keys (petId, customerId, userId) - currently slow queries
 - [ ] add database constraints for data integrity (CHECK constraints)
