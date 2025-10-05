@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import Fastify from 'fastify';
 import cookie from '@fastify/cookie';
 import { authRoutes } from '../../src/routes/auth.js';
+import { errorPlugin } from '../../src/plugins/errors.js';
 
 vi.mock('openid-client', () => ({
   discovery: vi.fn().mockResolvedValue({}),
@@ -34,6 +35,7 @@ describe('routes/auth', () => {
   it('GET /auth/google redirects and sets cookie', async () => {
     const app = Fastify();
     await app.register(cookie, { secret: 's' });
+    await app.register(errorPlugin);
     await app.register(authRoutes);
     const res = await app.inject({ method: 'GET', url: '/auth/google' });
     expect(res.statusCode).toBe(302);
@@ -45,11 +47,13 @@ describe('routes/auth', () => {
   it('GET /auth/google/callback without cookie returns 400', async () => {
     const app = Fastify();
     await app.register(cookie, { secret: 's' });
+    await app.register(errorPlugin);
     await app.register(authRoutes);
     const res = await app.inject({ method: 'GET', url: '/auth/google/callback?code=x&state=s' });
     expect(res.statusCode).toBe(400);
     const body = res.json();
-    expect(body).toEqual({ error: 'missing_cookie' });
+    expect(body).toMatchObject({ error: 'missing_cookie' });
+    expect(body).toHaveProperty('requestId');
     await app.close();
   });
 });

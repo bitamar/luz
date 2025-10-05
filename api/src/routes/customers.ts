@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { customers, pets } from '../db/schema.js';
 import { ensureAuthed } from '../plugins/auth.js';
+import { badRequest, notFound } from '../lib/app-error.js';
 
 export async function customerRoutes(app: FastifyInstance) {
   app.get('/customers', { preHandler: app.authenticate }, async (req, reply) => {
@@ -45,7 +46,7 @@ export async function customerRoutes(app: FastifyInstance) {
       phone?: string;
       address?: string;
     }>;
-    if (!body?.name) return reply.code(400).send({ error: 'invalid_request' });
+    if (!body?.name) throw badRequest({ message: 'name is required' });
 
     const [row] = await db
       .insert(customers)
@@ -79,8 +80,7 @@ export async function customerRoutes(app: FastifyInstance) {
       if (typeof body.email === 'string') updates.email = body.email ?? null;
       if (typeof body.phone === 'string') updates.phone = body.phone ?? null;
       if (typeof body.address === 'string') updates.address = body.address ?? null;
-      if (Object.keys(updates).length === 0)
-        return reply.code(400).send({ error: 'invalid_request' });
+      if (Object.keys(updates).length === 0) throw badRequest({ message: 'No updates provided' });
 
       const [row] = await db
         .update(customers)
@@ -89,7 +89,7 @@ export async function customerRoutes(app: FastifyInstance) {
           and(eq(customers.id, id), eq(customers.userId, userId), eq(customers.isDeleted, false))
         )
         .returning();
-      if (!row) return reply.code(404).send({ error: 'not_found' });
+      if (!row) throw notFound();
       return reply.send({ customer: row });
     }
   );
@@ -109,7 +109,7 @@ export async function customerRoutes(app: FastifyInstance) {
           and(eq(customers.id, id), eq(customers.userId, userId), eq(customers.isDeleted, false))
         )
         .returning();
-      if (!row) return reply.code(404).send({ error: 'not_found' });
+      if (!row) throw notFound();
       return reply.send({ ok: true });
     }
   );
@@ -132,8 +132,7 @@ export async function customerRoutes(app: FastifyInstance) {
         },
       });
 
-      if (!pet || pet.customer.userId !== userId || pet.customer.isDeleted)
-        return reply.code(404).send({ error: 'not_found' });
+      if (!pet || pet.customer.userId !== userId || pet.customer.isDeleted) throw notFound();
 
       return reply.send({ pet });
     }
@@ -161,11 +160,9 @@ export async function customerRoutes(app: FastifyInstance) {
     const allowedTypes = new Set(['dog', 'cat']);
     const allowedGenders = new Set(['male', 'female']);
     if (typeof body.name !== 'string' || body.name.trim().length === 0)
-      return reply.code(400).send({ error: 'invalid_request', message: 'name is required' });
-    if (!allowedTypes.has(body.type as string))
-      return reply.code(400).send({ error: 'invalid_request', message: 'invalid type' });
-    if (!allowedGenders.has(body.gender as string))
-      return reply.code(400).send({ error: 'invalid_request', message: 'invalid gender' });
+      throw badRequest({ message: 'name is required' });
+    if (!allowedTypes.has(body.type as string)) throw badRequest({ message: 'invalid type' });
+    if (!allowedGenders.has(body.gender as string)) throw badRequest({ message: 'invalid gender' });
 
     // Ensure customer exists and belongs to user and is not soft-deleted
     const customer = await db.query.customers.findFirst({
@@ -177,7 +174,7 @@ export async function customerRoutes(app: FastifyInstance) {
       columns: { id: true },
     });
 
-    if (!customer) return reply.code(404).send({ error: 'not_found' });
+    if (!customer) throw notFound();
 
     const dateOfBirth = typeof body.dateOfBirth === 'string' ? new Date(body.dateOfBirth) : null;
 
@@ -216,7 +213,7 @@ export async function customerRoutes(app: FastifyInstance) {
     });
 
     if (!pet || pet.customer.userId !== userId || pet.customer.isDeleted) {
-      return reply.code(404).send({ error: 'not_found' });
+      throw notFound();
     }
 
     await db.update(pets).set({ isDeleted: true, updatedAt: new Date() }).where(eq(pets.id, petId));

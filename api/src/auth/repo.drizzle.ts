@@ -1,6 +1,7 @@
 import type { DbUser, UserRepository } from './types.js';
 import { db as defaultDb } from '../db/client.js';
 import { users } from '../db/schema.js';
+import { AppError } from '../lib/app-error.js';
 
 export class DrizzleUserRepository implements UserRepository {
   constructor(private readonly db = defaultDb) {}
@@ -35,7 +36,12 @@ export class DrizzleUserRepository implements UserRepository {
       })
       .returning();
 
-    if (!user) throw new Error('user_upsert_returned_no_row');
+    if (!user)
+      throw new AppError({
+        statusCode: 404,
+        code: 'user_not_found',
+        message: 'User could not be created',
+      });
 
     return user;
   }

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { env } from '../env.js';
 import twilio from 'twilio';
+import { badRequest } from '../lib/app-error.js';
 
 const client = twilio(env.TWILIO_SID, env.TWILIO_AUTH_TOKEN);
 
@@ -24,8 +25,12 @@ export async function inboundRoutes(app: FastifyInstance) {
         to: from,
         body: `קיבלתי ממך: ${message}`,
       });
+      return { ok: true };
     }
 
-    return { ok: true };
+    throw badRequest({
+      message: 'Missing required Twilio fields',
+      details: { hasFrom: Boolean(from), hasBody: Boolean(message) },
+    });
   });
 }
