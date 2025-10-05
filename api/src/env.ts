@@ -11,6 +11,10 @@ const Env = z.object({
   TWILIO_SID: z.string(),
   TWILIO_AUTH_TOKEN: z.string(),
   URL: z.string().url(),
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+  RATE_LIMIT_TIME_WINDOW: z
+    .union([z.coerce.number().int().positive(), z.string()])
+    .default('1 minute'),
 });
 
 const parsed = Env.parse(process.env);
