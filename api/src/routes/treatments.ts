@@ -3,6 +3,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { treatments } from '../db/schema.js';
 import { ensureAuthed } from '../plugins/auth.js';
+import { conflict, badRequest, notFound } from '../lib/app-error.js';
 
 type CreateBody = { name: string; defaultIntervalMonths?: number | null; price?: number | null };
 type UpdateBody = { name?: string; defaultIntervalMonths?: number | null; price?: number | null };
@@ -26,7 +27,7 @@ export async function treatmentRoutes(app: FastifyInstance) {
       const userId = req.user.id;
 
       const { name, defaultIntervalMonths, price } = req.body ?? {};
-      if (!name) return reply.code(400).send({ error: 'invalid_request' });
+      if (!name) throw badRequest({ message: 'name is required' });
 
       try {
         const [row] = await db
@@ -49,7 +50,7 @@ export async function treatmentRoutes(app: FastifyInstance) {
           typeof (err as { code?: unknown }).code === 'string' &&
           (err as { code: string }).code === '23505'
         ) {
-          return reply.code(409).send({ error: 'duplicate_name' });
+          throw conflict({ code: 'duplicate_name' });
         }
         throw err;
       }
@@ -71,7 +72,7 @@ export async function treatmentRoutes(app: FastifyInstance) {
         updates['defaultIntervalMonths'] = defaultIntervalMonths;
       if (typeof price === 'number' || price === null) updates['price'] = price;
       if (Object.keys(updates).length === 0)
-        return reply.code(400).send({ error: 'invalid_request' });
+        throw badRequest({ message: 'No valid fields provided' });
 
       const [row] = await db
         .update(treatments)
@@ -80,7 +81,7 @@ export async function treatmentRoutes(app: FastifyInstance) {
           and(eq(treatments.id, id), eq(treatments.userId, userId), eq(treatments.isDeleted, false))
         )
         .returning();
-      if (!row) return reply.code(404).send({ error: 'not_found' });
+      if (!row) throw notFound();
       return reply.send({ treatment: row });
     }
   );
@@ -100,7 +101,7 @@ export async function treatmentRoutes(app: FastifyInstance) {
           and(eq(treatments.id, id), eq(treatments.userId, userId), eq(treatments.isDeleted, false))
         )
         .returning();
-      if (!row) return reply.code(404).send({ error: 'not_found' });
+      if (!row) throw notFound();
       return reply.send({ ok: true });
     }
   );
@@ -122,7 +123,7 @@ export async function treatmentRoutes(app: FastifyInstance) {
         limit: 1,
       });
       const row = rows[0];
-      if (!row) return reply.code(404).send({ error: 'not_found' });
+      if (!row) throw notFound();
       return reply.send({ treatment: row });
     }
   );

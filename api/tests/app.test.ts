@@ -37,14 +37,14 @@ describe('app', () => {
 
     expect(first.statusCode).toBe(200);
     expect(second.statusCode).toBe(200);
-    expect(third.statusCode).toBe(429);
-
     const body = third.json();
+    expect(third.statusCode).toBe(429);
     expect(body).toMatchObject({
       error: 'too_many_requests',
       max: 2,
     });
     expect(body).toHaveProperty('reset');
+    expect(body).toHaveProperty('requestId');
   });
 
   it('resets rate limit after the configured window', async () => {

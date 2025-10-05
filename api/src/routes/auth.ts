@@ -9,6 +9,7 @@ import {
   SESSION_COOKIE_OPTIONS,
 } from '../auth/constants.js';
 import { createSession, deleteSession, getSession } from '../auth/session.js';
+import { AppError, unauthorized } from '../lib/app-error.js';
 
 export async function authRoutes(app: FastifyInstance) {
   const config = await oidc.discovery(
@@ -40,11 +41,20 @@ export async function authRoutes(app: FastifyInstance) {
       const isServer = result.error === 'oauth_exchange_failed';
       if (isServer) {
         req.log.error({ error: result.error }, 'google_callback_exchange_failed');
-        return reply.code(500).send({ error: result.error });
+        throw new AppError({
+          statusCode: 500,
+          code: result.error,
+          message: 'OAuth exchange failed',
+          expose: false,
+        });
       }
       const status = result.error === 'email_unverified' ? 403 : 400;
       req.log.debug({ error: result.error }, 'google_callback_client_error');
-      return reply.code(status).send({ error: result.error });
+      throw new AppError({
+        statusCode: status,
+        code: result.error,
+        message: result.error,
+      });
     }
 
     // Create session and set cookie
@@ -59,7 +69,7 @@ export async function authRoutes(app: FastifyInstance) {
   app.get('/me', async (req, reply) => {
     const sessionId = req.cookies[SESSION_COOKIE_NAME];
     const session = await getSession(sessionId);
-    if (!session) return reply.code(401).send({ error: 'unauthorized' });
+    if (!session) throw unauthorized();
     return reply.send({ user: session.user });
   });
 

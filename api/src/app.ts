@@ -10,6 +10,7 @@ import { inboundRoutes } from './routes/inbound.js';
 import { treatmentRoutes } from './routes/treatments.js';
 import { customerRoutes } from './routes/customers.js';
 import { authPlugin } from './plugins/auth.js';
+import { errorPlugin } from './plugins/errors.js';
 
 export async function buildServer(options: FastifyServerOptions = {}) {
   const app = Fastify({ logger: true, ...options });
@@ -28,6 +29,7 @@ export async function buildServer(options: FastifyServerOptions = {}) {
     }),
   });
   await app.register(authPlugin);
+  await app.register(errorPlugin);
 
   await app.register(authRoutes);
   await app.register(userRoutes);

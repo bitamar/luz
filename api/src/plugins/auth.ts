@@ -8,6 +8,7 @@ import fp from 'fastify-plugin';
 import { getSession } from '../auth/session.js';
 import { SESSION_COOKIE_NAME } from '../auth/constants.js';
 import type { DbUser } from '../auth/types.js';
+import { unauthorized } from '../lib/app-error.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -20,10 +21,10 @@ declare module 'fastify' {
 }
 
 const authPluginFn: FastifyPluginAsync = async (app) => {
-  app.decorate('authenticate', async (req, reply) => {
+  app.decorate('authenticate', async (req, _reply) => {
     const sessionId = req.cookies[SESSION_COOKIE_NAME];
     const session = await getSession(sessionId);
-    if (!session) return reply.code(401).send({ error: 'unauthorized' });
+    if (!session) throw unauthorized();
 
     req.user = session.user;
     req.sessionId = session.id;
@@ -41,5 +42,5 @@ export type AuthenticatedRequest<T extends RouteGenericInterface = RouteGenericI
 export function ensureAuthed<T extends RouteGenericInterface>(
   req: FastifyRequest<T>
 ): asserts req is AuthenticatedRequest<T> {
-  if (!('user' in req) || !req.user) throw new Error('unauthorized');
+  if (!('user' in req) || !req.user) throw unauthorized();
 }
