@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Customers } from '../../pages/Customers';
 import * as customersApi from '../../api/customers';
 import { renderWithProviders } from '../utils/renderWithProviders';
+import { suppressConsoleError } from '../utils/suppressConsoleError';
 
 vi.mock('../../api/customers');
 
@@ -43,10 +44,18 @@ describe('Customers page', () => {
   const listCustomersMock = vi.mocked(customersApi.listCustomers);
   const createCustomerMock = vi.mocked(customersApi.createCustomer);
   const deleteCustomerMock = vi.mocked(customersApi.deleteCustomer);
+  let restoreConsoleError: (() => void) | null = null;
 
   beforeEach(() => {
     vi.clearAllMocks();
     listCustomersMock.mockResolvedValue(mockCustomers);
+    restoreConsoleError?.();
+    restoreConsoleError = null;
+  });
+
+  afterAll(() => {
+    restoreConsoleError?.();
+    restoreConsoleError = null;
   });
 
   it('renders customers list with basic info', async () => {
@@ -130,5 +139,44 @@ describe('Customers page', () => {
     card?.click();
 
     expect(navigateMock).toHaveBeenCalledWith('/customers/cust-1');
+  });
+
+  it('shows empty state when there are no customers', async () => {
+    listCustomersMock.mockResolvedValue([]);
+
+    renderWithProviders(<Customers />);
+
+    await waitFor(() => expect(screen.getByText('אין עדיין לקוחות')).toBeInTheDocument());
+    expect(
+      screen.getByText('לחץ על "לקוח חדש" כדי להוסיף את הלקוח הראשון שלך.')
+    ).toBeInTheDocument();
+  });
+
+  it('shows error state when loading customers fails', async () => {
+    listCustomersMock.mockRejectedValue(new Error('Request failed: 500'));
+    restoreConsoleError = suppressConsoleError(/Failed to load data/);
+
+    renderWithProviders(<Customers />);
+
+    await screen.findByText('לא ניתן להציג לקוחות כעת');
+    expect(screen.getByText('אירעה שגיאה בטעינת הלקוחות')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'נסה שוב' })).toBeInTheDocument();
+  });
+
+  it('retries loading when clicking try again', async () => {
+    listCustomersMock
+      .mockRejectedValueOnce(new Error('Request failed: 500'))
+      .mockResolvedValueOnce(mockCustomers);
+    restoreConsoleError = suppressConsoleError(/Failed to load data/);
+
+    renderWithProviders(<Customers />);
+
+    await screen.findByText('לא ניתן להציג לקוחות כעת');
+
+    const retryButton = screen.getByRole('button', { name: /נסה שוב/ });
+    await userEvent.click(retryButton);
+
+    await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
   });
 });

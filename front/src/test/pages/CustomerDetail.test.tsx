@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Routes, Route } from 'react-router-dom';
 import { CustomerDetail } from '../../pages/CustomerDetail';
 import * as customersApi from '../../api/customers';
 import { renderWithProviders } from '../utils/renderWithProviders';
+import { suppressConsoleError } from '../utils/suppressConsoleError';
 
 const navigateMock = vi.fn();
 
@@ -35,6 +36,7 @@ describe('CustomerDetail page', () => {
   const addPetMock = vi.mocked(customersApi.addPetToCustomer);
   const deleteCustomerMock = vi.mocked(customersApi.deleteCustomer);
   const deletePetMock = vi.mocked(customersApi.deletePet);
+  let restoreConsoleError: (() => void) | null = null;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -54,6 +56,13 @@ describe('CustomerDetail page', () => {
     });
     deleteCustomerMock.mockResolvedValue();
     deletePetMock.mockResolvedValue();
+    restoreConsoleError?.();
+    restoreConsoleError = null;
+  });
+
+  afterEach(() => {
+    restoreConsoleError?.();
+    restoreConsoleError = null;
   });
 
   function renderCustomerDetail() {
@@ -118,5 +127,56 @@ describe('CustomerDetail page', () => {
 
     await waitFor(() => expect(deleteCustomerMock).toHaveBeenCalledWith('cust-1'));
     expect(navigateMock).toHaveBeenCalledWith('/customers');
+  });
+
+  it('shows empty state when customer has no pets', async () => {
+    listCustomersMock.mockResolvedValueOnce([{ ...baseCustomer, pets: [] }]);
+
+    renderCustomerDetail();
+
+    await waitFor(() =>
+      expect(screen.getByText('אין עדיין חיות מחמד ללקוח זה')).toBeInTheDocument()
+    );
+    expect(
+      screen.getByText('לחץ על "+ הוסף חיה" כדי להוסיף חיית מחמד ראשונה.')
+    ).toBeInTheDocument();
+  });
+
+  it('shows not found state when customer does not exist', async () => {
+    listCustomersMock.mockResolvedValueOnce([]);
+
+    renderCustomerDetail();
+
+    restoreConsoleError = suppressConsoleError(/NOT_FOUND/);
+
+    await waitFor(() => expect(screen.getByText('הלקוח לא נמצא')).toBeInTheDocument());
+    expect(screen.getByText('ייתכן שהלקוח נמחק או שאינך מורשה לצפות בו.')).toBeInTheDocument();
+  });
+
+  it('shows error state when loading the customer fails', async () => {
+    listCustomersMock.mockRejectedValueOnce(new Error('Request failed: 500'));
+    restoreConsoleError = suppressConsoleError(/Failed to load data/);
+
+    renderCustomerDetail();
+
+    await waitFor(() => expect(screen.getByText('לא ניתן להציג את הלקוח כעת')).toBeInTheDocument());
+    expect(screen.getByText('אירעה שגיאה בטעינת הלקוח')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /נסה שוב/ })).toBeInTheDocument();
+  });
+
+  it('allows retry after error', async () => {
+    listCustomersMock
+      .mockRejectedValueOnce(new Error('Request failed: 500'))
+      .mockResolvedValueOnce([baseCustomer]);
+    restoreConsoleError = suppressConsoleError(/Failed to load data/);
+
+    renderCustomerDetail();
+
+    await screen.findByText('לא ניתן להציג את הלקוח כעת');
+
+    await userEvent.click(screen.getByRole('button', { name: /נסה שוב/ }));
+
+    await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2));
+    await screen.findByRole('heading', { name: 'Dana Vet' });
   });
 });
