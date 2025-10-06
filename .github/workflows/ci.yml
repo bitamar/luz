@@ -62,7 +62,7 @@ jobs:
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/kalimere_test
           APP_ORIGIN: http://localhost:3000
           URL: http://localhost:3000
-          JWT_SECRET: 1234567890123456789012345678901234567890
+          JWT_SECRET: "1234567890123456789012345678901234567890"
           GOOGLE_CLIENT_ID: dummy-google-client-id
           GOOGLE_CLIENT_SECRET: dummy-google-client-secret
           TWILIO_SID: dummy-twilio-sid
