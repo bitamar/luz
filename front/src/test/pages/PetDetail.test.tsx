@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Routes, Route } from 'react-router-dom';
 import { PetDetail } from '../../pages/PetDetail';
@@ -99,17 +99,15 @@ describe('PetDetail page', () => {
 
     await waitFor(() => expect(getPetMock).toHaveBeenCalled());
 
-    const titleGroup = document.querySelector('.pet-title-group');
-    if (!titleGroup) throw new Error('Pet title group not found');
-
-    const menuTrigger = Array.from(titleGroup.querySelectorAll('button')).find(
-      (btn) => btn.getAttribute('aria-haspopup') === 'menu'
-    );
-
-    if (!menuTrigger) throw new Error('Pet menu trigger not found');
+    const menuTrigger = screen.getByTestId('pet-actions-trigger');
 
     await user.click(menuTrigger);
-    await user.click(await screen.findByRole('menuitem', { name: 'מחק חיית מחמד' }));
+    const dropdown = await screen.findByTestId('pet-actions-dropdown');
+    const deleteItem = within(dropdown).getByRole('menuitem', {
+      name: 'מחק חיית מחמד',
+      hidden: true,
+    });
+    await user.click(deleteItem);
     await user.click(await screen.findByRole('button', { name: 'מחק' }));
 
     await waitFor(() => expect(deletePetMock).toHaveBeenCalledWith('cust-1', 'pet-1'));

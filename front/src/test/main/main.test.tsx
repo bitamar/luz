@@ -9,7 +9,7 @@ describe('Main bootstrap', () => {
     const { container } = render(
       <DirectionProvider>
         <MantineProvider>
-          <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <MemoryRouter>
             <App />
           </MemoryRouter>
         </MantineProvider>

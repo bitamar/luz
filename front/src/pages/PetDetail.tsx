@@ -23,6 +23,7 @@ export function PetDetail() {
   const { customerId, petId } = useParams<{ customerId: string; petId: string }>();
   const navigate = useNavigate();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const fetchPet = useCallback(async () => {
     if (!customerId || !petId) {
@@ -138,11 +139,19 @@ export function PetDetail() {
         className="pet-title-group"
         style={{ position: 'relative' }}
       >
-        <Menu shadow="md" width={150} position="bottom-start">
+        <Menu
+          shadow="md"
+          width={150}
+          position="bottom-start"
+          opened={menuOpen}
+          onClose={() => setMenuOpen(false)}
+        >
           <Menu.Target>
             <Button
               variant="subtle"
               size="xs"
+              aria-label="פתח תפריט פעולות"
+              data-testid="pet-actions-trigger"
               style={{
                 position: 'absolute',
                 top: 0,
@@ -151,17 +160,22 @@ export function PetDetail() {
                 width: '24px',
                 height: '24px',
               }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setMenuOpen((prev) => !prev);
+              }}
             >
               <IconDots size={14} />
             </Button>
           </Menu.Target>
-          <Menu.Dropdown>
+          <Menu.Dropdown data-testid="pet-actions-dropdown">
             <Menu.Item
               color="red"
               leftSection={<IconX size={16} />}
               onClick={(e) => {
                 e.stopPropagation();
+                setMenuOpen(false);
                 openDeleteModal();
               }}
             >

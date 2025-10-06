@@ -179,4 +179,48 @@ describe('CustomerDetail page', () => {
     await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2));
     await screen.findByRole('heading', { name: 'Dana Vet' });
   });
+
+  it('allows adding a new pet and shows it after refresh', async () => {
+    renderCustomerDetail();
+
+    const user = userEvent.setup();
+    await screen.findByText('Bolt');
+
+    const newPet: customersApi.Customer['pets'][number] = {
+      id: 'pet-new',
+      name: 'New Pet',
+      type: 'dog',
+    };
+
+    const updatedCustomer: customersApi.Customer = {
+      ...baseCustomer,
+      pets: [...baseCustomer.pets, newPet],
+    };
+
+    await user.click(screen.getByRole('button', { name: '+ הוסף חיה' }));
+    const modal = await screen.findByRole('dialog', { name: 'הוסף חיה חדשה' });
+
+    await user.type(await within(modal).findByLabelText(/שם/), 'New Pet');
+
+    await user.click(await within(modal).findByLabelText(/סוג/));
+    await user.click(await screen.findByRole('option', { name: 'כלב', hidden: true }));
+
+    await user.click(await within(modal).findByLabelText(/מין/));
+    await user.click(await screen.findByRole('option', { name: 'זכר', hidden: true }));
+
+    listCustomersMock.mockResolvedValueOnce([updatedCustomer]);
+
+    await user.click(await within(modal).findByRole('button', { name: 'הוסף' }));
+
+    await waitFor(() =>
+      expect(addPetMock).toHaveBeenCalledWith('cust-1', {
+        name: 'New Pet',
+        type: 'dog',
+        gender: 'male',
+        breed: null,
+      })
+    );
+    await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2));
+    await screen.findByText('New Pet');
+  });
 });

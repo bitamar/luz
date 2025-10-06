@@ -6,6 +6,34 @@ import { ensureAuthed } from '../plugins/auth.js';
 import { badRequest, notFound } from '../lib/app-error.js';
 
 export async function customerRoutes(app: FastifyInstance) {
+  async function fetchCustomerWithPets(customerId: string, userId: string) {
+    const row = await db.query.customers.findFirst({
+      where: and(
+        eq(customers.id, customerId),
+        eq(customers.userId, userId),
+        eq(customers.isDeleted, false)
+      ),
+      columns: { id: true, name: true, email: true, phone: true, address: true },
+    });
+
+    if (!row) return null;
+
+    const petRows = await db.query.pets.findMany({
+      where: and(eq(pets.customerId, customerId), eq(pets.isDeleted, false)),
+      columns: { id: true, name: true, type: true },
+      orderBy: (p, { asc }) => asc(p.createdAt),
+    });
+
+    return {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      phone: row.phone,
+      address: row.address,
+      pets: petRows.map((pet) => ({ id: pet.id, name: pet.name, type: pet.type })),
+    };
+  }
+
   app.get('/customers', { preHandler: app.authenticate }, async (req, reply) => {
     ensureAuthed(req);
     const userId = req.user.id;
@@ -58,7 +86,9 @@ export async function customerRoutes(app: FastifyInstance) {
         address: body.address ?? null,
       })
       .returning();
-    return reply.code(201).send({ customer: row });
+    if (!row) throw new Error('Failed to create customer');
+    const customerWithPets = await fetchCustomerWithPets(row.id, userId);
+    return reply.code(201).send({ customer: customerWithPets ?? row });
   });
 
   app.put<{ Params: { id: string } }>(
@@ -90,7 +120,8 @@ export async function customerRoutes(app: FastifyInstance) {
         )
         .returning();
       if (!row) throw notFound();
-      return reply.send({ customer: row });
+      const customerWithPets = await fetchCustomerWithPets(row.id, userId);
+      return reply.send({ customer: customerWithPets ?? row });
     }
   );
 
@@ -191,8 +222,22 @@ export async function customerRoutes(app: FastifyInstance) {
         isCastrated: typeof body.isCastrated === 'boolean' ? body.isCastrated : null,
       })
       .returning();
+    if (!pet) throw new Error('Failed to create pet');
+    const customerWithPets = await fetchCustomerWithPets(id, userId);
 
-    return reply.code(201).send({ pet });
+    const responseCustomer = customerWithPets
+      ? {
+          ...customerWithPets,
+          pets: customerWithPets.pets.find((existing) => existing.id === pet.id)
+            ? customerWithPets.pets
+            : [...customerWithPets.pets, { id: pet.id, name: pet.name, type: pet.type }],
+        }
+      : null;
+
+    return reply.code(201).send({
+      pet,
+      customer: responseCustomer,
+    });
   });
 
   app.delete<{

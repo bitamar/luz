@@ -2,11 +2,10 @@
 
 ### Backend Critical
 - [ ] remove duplicate name constraint on treatment
-- [ ] bug - after adding a pet, the customer is returned without their pets
+- [x] bug - after adding a pet, the customer is returned without their pets _(done: API now returns updated customer including pets; covered by tests)_
 - [ ] add request/response validation (Zod or similar) - currently using manual validation
 - [x] centralized error handling middleware - errors are handled inconsistently _(done: central error plugin + shared `AppError` utility)_
 - [ ] move sessions from in-memory to database - will lose all sessions on restart
-- [ ] add database transactions for multi-step operations (create customer + pets)
 - [ ] API request/response schemas shared with frontend (tRPC or shared types)
 - [ ] structured logging with context (request IDs, user IDs)
 - [x] global error handler in Fastify (currently errors bubble up inconsistently) _(done: registered error plugin in `app.ts`)_
@@ -21,7 +20,7 @@
 - [ ] abort pending requests on navigation - currently requests keep running
 
 ### DevOps / Infrastructure (DO NOW)
-- [ ] support PR environments - OAuth redirects to prod instead of staying on PR env (e.g., front-luz-pr-1.up.railway.app/login redirects to prod)
+- [ ] support PR environments - OAuth redirects to prod instead of staying on PR env (e.g., front-kalimere-pr-1.up.railway.app/login redirects to prod)
 - [ ] run all tests on prs 
 
 ### Security & Data Integrity (DO NOW)
