@@ -44,6 +44,13 @@ jobs:
       - name: Wait for database
         run: npx wait-on tcp:127.0.0.1:5432
 
+      - name: Recreate test database
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h 127.0.0.1 -U postgres -c 'DROP DATABASE IF EXISTS kalimere_test;' postgres
+          psql -h 127.0.0.1 -U postgres -c 'CREATE DATABASE kalimere_test;' postgres
+
       - name: Run migrations
         env:
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/kalimere_test
