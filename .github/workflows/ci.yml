@@ -65,8 +65,8 @@ jobs:
           JWT_SECRET: "1234567890123456789012345678901234567890"
           GOOGLE_CLIENT_ID: dummy-google-client-id
           GOOGLE_CLIENT_SECRET: dummy-google-client-secret
-          TWILIO_SID: dummy-twilio-sid
-          TWILIO_AUTH_TOKEN: dummy-twilio-token
+          TWILIO_SID: AC00000000000000000000000000000000
+          TWILIO_AUTH_TOKEN: 00000000000000000000000000000000
         run: npm test
 
       - name: Cleanup database
@@ -104,8 +104,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Run tests
+        run: npm test
+
       - name: Format check
         run: npm run format:check
-
-      - name: Build
-        run: npm run build
