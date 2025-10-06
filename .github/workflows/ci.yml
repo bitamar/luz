@@ -51,10 +51,15 @@ jobs:
           psql -h 127.0.0.1 -U postgres -c 'DROP DATABASE IF EXISTS kalimere_test;' postgres
           psql -h 127.0.0.1 -U postgres -c 'CREATE DATABASE kalimere_test;' postgres
 
-      - name: Run migrations
+      - name: Preview schema drift
         env:
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/kalimere_test
-        run: npm run db:migrate
+        run: npx drizzle-kit diff
+
+      - name: Apply schema
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/kalimere_test
+        run: npx drizzle-kit push --force
 
       - name: TypeScript compilation
         run: npm run build
