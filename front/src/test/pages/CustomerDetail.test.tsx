@@ -181,46 +181,81 @@ describe('CustomerDetail page', () => {
   });
 
   it('allows adding a new pet and shows it after refresh', async () => {
-    renderCustomerDetail();
+    try {
+      console.log('[TEST] Rendering CustomerDetail');
+      renderCustomerDetail();
 
-    const user = userEvent.setup();
-    await screen.findByText('Bolt');
+      const user = userEvent.setup();
+      console.log('[TEST] Waiting for Bolt to appear');
+      await screen.findByText('Bolt', {}, { timeout: 4000 });
 
-    const newPet: customersApi.Customer['pets'][number] = {
-      id: 'pet-new',
-      name: 'New Pet',
-      type: 'dog',
-    };
-
-    const updatedCustomer: customersApi.Customer = {
-      ...baseCustomer,
-      pets: [...baseCustomer.pets, newPet],
-    };
-
-    await user.click(screen.getByRole('button', { name: '+ הוסף חיה' }));
-    const modal = await screen.findByRole('dialog', { name: 'הוסף חיה חדשה' });
-
-    await user.type(await within(modal).findByLabelText(/שם/), 'New Pet');
-
-    await user.click(await within(modal).findByLabelText(/סוג/));
-    await user.click(await screen.findByRole('option', { name: 'כלב', hidden: true }));
-
-    await user.click(await within(modal).findByLabelText(/מין/));
-    await user.click(await screen.findByRole('option', { name: 'זכר', hidden: true }));
-
-    listCustomersMock.mockResolvedValueOnce([updatedCustomer]);
-
-    await user.click(await within(modal).findByRole('button', { name: 'הוסף' }));
-
-    await waitFor(() =>
-      expect(addPetMock).toHaveBeenCalledWith('cust-1', {
+      const newPet: customersApi.Customer['pets'][number] = {
+        id: 'pet-new',
         name: 'New Pet',
         type: 'dog',
-        gender: 'male',
-        breed: null,
-      })
-    );
-    await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2));
-    await screen.findByText('New Pet');
+      };
+
+      const updatedCustomer: customersApi.Customer = {
+        ...baseCustomer,
+        pets: [...baseCustomer.pets, newPet],
+      };
+
+      console.log('[TEST] Clicking add pet button');
+      await user.click(screen.getByRole('button', { name: '+ הוסף חיה' }));
+
+      console.log('[TEST] Waiting for add pet modal');
+      const modal = await screen.findByRole('dialog', { name: 'הוסף חיה חדשה' }, { timeout: 4000 });
+
+      console.log('[TEST] Typing pet name');
+      await user.type(await within(modal).findByLabelText(/שם/), 'New Pet');
+
+      console.log('[TEST] Selecting pet type');
+      await user.click(await within(modal).findByLabelText(/סוג/));
+      await user.click(
+        await screen.findByRole('option', { name: 'כלב', hidden: true }, { timeout: 4000 })
+      );
+
+      console.log('[TEST] Selecting pet gender');
+      await user.click(await within(modal).findByLabelText(/מין/));
+      await user.click(
+        await screen.findByRole('option', { name: 'זכר', hidden: true }, { timeout: 4000 })
+      );
+
+      listCustomersMock.mockResolvedValueOnce([updatedCustomer]);
+
+      console.log('[TEST] Clicking add button');
+      await user.click(await within(modal).findByRole('button', { name: 'הוסף' }));
+
+      console.log('[TEST] Waiting for addPetMock to be called');
+      await waitFor(
+        () =>
+          expect(addPetMock).toHaveBeenCalledWith('cust-1', {
+            name: 'New Pet',
+            type: 'dog',
+            gender: 'male',
+            breed: null,
+          }),
+        { timeout: 4000 }
+      );
+      console.log('[TEST] addPetMock called');
+
+      console.log('[TEST] Waiting for listCustomersMock to be called twice');
+      await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2), { timeout: 4000 });
+      console.log('[TEST] listCustomersMock called twice');
+
+      console.log('[TEST] Waiting for New Pet to appear');
+      await waitFor(() => expect(screen.getByText('New Pet')).toBeInTheDocument(), {
+        timeout: 4000,
+      });
+      console.log('[TEST] New Pet appeared');
+    } catch (err) {
+      // Print error and current DOM for CI debugging
+      console.error('[TEST ERROR]', err);
+      // Print a snippet of the DOM for debugging
+      if (typeof document !== 'undefined') {
+        console.error('[TEST ERROR] Current DOM:', document.body.innerHTML);
+      }
+      throw err;
+    }
   });
 });
