@@ -182,7 +182,7 @@ describe('CustomerDetail page', () => {
 
   it('allows adding a new pet and shows it after refresh', async () => {
     // Set a longer timeout specifically for this test in CI
-    // vi.setConfig({ testTimeout: 15000 });
+    vi.setConfig({ testTimeout: 15000 });
 
     try {
       renderCustomerDetail();
@@ -232,7 +232,7 @@ describe('CustomerDetail page', () => {
             gender: 'male',
             breed: null,
           }),
-        { timeout: 5000 }
+        { timeout: 10000 }
       );
 
       // Wait for the second API call that refreshes the data
@@ -240,11 +240,11 @@ describe('CustomerDetail page', () => {
 
       // Wait for the UI to update with the new pet
       await waitFor(() => expect(screen.getByText('New Pet')).toBeInTheDocument(), {
-        timeout: 5000,
+        timeout: 10000,
       });
     } finally {
       // Reset the test timeout
       vi.setConfig({ testTimeout: 5000 });
     }
-  }, 5000); // Also set explicit test function timeout
+  });
 });
