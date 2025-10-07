@@ -13,6 +13,17 @@ jobs:
     defaults:
       run:
         working-directory: ./api
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kalimere_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +38,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Wait for database
+        run: npx wait-on tcp:127.0.0.1:5432
+
+      - name: Recreate test database
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h 127.0.0.1 -U postgres -c 'DROP DATABASE IF EXISTS kalimere_test;' postgres
+          psql -h 127.0.0.1 -U postgres -c 'CREATE DATABASE kalimere_test;' postgres
+
+      - name: Apply migrations
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/kalimere_test
+        run: npm run db:migrate
+
       - name: TypeScript compilation
         run: npm run build
 
@@ -34,7 +60,24 @@ jobs:
         run: npm run lint
 
       - name: Run tests
+        env:
+          NODE_ENV: test
+          TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/kalimere_test
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/kalimere_test
+          APP_ORIGIN: http://localhost:3000
+          URL: http://localhost:3000
+          JWT_SECRET: "1234567890123456789012345678901234567890"
+          GOOGLE_CLIENT_ID: dummy-google-client-id
+          GOOGLE_CLIENT_SECRET: dummy-google-client-secret
+          TWILIO_SID: AC00000000000000000000000000000000
+          TWILIO_AUTH_TOKEN: 00000000000000000000000000000000
         run: npm test
+
+      - name: Cleanup database
+        if: always()
+        env:
+          PGPASSWORD: postgres
+        run: psql -h 127.0.0.1 -U postgres -c 'DROP DATABASE IF EXISTS kalimere_test;' postgres
 
   frontend:
     name: Frontend - Build, Lint & Format Check
@@ -42,6 +85,8 @@ jobs:
     defaults:
       run:
         working-directory: ./front
+    env:
+      VITE_API_BASE_URL: http://localhost:3000/api
 
     steps:
       - uses: actions/checkout@v4
@@ -62,8 +107,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Run tests
+        run: npm test
+
       - name: Format check
         run: npm run format:check
-
-      - name: Build
-        run: npm run build

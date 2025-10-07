@@ -74,7 +74,6 @@ export const customers = pgTable(
   }
 );
 
-// Pets
 export const pets = pgTable('pets', {
   id: uuid('id').defaultRandom().primaryKey(),
   customerId: uuid('customer_id')
@@ -92,7 +91,6 @@ export const pets = pgTable('pets', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-// Relations
 export const customersRelations = relations(customers, ({ one, many }) => ({
   user: one(users, {
     fields: [customers.userId],

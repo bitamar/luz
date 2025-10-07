@@ -15,7 +15,15 @@ import { errorPlugin } from './plugins/errors.js';
 export async function buildServer(options: FastifyServerOptions = {}) {
   const app = Fastify({ logger: true, ...options });
 
-  await app.register(cors, { origin: env.APP_ORIGIN, credentials: true });
+  await app.register(cors, {
+    origin: env.APP_ORIGIN,
+    credentials: true,
+    methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    exposedHeaders: ['Set-Cookie'],
+    preflight: true,
+    preflightContinue: false,
+  });
   await app.register(cookie, { secret: env.JWT_SECRET });
   await app.register(formbody);
   await app.register(rateLimit, {

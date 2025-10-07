@@ -1,0 +1,6 @@
+# Cursor Guardrails
+- lean on repo scripts and migrations; no raw SQL or shell hacks in workflows
+- commit Drizzle migrations and meta snapshots together; these are the only schema changes allowed
+- backend tests must use `TEST_DATABASE_URL` pointing at a database whose name contains `test`
+- if a workaround is unavoidable, capture it as a TODO and fix it before merge
+

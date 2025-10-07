@@ -36,12 +36,25 @@ describe('CustomerDetail page', () => {
   const addPetMock = vi.mocked(customersApi.addPetToCustomer);
   const deleteCustomerMock = vi.mocked(customersApi.deleteCustomer);
   const deletePetMock = vi.mocked(customersApi.deletePet);
+  const getCustomerPetsMock = vi.mocked(customersApi.getCustomerPets);
   let restoreConsoleError: (() => void) | null = null;
 
   beforeEach(() => {
     vi.clearAllMocks();
     navigateMock.mockReset();
     listCustomersMock.mockResolvedValue([baseCustomer]);
+    // Add mock for getCustomerPets
+    getCustomerPetsMock.mockResolvedValue(
+      baseCustomer.pets.map((pet) => ({
+        ...pet,
+        customerId: baseCustomer.id,
+        gender: 'male',
+        dateOfBirth: null,
+        breed: null,
+        isSterilized: null,
+        isCastrated: null,
+      }))
+    );
     addPetMock.mockResolvedValue({
       id: 'pet-new',
       customerId: 'cust-1',
@@ -52,7 +65,6 @@ describe('CustomerDetail page', () => {
       breed: null,
       isSterilized: null,
       isCastrated: null,
-      customer: { id: 'cust-1', name: 'Dana Vet' },
     });
     deleteCustomerMock.mockResolvedValue();
     deletePetMock.mockResolvedValue();
@@ -131,6 +143,8 @@ describe('CustomerDetail page', () => {
 
   it('shows empty state when customer has no pets', async () => {
     listCustomersMock.mockResolvedValueOnce([{ ...baseCustomer, pets: [] }]);
+    // Also mock getCustomerPets to return an empty array
+    getCustomerPetsMock.mockResolvedValueOnce([]);
 
     renderCustomerDetail();
 
@@ -179,4 +193,59 @@ describe('CustomerDetail page', () => {
     await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2));
     await screen.findByRole('heading', { name: 'Dana Vet' });
   });
+
+  it('allows adding a new pet and shows it after refresh', async () => {
+    renderCustomerDetail();
+
+    const user = userEvent.setup();
+    await screen.findByText('Bolt');
+
+    const newPet: customersApi.Customer['pets'][number] = {
+      id: 'pet-new',
+      name: 'New Pet',
+      type: 'dog',
+    };
+
+    const updatedCustomer: customersApi.Customer = {
+      ...baseCustomer,
+      pets: [...baseCustomer.pets, newPet],
+    };
+
+    // Setup the mock response before clicking any buttons
+    listCustomersMock.mockResolvedValueOnce([updatedCustomer]);
+
+    // Open pet form
+    await user.click(screen.getByRole('button', { name: '+ הוסף חיה' }));
+    const modal = await screen.findByRole('dialog', { name: 'הוסף חיה חדשה' });
+
+    // Fill the form efficiently
+    const nameInput = await within(modal).findByLabelText(/שם/);
+    await user.type(nameInput, 'New Pet');
+
+    // Select dog option
+    await user.click(await within(modal).findByLabelText(/סוג/));
+    await user.click(await screen.findByRole('option', { name: 'כלב', hidden: true }));
+
+    // Select male option
+    await user.click(await within(modal).findByLabelText(/מין/));
+    await user.click(await screen.findByRole('option', { name: 'זכר', hidden: true }));
+
+    // Submit form
+    await user.click(await within(modal).findByRole('button', { name: 'הוסף' }));
+
+    // These longer timeouts ensure the test passes in CI environments
+    await waitFor(
+      () =>
+        expect(addPetMock).toHaveBeenCalledWith('cust-1', {
+          name: 'New Pet',
+          type: 'dog',
+          gender: 'male',
+          breed: null,
+        }),
+      { timeout: 7000 }
+    );
+
+    await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2), { timeout: 7000 });
+    await waitFor(() => expect(screen.getByText('New Pet')).toBeInTheDocument(), { timeout: 7000 });
+  }, 10000); // Keep explicit timeout parameter
 });

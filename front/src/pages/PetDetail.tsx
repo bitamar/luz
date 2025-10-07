@@ -15,7 +15,7 @@ import {
   Title,
 } from '@mantine/core';
 import { IconDots, IconX } from '@tabler/icons-react';
-import { getPet, deletePet, type Pet } from '../api/customers';
+import { getPet, deletePet, type Pet, getCustomer, type Customer } from '../api/customers';
 import { useListState } from '../hooks/useListState';
 import { StatusCard } from '../components/StatusCard';
 
@@ -23,6 +23,9 @@ export function PetDetail() {
   const { customerId, petId } = useParams<{ customerId: string; petId: string }>();
   const navigate = useNavigate();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [customerLoading, setCustomerLoading] = useState(false);
 
   const fetchPet = useCallback(async () => {
     if (!customerId || !petId) {
@@ -45,6 +48,27 @@ export function PetDetail() {
     isNotFoundError: (err) => err instanceof Error && err.name === 'NOT_FOUND',
     formatError: () => 'אירעה שגיאה בטעינת פרטי חיית המחמד',
   });
+
+  // Fetch customer data when pet is loaded
+  useEffect(() => {
+    const loadCustomer = async () => {
+      if (pet && pet.customerId) {
+        try {
+          setCustomerLoading(true);
+          const customerData = await getCustomer(pet.customerId);
+          setCustomer(customerData);
+        } catch (err) {
+          console.error('Failed to load customer data:', err);
+        } finally {
+          setCustomerLoading(false);
+        }
+      }
+    };
+
+    if (pet) {
+      void loadCustomer();
+    }
+  }, [pet]);
 
   useEffect(() => {
     void refresh();
@@ -105,7 +129,7 @@ export function PetDetail() {
 
   const breadcrumbItems = [
     { title: 'לקוחות', href: '/customers' },
-    { title: pet.customer.name, href: `/customers/${pet.customerId}` },
+    { title: customer?.name || 'לקוח לא ידוע', href: `/customers/${pet.customerId}` },
     { title: pet.name, href: '#' },
   ].map((item, index) => {
     const isActive = item.href === '#';
@@ -138,11 +162,19 @@ export function PetDetail() {
         className="pet-title-group"
         style={{ position: 'relative' }}
       >
-        <Menu shadow="md" width={150} position="bottom-start">
+        <Menu
+          shadow="md"
+          width={150}
+          position="bottom-start"
+          opened={menuOpen}
+          onClose={() => setMenuOpen(false)}
+        >
           <Menu.Target>
             <Button
               variant="subtle"
               size="xs"
+              aria-label="פתח תפריט פעולות"
+              data-testid="pet-actions-trigger"
               style={{
                 position: 'absolute',
                 top: 0,
@@ -151,17 +183,22 @@ export function PetDetail() {
                 width: '24px',
                 height: '24px',
               }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setMenuOpen((prev) => !prev);
+              }}
             >
               <IconDots size={14} />
             </Button>
           </Menu.Target>
-          <Menu.Dropdown>
+          <Menu.Dropdown data-testid="pet-actions-dropdown">
             <Menu.Item
               color="red"
               leftSection={<IconX size={16} />}
               onClick={(e) => {
                 e.stopPropagation();
+                setMenuOpen(false);
                 openDeleteModal();
               }}
             >
@@ -248,16 +285,22 @@ export function PetDetail() {
             <Text size="sm" fw={500}>
               לקוח:
             </Text>
-            <Anchor
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate(`/customers/${pet.customerId}`);
-              }}
-              style={{ cursor: 'pointer' }}
-            >
-              {pet.customer.name}
-            </Anchor>
+            {customerLoading ? (
+              <Text size="sm" c="dimmed">
+                טוען...
+              </Text>
+            ) : (
+              <Anchor
+                size="sm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate(`/customers/${pet.customerId}`);
+                }}
+                style={{ cursor: 'pointer' }}
+              >
+                {customer?.name || 'לקוח לא ידוע'}
+              </Anchor>
+            )}
           </Group>
         </Stack>
       </Card>

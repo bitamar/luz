@@ -16,10 +16,6 @@ export interface Pet {
   breed: string | null;
   isSterilized: boolean | null;
   isCastrated: boolean | null;
-  customer: {
-    id: string;
-    name: string;
-  };
 }
 
 export interface Customer {
@@ -49,6 +45,16 @@ export async function createCustomer(input: {
   return result.customer;
 }
 
+export async function getCustomerPets(customerId: string): Promise<Pet[]> {
+  const result = await fetchJson<{ pets: Pet[] }>(`/customers/${customerId}/pets`);
+  return result.pets;
+}
+
+export async function getCustomer(customerId: string): Promise<Customer> {
+  const result = await fetchJson<{ customer: Customer }>(`/customers/${customerId}`);
+  return result.customer;
+}
+
 export async function getPet(customerId: string, petId: string): Promise<Pet> {
   const result = await fetchJson<{ pet: Pet }>(`/customers/${customerId}/pets/${petId}`);
   return result.pet;
@@ -65,7 +71,7 @@ export async function addPetToCustomer(
     isSterilized?: boolean | null;
     isCastrated?: boolean | null;
   }
-) {
+): Promise<Pet> {
   const result = await fetchJson<{ pet: Pet }>(`/customers/${customerId}/pets`, {
     method: 'POST',
     body: JSON.stringify(input),
