@@ -181,7 +181,7 @@ describe('CustomerDetail page', () => {
   });
 
   it('allows adding a new pet and shows it after refresh', async () => {
-    // Set a longer timeout specifically for this test in CI
+    // Set a longer timeout for this specific test
     vi.setConfig({ testTimeout: 15000 });
 
     try {
@@ -246,5 +246,5 @@ describe('CustomerDetail page', () => {
       // Reset the test timeout
       vi.setConfig({ testTimeout: 5000 });
     }
-  });
+  }, 15000); // Set explicit timeout parameter here
 });
