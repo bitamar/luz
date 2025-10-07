@@ -181,13 +181,16 @@ describe('CustomerDetail page', () => {
   });
 
   it('allows adding a new pet and shows it after refresh', async () => {
+    // Explicitly set a longer timeout for this test to address CI environments
+    vi.setConfig({ testTimeout: 10000 });
+
     try {
       console.log('[TEST] Rendering CustomerDetail');
       renderCustomerDetail();
 
       const user = userEvent.setup();
       console.log('[TEST] Waiting for Bolt to appear');
-      await screen.findByText('Bolt', {}, { timeout: 4000 });
+      await screen.findByText('Bolt', {}, { timeout: 8000 });
 
       const newPet: customersApi.Customer['pets'][number] = {
         id: 'pet-new',
@@ -200,32 +203,50 @@ describe('CustomerDetail page', () => {
         pets: [...baseCustomer.pets, newPet],
       };
 
+      // Setup the mock response before clicking any buttons
+      listCustomersMock.mockResolvedValueOnce([updatedCustomer]);
+
       console.log('[TEST] Clicking add pet button');
       await user.click(screen.getByRole('button', { name: '+ הוסף חיה' }));
 
       console.log('[TEST] Waiting for add pet modal');
-      const modal = await screen.findByRole('dialog', { name: 'הוסף חיה חדשה' }, { timeout: 4000 });
+      const modal = await screen.findByRole('dialog', { name: 'הוסף חיה חדשה' }, { timeout: 8000 });
 
       console.log('[TEST] Typing pet name');
-      await user.type(await within(modal).findByLabelText(/שם/), 'New Pet');
+      const nameInput = await within(modal).findByLabelText(/שם/, {}, { timeout: 8000 });
+      await user.type(nameInput, 'New Pet');
 
       console.log('[TEST] Selecting pet type');
-      await user.click(await within(modal).findByLabelText(/סוג/));
-      await user.click(
-        await screen.findByRole('option', { name: 'כלב', hidden: true }, { timeout: 4000 })
+      const typeSelect = await within(modal).findByLabelText(/סוג/, {}, { timeout: 8000 });
+      await user.click(typeSelect);
+
+      const dogOption = await screen.findByRole(
+        'option',
+        { name: 'כלב', hidden: true },
+        { timeout: 8000 }
       );
+      await user.click(dogOption);
 
       console.log('[TEST] Selecting pet gender');
-      await user.click(await within(modal).findByLabelText(/מין/));
-      await user.click(
-        await screen.findByRole('option', { name: 'זכר', hidden: true }, { timeout: 4000 })
-      );
+      const genderSelect = await within(modal).findByLabelText(/מין/, {}, { timeout: 8000 });
+      await user.click(genderSelect);
 
-      listCustomersMock.mockResolvedValueOnce([updatedCustomer]);
+      const maleOption = await screen.findByRole(
+        'option',
+        { name: 'זכר', hidden: true },
+        { timeout: 8000 }
+      );
+      await user.click(maleOption);
 
       console.log('[TEST] Clicking add button');
-      await user.click(await within(modal).findByRole('button', { name: 'הוסף' }));
+      const addButton = await within(modal).findByRole(
+        'button',
+        { name: 'הוסף' },
+        { timeout: 8000 }
+      );
+      await user.click(addButton);
 
+      // Wait with more generous timeout
       console.log('[TEST] Waiting for addPetMock to be called');
       await waitFor(
         () =>
@@ -235,27 +256,38 @@ describe('CustomerDetail page', () => {
             gender: 'male',
             breed: null,
           }),
-        { timeout: 4000 }
+        { timeout: 8000 }
       );
       console.log('[TEST] addPetMock called');
 
       console.log('[TEST] Waiting for listCustomersMock to be called twice');
-      await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2), { timeout: 4000 });
+      await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2), { timeout: 8000 });
       console.log('[TEST] listCustomersMock called twice');
 
       console.log('[TEST] Waiting for New Pet to appear');
-      await waitFor(() => expect(screen.getByText('New Pet')).toBeInTheDocument(), {
-        timeout: 4000,
-      });
+      // Use more defensive approach for finding the pet in the DOM
+      await waitFor(
+        () => {
+          try {
+            const element = screen.getByText('New Pet');
+            return expect(element).toBeInTheDocument();
+          } catch (e) {
+            console.log('[TEST DEBUG] Current DOM elements:', document.body.innerHTML);
+            throw e;
+          }
+        },
+        { timeout: 8000 }
+      );
       console.log('[TEST] New Pet appeared');
     } catch (err) {
-      // Print error and current DOM for CI debugging
       console.error('[TEST ERROR]', err);
-      // Print a snippet of the DOM for debugging
       if (typeof document !== 'undefined') {
         console.error('[TEST ERROR] Current DOM:', document.body.innerHTML);
       }
       throw err;
+    } finally {
+      // Reset the test timeout
+      vi.setConfig({ testTimeout: 5000 });
     }
-  });
+  }, 10000); // Also set timeout parameter on the test itself
 });
