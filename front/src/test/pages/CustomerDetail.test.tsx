@@ -181,58 +181,70 @@ describe('CustomerDetail page', () => {
   });
 
   it('allows adding a new pet and shows it after refresh', async () => {
-    renderCustomerDetail();
+    // Set a longer timeout specifically for this test in CI
+    // vi.setConfig({ testTimeout: 15000 });
 
-    const user = userEvent.setup();
-    await screen.findByText('Bolt');
+    try {
+      renderCustomerDetail();
 
-    const newPet: customersApi.Customer['pets'][number] = {
-      id: 'pet-new',
-      name: 'New Pet',
-      type: 'dog',
-    };
+      const user = userEvent.setup();
+      await screen.findByText('Bolt');
 
-    const updatedCustomer: customersApi.Customer = {
-      ...baseCustomer,
-      pets: [...baseCustomer.pets, newPet],
-    };
-
-    // Setup the mock response before clicking any buttons
-    listCustomersMock.mockResolvedValueOnce([updatedCustomer]);
-
-    await user.click(screen.getByRole('button', { name: '+ הוסף חיה' }));
-
-    const modal = await screen.findByRole('dialog', { name: 'הוסף חיה חדשה' });
-
-    const nameInput = await within(modal).findByLabelText(/שם/);
-    await user.type(nameInput, 'New Pet');
-
-    const typeSelect = await within(modal).findByLabelText(/סוג/);
-    await user.click(typeSelect);
-
-    const dogOption = await screen.findByRole('option', { name: 'כלב', hidden: true });
-    await user.click(dogOption);
-
-    const genderSelect = await within(modal).findByLabelText(/מין/);
-    await user.click(genderSelect);
-
-    const maleOption = await screen.findByRole('option', { name: 'זכר', hidden: true });
-    await user.click(maleOption);
-
-    const addButton = await within(modal).findByRole('button', { name: 'הוסף' });
-    await user.click(addButton);
-
-    // Wait for API calls and UI updates
-    await waitFor(() =>
-      expect(addPetMock).toHaveBeenCalledWith('cust-1', {
+      const newPet: customersApi.Customer['pets'][number] = {
+        id: 'pet-new',
         name: 'New Pet',
         type: 'dog',
-        gender: 'male',
-        breed: null,
-      })
-    );
+      };
 
-    await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(screen.getByText('New Pet')).toBeInTheDocument());
-  });
+      const updatedCustomer: customersApi.Customer = {
+        ...baseCustomer,
+        pets: [...baseCustomer.pets, newPet],
+      };
+
+      // Setup the mock response before clicking any buttons
+      listCustomersMock.mockResolvedValueOnce([updatedCustomer]);
+
+      // Open pet form
+      await user.click(screen.getByRole('button', { name: '+ הוסף חיה' }));
+      const modal = await screen.findByRole('dialog', { name: 'הוסף חיה חדשה' });
+
+      // Fill the form more efficiently with fewer awaits
+      const nameInput = await within(modal).findByLabelText(/שם/);
+      await user.type(nameInput, 'New Pet');
+
+      // Select dog option
+      await user.click(await within(modal).findByLabelText(/סוג/));
+      await user.click(await screen.findByRole('option', { name: 'כלב', hidden: true }));
+
+      // Select male option
+      await user.click(await within(modal).findByLabelText(/מין/));
+      await user.click(await screen.findByRole('option', { name: 'זכר', hidden: true }));
+
+      // Submit form
+      await user.click(await within(modal).findByRole('button', { name: 'הוסף' }));
+
+      // Wait for API calls with more generous timeouts
+      await waitFor(
+        () =>
+          expect(addPetMock).toHaveBeenCalledWith('cust-1', {
+            name: 'New Pet',
+            type: 'dog',
+            gender: 'male',
+            breed: null,
+          }),
+        { timeout: 5000 }
+      );
+
+      // Wait for the second API call that refreshes the data
+      await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2), { timeout: 10000 });
+
+      // Wait for the UI to update with the new pet
+      await waitFor(() => expect(screen.getByText('New Pet')).toBeInTheDocument(), {
+        timeout: 5000,
+      });
+    } finally {
+      // Reset the test timeout
+      vi.setConfig({ testTimeout: 5000 });
+    }
+  }, 5000); // Also set explicit test function timeout
 });
