@@ -181,70 +181,57 @@ describe('CustomerDetail page', () => {
   });
 
   it('allows adding a new pet and shows it after refresh', async () => {
-    // Set a longer timeout for this specific test
-    vi.setConfig({ testTimeout: 15000 });
+    renderCustomerDetail();
 
-    try {
-      renderCustomerDetail();
+    const user = userEvent.setup();
+    await screen.findByText('Bolt');
 
-      const user = userEvent.setup();
-      await screen.findByText('Bolt');
+    const newPet: customersApi.Customer['pets'][number] = {
+      id: 'pet-new',
+      name: 'New Pet',
+      type: 'dog',
+    };
 
-      const newPet: customersApi.Customer['pets'][number] = {
-        id: 'pet-new',
-        name: 'New Pet',
-        type: 'dog',
-      };
+    const updatedCustomer: customersApi.Customer = {
+      ...baseCustomer,
+      pets: [...baseCustomer.pets, newPet],
+    };
 
-      const updatedCustomer: customersApi.Customer = {
-        ...baseCustomer,
-        pets: [...baseCustomer.pets, newPet],
-      };
+    // Setup the mock response before clicking any buttons
+    listCustomersMock.mockResolvedValueOnce([updatedCustomer]);
 
-      // Setup the mock response before clicking any buttons
-      listCustomersMock.mockResolvedValueOnce([updatedCustomer]);
+    // Open pet form
+    await user.click(screen.getByRole('button', { name: '+ הוסף חיה' }));
+    const modal = await screen.findByRole('dialog', { name: 'הוסף חיה חדשה' });
 
-      // Open pet form
-      await user.click(screen.getByRole('button', { name: '+ הוסף חיה' }));
-      const modal = await screen.findByRole('dialog', { name: 'הוסף חיה חדשה' });
+    // Fill the form efficiently
+    const nameInput = await within(modal).findByLabelText(/שם/);
+    await user.type(nameInput, 'New Pet');
 
-      // Fill the form more efficiently with fewer awaits
-      const nameInput = await within(modal).findByLabelText(/שם/);
-      await user.type(nameInput, 'New Pet');
+    // Select dog option
+    await user.click(await within(modal).findByLabelText(/סוג/));
+    await user.click(await screen.findByRole('option', { name: 'כלב', hidden: true }));
 
-      // Select dog option
-      await user.click(await within(modal).findByLabelText(/סוג/));
-      await user.click(await screen.findByRole('option', { name: 'כלב', hidden: true }));
+    // Select male option
+    await user.click(await within(modal).findByLabelText(/מין/));
+    await user.click(await screen.findByRole('option', { name: 'זכר', hidden: true }));
 
-      // Select male option
-      await user.click(await within(modal).findByLabelText(/מין/));
-      await user.click(await screen.findByRole('option', { name: 'זכר', hidden: true }));
+    // Submit form
+    await user.click(await within(modal).findByRole('button', { name: 'הוסף' }));
 
-      // Submit form
-      await user.click(await within(modal).findByRole('button', { name: 'הוסף' }));
+    // These longer timeouts ensure the test passes in CI environments
+    await waitFor(
+      () =>
+        expect(addPetMock).toHaveBeenCalledWith('cust-1', {
+          name: 'New Pet',
+          type: 'dog',
+          gender: 'male',
+          breed: null,
+        }),
+      { timeout: 7000 }
+    );
 
-      // Wait for API calls with more generous timeouts
-      await waitFor(
-        () =>
-          expect(addPetMock).toHaveBeenCalledWith('cust-1', {
-            name: 'New Pet',
-            type: 'dog',
-            gender: 'male',
-            breed: null,
-          }),
-        { timeout: 10000 }
-      );
-
-      // Wait for the second API call that refreshes the data
-      await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2), { timeout: 10000 });
-
-      // Wait for the UI to update with the new pet
-      await waitFor(() => expect(screen.getByText('New Pet')).toBeInTheDocument(), {
-        timeout: 10000,
-      });
-    } finally {
-      // Reset the test timeout
-      vi.setConfig({ testTimeout: 5000 });
-    }
-  }, 15000); // Set explicit timeout parameter here
+    await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2), { timeout: 7000 });
+    await waitFor(() => expect(screen.getByText('New Pet')).toBeInTheDocument(), { timeout: 7000 });
+  }, 10000); // Keep explicit timeout parameter
 });
