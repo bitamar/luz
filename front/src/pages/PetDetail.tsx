@@ -106,7 +106,7 @@ export function PetDetail() {
 
   const breadcrumbItems = [
     { title: 'לקוחות', href: '/customers' },
-    { title: pet.customer.name, href: `/customers/${pet.customerId}` },
+    { title: pet.customer?.name || 'לקוח לא ידוע', href: `/customers/${pet.customerId}` },
     { title: pet.name, href: '#' },
   ].map((item, index) => {
     const isActive = item.href === '#';
@@ -270,7 +270,7 @@ export function PetDetail() {
               }}
               style={{ cursor: 'pointer' }}
             >
-              {pet.customer.name}
+              {pet.customer?.name || 'לקוח לא ידוע'}
             </Anchor>
           </Group>
         </Stack>

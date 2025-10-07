@@ -13,12 +13,18 @@ interface AddedPetResponse {
     id: string;
     name: string;
     type: 'dog' | 'cat';
+    gender: 'male' | 'female';
+    customerId: string;
   };
-  customer: {
+}
+
+interface PetsListResponse {
+  pets: Array<{
     id: string;
     name: string;
-    pets: Array<{ id: string; name: string; type: 'dog' | 'cat' }>;
-  } | null;
+    type: 'dog' | 'cat';
+    customerId: string;
+  }>;
 }
 
 interface CustomersListResponse {
@@ -59,7 +65,7 @@ describe('routes/customers', () => {
     await resetDb();
   });
 
-  it('returns customer with pets after adding a pet', async () => {
+  it('returns the pet data after adding a pet', async () => {
     const { user, session } = await createTestUserWithSession();
     const customer = await seedCustomer(user.id, { name: 'Lola' });
 
@@ -73,13 +79,28 @@ describe('routes/customers', () => {
 
     expect(result.statusCode).toBe(201);
     expect(result.body).toMatchObject({
-      customer: {
-        id: customer.id,
-        name: 'Lola',
-        pets: [{ name: 'Milo', type: 'dog', id: expect.any(String) }],
+      pet: {
+        name: 'Milo',
+        type: 'dog',
+        customerId: customer.id,
+        id: expect.any(String),
       },
-      pet: { name: 'Milo', type: 'dog', id: expect.any(String) },
     });
+
+    const petsResponse = await injectAuthed(app, session.id, {
+      method: 'GET',
+      url: `/customers/${customer.id}/pets`,
+    });
+
+    const petsResult = getJson<PetsListResponse>(petsResponse);
+    expect(petsResult.statusCode).toBe(200);
+    expect(petsResult.body.pets).toEqual([
+      expect.objectContaining({
+        name: 'Milo',
+        type: 'dog',
+        customerId: customer.id,
+      }),
+    ]);
 
     const listResponse = await injectAuthed(app, session.id, {
       method: 'GET',
@@ -88,7 +109,6 @@ describe('routes/customers', () => {
 
     const listResult = getJson<CustomersListResponse>(listResponse);
     expect(listResult.statusCode).toBe(200);
-    // TODO: when list endpoint returns pets, assert on pet data too
     expect(listResult.body.customers).toEqual([
       expect.objectContaining({ id: customer.id, name: 'Lola' }),
     ]);

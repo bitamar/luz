@@ -36,12 +36,25 @@ describe('CustomerDetail page', () => {
   const addPetMock = vi.mocked(customersApi.addPetToCustomer);
   const deleteCustomerMock = vi.mocked(customersApi.deleteCustomer);
   const deletePetMock = vi.mocked(customersApi.deletePet);
+  const getCustomerPetsMock = vi.mocked(customersApi.getCustomerPets);
   let restoreConsoleError: (() => void) | null = null;
 
   beforeEach(() => {
     vi.clearAllMocks();
     navigateMock.mockReset();
     listCustomersMock.mockResolvedValue([baseCustomer]);
+    // Add mock for getCustomerPets
+    getCustomerPetsMock.mockResolvedValue(
+      baseCustomer.pets.map((pet) => ({
+        ...pet,
+        customerId: baseCustomer.id,
+        gender: 'male',
+        dateOfBirth: null,
+        breed: null,
+        isSterilized: null,
+        isCastrated: null,
+      }))
+    );
     addPetMock.mockResolvedValue({
       id: 'pet-new',
       customerId: 'cust-1',
@@ -131,6 +144,8 @@ describe('CustomerDetail page', () => {
 
   it('shows empty state when customer has no pets', async () => {
     listCustomersMock.mockResolvedValueOnce([{ ...baseCustomer, pets: [] }]);
+    // Also mock getCustomerPets to return an empty array
+    getCustomerPetsMock.mockResolvedValueOnce([]);
 
     renderCustomerDetail();
 

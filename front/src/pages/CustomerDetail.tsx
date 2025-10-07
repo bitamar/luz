@@ -23,7 +23,9 @@ import {
   addPetToCustomer,
   deleteCustomer,
   deletePet,
+  getCustomerPets,
   type Customer,
+  type PetSummary,
 } from '../api/customers';
 import { useListState } from '../hooks/useListState';
 import { StatusCard } from '../components/StatusCard';
@@ -43,6 +45,9 @@ export function CustomerDetail() {
   const [petType, setPetType] = useState<'dog' | 'cat' | ''>('');
   const [petGender, setPetGender] = useState<'male' | 'female' | ''>('');
   const [petBreed, setPetBreed] = useState('');
+  const [pets, setPets] = useState<PetSummary[]>([]);
+  const [petsLoading, setPetsLoading] = useState(false);
+  const [petsError, setPetsError] = useState<string | null>(null);
 
   const fetchCustomer = useCallback(async () => {
     if (!id) {
@@ -65,21 +70,45 @@ export function CustomerDetail() {
 
   const {
     data: customer,
-    setData: setCustomer,
-    loading,
-    error,
+    loading: customerLoading,
+    error: customerError,
     notFound,
-    refresh,
+    refresh: refreshCustomer,
   } = useListState<Customer>({
     fetcher: fetchCustomer,
     isNotFoundError: (err) => err instanceof Error && err.name === 'NOT_FOUND',
     formatError: () => 'אירעה שגיאה בטעינת הלקוח',
   });
 
+  // Fetch pets separately using the new API endpoint
+  const fetchPets = useCallback(async () => {
+    if (!id) return;
+
+    setPetsLoading(true);
+    setPetsError(null);
+
+    try {
+      const petsList = await getCustomerPets(id);
+      const petSummaries: PetSummary[] = petsList.map((pet) => ({
+        id: pet.id,
+        name: pet.name,
+        type: pet.type,
+      }));
+      setPets(petSummaries);
+    } catch (err) {
+      setPetsError('אירעה שגיאה בטעינת חיות המחמד');
+      console.error('Failed to load pets:', err);
+    } finally {
+      setPetsLoading(false);
+    }
+  }, [id]);
+
+  // Load both customer and pets when component mounts or ID changes
   useEffect(() => {
     if (!id) return;
-    void refresh();
-  }, [id, refresh]);
+    void refreshCustomer();
+    void fetchPets();
+  }, [id, refreshCustomer, fetchPets]);
 
   function openAddPet() {
     setPetName('');
@@ -91,14 +120,31 @@ export function CustomerDetail() {
 
   async function onAddPet() {
     if (!id || !petName || !petType || !petGender) return;
-    await addPetToCustomer(id, {
-      name: petName,
-      type: petType,
-      gender: petGender,
-      breed: petBreed || null,
-    });
-    setModalOpen(false);
-    await refresh();
+
+    try {
+      const newPet = await addPetToCustomer(id, {
+        name: petName,
+        type: petType,
+        gender: petGender,
+        breed: petBreed || null,
+      });
+
+      // Add the new pet to our local state
+      const newPetSummary: PetSummary = {
+        id: newPet.id,
+        name: newPet.name,
+        type: newPet.type,
+      };
+
+      setPets((currentPets) => [...currentPets, newPetSummary]);
+      setModalOpen(false);
+
+      // Refresh customer data to ensure consistency with server
+      void refreshCustomer();
+    } catch (err) {
+      console.error('Failed to add pet:', err);
+      // TODO: Error message
+    }
   }
 
   function openDeleteModal() {
@@ -118,17 +164,24 @@ export function CustomerDetail() {
   }
 
   async function onDeletePet() {
-    if (!petToDelete || !customer) return;
-    await deletePet(petToDelete.customerId, petToDelete.petId);
-    setPetDeleteModalOpen(false);
-    setPetToDelete(null);
+    if (!petToDelete) return;
 
-    // Update the customer state directly to remove the deleted pet
-    setCustomer({
-      ...customer,
-      pets: customer.pets.filter((pet) => pet.id !== petToDelete.petId),
-    });
+    try {
+      await deletePet(petToDelete.customerId, petToDelete.petId);
+
+      // Update local state by removing the deleted pet
+      setPets((currentPets) => currentPets.filter((pet) => pet.id !== petToDelete.petId));
+
+      setPetDeleteModalOpen(false);
+      setPetToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete pet:', err);
+      // TODO: show error message
+    }
   }
+
+  const loading = customerLoading || petsLoading;
+  const error = customerError || petsError;
 
   if (loading) {
     return (
@@ -145,7 +198,7 @@ export function CustomerDetail() {
           status="error"
           title="לא ניתן להציג את הלקוח כעת"
           description={error}
-          primaryAction={{ label: 'נסה שוב', onClick: () => void refresh() }}
+          primaryAction={{ label: 'נסה שוב', onClick: () => void refreshCustomer() }}
         />
       </Container>
     );
@@ -164,7 +217,7 @@ export function CustomerDetail() {
     );
   }
 
-  const petCount = customer.pets?.length ?? 0;
+  const petCount = pets.length;
 
   const breadcrumbItems = [
     { title: 'לקוחות', href: '/customers' },
@@ -292,7 +345,7 @@ export function CustomerDetail() {
         />
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
-          {customer.pets.map((pet) => (
+          {pets.map((pet) => (
             <Card
               key={pet.id}
               withBorder

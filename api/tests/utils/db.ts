@@ -16,14 +16,10 @@ import {
 import { env } from '../../src/env.js';
 
 const connectionString = (() => {
-  if (process.env.NODE_ENV !== 'test') {
-    throw new Error('API tests must run with NODE_ENV="test"');
-  }
+  if (process.env.NODE_ENV !== 'test') throw new Error('API tests must run with NODE_ENV="test"');
 
   const testUrl = env.TEST_DATABASE_URL;
-  if (!testUrl) {
-    throw new Error('TEST_DATABASE_URL must be set when running API tests');
-  }
+  if (!testUrl) throw new Error('TEST_DATABASE_URL must be set when running API tests');
 
   return testUrl;
 })();
@@ -35,9 +31,7 @@ function assertTestDatabase() {
   const parsed = new URL(connectionString);
   const dbName = parsed.pathname.replace(/^\//, '');
 
-  if (dbName === 'kalimere_test' || dbName.toLowerCase().includes('test')) {
-    return;
-  }
+  if (dbName === 'kalimere_test') return;
 
   throw new Error(
     `Refusing to reset non-test database "${dbName}". ` +

@@ -223,21 +223,8 @@ export async function customerRoutes(app: FastifyInstance) {
       })
       .returning();
     if (!pet) throw new Error('Failed to create pet');
-    const customerWithPets = await fetchCustomerWithPets(id, userId);
 
-    const responseCustomer = customerWithPets
-      ? {
-          ...customerWithPets,
-          pets: customerWithPets.pets.find((existing) => existing.id === pet.id)
-            ? customerWithPets.pets
-            : [...customerWithPets.pets, { id: pet.id, name: pet.name, type: pet.type }],
-        }
-      : null;
-
-    return reply.code(201).send({
-      pet,
-      customer: responseCustomer,
-    });
+    return reply.code(201).send({ pet });
   });
 
   app.delete<{
@@ -265,4 +252,33 @@ export async function customerRoutes(app: FastifyInstance) {
 
     return reply.send({ ok: true });
   });
+
+  app.get<{ Params: { id: string } }>(
+    '/customers/:id/pets',
+    { preHandler: app.authenticate },
+    async (req, reply) => {
+      ensureAuthed(req);
+      const userId = req.user.id;
+      const { id } = req.params;
+
+      // Check if the customer exists and belongs to the user
+      const customer = await db.query.customers.findFirst({
+        where: and(
+          eq(customers.id, id),
+          eq(customers.userId, userId),
+          eq(customers.isDeleted, false)
+        ),
+        columns: { id: true },
+      });
+
+      if (!customer) throw notFound();
+
+      const petRows = await db.query.pets.findMany({
+        where: and(eq(pets.customerId, id), eq(pets.isDeleted, false)),
+        orderBy: (p, { asc }) => asc(p.createdAt),
+      });
+
+      return reply.send({ pets: petRows });
+    }
+  );
 }
