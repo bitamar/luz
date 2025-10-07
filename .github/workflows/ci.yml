@@ -38,9 +38,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Rollup native binary (Linux workaround)
-        run: npm install @rollup/rollup-linux-x64-gnu --no-save
-
       - name: Wait for database
         run: npx wait-on tcp:127.0.0.1:5432
 
@@ -103,9 +100,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Install Rollup native binary (Linux workaround)
-        run: npm install @rollup/rollup-linux-x64-gnu --no-save
 
       - name: TypeScript compilation
         run: npx tsc --noEmit
