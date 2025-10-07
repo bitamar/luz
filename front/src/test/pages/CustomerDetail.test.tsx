@@ -65,7 +65,6 @@ describe('CustomerDetail page', () => {
       breed: null,
       isSterilized: null,
       isCastrated: null,
-      customer: { id: 'cust-1', name: 'Dana Vet' },
     });
     deleteCustomerMock.mockResolvedValue();
     deletePetMock.mockResolvedValue();

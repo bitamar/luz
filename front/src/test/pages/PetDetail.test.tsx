@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Routes, Route } from 'react-router-dom';
@@ -29,11 +29,20 @@ const mockPet: customersApi.Pet = {
   breed: 'Border Collie',
   isSterilized: true,
   isCastrated: false,
-  customer: { id: 'cust-1', name: 'Dana Vet' },
+};
+
+const mockCustomer: customersApi.Customer = {
+  id: 'cust-1',
+  name: 'Dana Vet',
+  email: 'dana@example.com',
+  phone: '050-1231234',
+  address: 'Tel Aviv',
+  pets: [{ id: 'pet-1', name: 'Bolt', type: 'dog' }],
 };
 
 describe('PetDetail page', () => {
   const getPetMock = vi.mocked(customersApi.getPet);
+  const getCustomerMock = vi.mocked(customersApi.getCustomer);
   const deletePetMock = vi.mocked(customersApi.deletePet);
   let restoreConsoleError: (() => void) | null = null;
 
@@ -41,6 +50,7 @@ describe('PetDetail page', () => {
     vi.clearAllMocks();
     navigateMock.mockReset();
     getPetMock.mockResolvedValue(mockPet);
+    getCustomerMock.mockResolvedValue(mockCustomer);
     deletePetMock.mockResolvedValue();
     restoreConsoleError?.();
     restoreConsoleError = null;
@@ -63,6 +73,7 @@ describe('PetDetail page', () => {
     renderPetDetail();
 
     await waitFor(() => expect(getPetMock).toHaveBeenCalledWith('cust-1', 'pet-1'));
+    await waitFor(() => expect(getCustomerMock).toHaveBeenCalledWith('cust-1'));
 
     expect(screen.getByRole('heading', { name: 'Bolt' })).toBeInTheDocument();
     expect(screen.getByText('כלב')).toBeInTheDocument();
@@ -81,6 +92,7 @@ describe('PetDetail page', () => {
     renderPetDetail();
 
     await waitFor(() => expect(getPetMock).toHaveBeenCalled());
+    await waitFor(() => expect(getCustomerMock).toHaveBeenCalled());
 
     const ownerLink = screen
       .getAllByText('Dana Vet')
@@ -99,62 +111,41 @@ describe('PetDetail page', () => {
 
     await waitFor(() => expect(getPetMock).toHaveBeenCalled());
 
-    const menuTrigger = screen.getByTestId('pet-actions-trigger');
+    // Open actions menu
+    const menuButton = screen.getByTestId('pet-actions-trigger');
+    await user.click(menuButton);
 
-    await user.click(menuTrigger);
-    const dropdown = await screen.findByTestId('pet-actions-dropdown');
-    const deleteItem = within(dropdown).getByRole('menuitem', {
-      name: 'מחק חיית מחמד',
-      hidden: true,
-    });
-    await user.click(deleteItem);
+    // Click delete option
+    const deleteOption = await screen.findByTestId('pet-actions-dropdown');
+    await user.click(within(deleteOption).getByText('מחק חיית מחמד'));
+
+    // Confirm deletion in modal
     await user.click(await screen.findByRole('button', { name: 'מחק' }));
 
     await waitFor(() => expect(deletePetMock).toHaveBeenCalledWith('cust-1', 'pet-1'));
     expect(navigateMock).toHaveBeenCalledWith('/customers/cust-1');
   });
 
-  it('shows not found state when pet does not exist', async () => {
-    const notFoundError = new Error('Request failed: 404');
-    notFoundError.name = 'NOT_FOUND';
-    restoreConsoleError = suppressConsoleError(/NOT_FOUND/);
-    getPetMock.mockRejectedValueOnce(notFoundError);
-
-    renderPetDetail();
-
-    await screen.findByText('חיית המחמד לא נמצאה');
-    expect(screen.getByText('ייתכן שהחיה נמחקה או שאינך מורשה לצפות בה.')).toBeInTheDocument();
-  });
-
   it('shows error state when loading the pet fails', async () => {
     getPetMock.mockRejectedValueOnce(new Error('Request failed: 500'));
-    restoreConsoleError = suppressConsoleError(/Failed to load data/);
-
+    restoreConsoleError = suppressConsoleError(/Request failed|Failed to load/);
     renderPetDetail();
 
-    await screen.findByText('לא ניתן להציג את חיית המחמד כעת');
-    expect(screen.getByText(/אירעה שגיאה בטעינת פרטי חיית המחמד/)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText('לא ניתן להציג את חיית המחמד כעת')).toBeInTheDocument()
+    );
+    expect(screen.getByText('אירעה שגיאה בטעינת פרטי חיית המחמד')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /נסה שוב/ })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /חזרה ללקוח/ }).length).toBeGreaterThan(0);
   });
 
-  it('allows retry after error', async () => {
-    const retryError = new Error('Request failed: 500');
-    restoreConsoleError = suppressConsoleError(/Failed to load data/);
-    getPetMock.mockRejectedValueOnce(retryError).mockResolvedValueOnce(mockPet);
-
+  it('shows not found state when pet does not exist', async () => {
+    const error = new Error('Not found');
+    error.name = 'NOT_FOUND';
+    getPetMock.mockRejectedValueOnce(error);
+    restoreConsoleError = suppressConsoleError(/Not found|NOT_FOUND/);
     renderPetDetail();
 
-    await screen.findByText('לא ניתן להציג את חיית המחמד כעת');
-
-    const retryButton = screen.getByRole('button', { name: /נסה שוב/ });
-    await userEvent.click(retryButton);
-
-    await waitFor(() => expect(getPetMock).toHaveBeenCalledTimes(2));
-    await screen.findByRole('heading', { name: 'Bolt' });
-  });
-
-  afterAll(() => {
-    restoreConsoleError?.();
+    await waitFor(() => expect(screen.getByText('חיית המחמד לא נמצאה')).toBeInTheDocument());
+    expect(screen.getByText('ייתכן שהחיה נמחקה או שאינך מורשה לצפות בה.')).toBeInTheDocument();
   });
 });

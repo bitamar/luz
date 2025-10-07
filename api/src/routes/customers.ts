@@ -153,7 +153,7 @@ export async function customerRoutes(app: FastifyInstance) {
       const userId = req.user.id;
       const { customerId, petId } = req.params;
 
-      // Find pet with customer info
+      // Find pet with customer info for verification only
       const pet = await db.query.pets.findFirst({
         where: and(eq(pets.id, petId), eq(pets.customerId, customerId)),
         with: {
@@ -165,7 +165,9 @@ export async function customerRoutes(app: FastifyInstance) {
 
       if (!pet || pet.customer.userId !== userId || pet.customer.isDeleted) throw notFound();
 
-      return reply.send({ pet });
+      // Return pet without the nested customer object
+      const { customer: _customer, ...petData } = pet;
+      return reply.send({ pet: petData });
     }
   );
 
