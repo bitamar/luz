@@ -5,7 +5,6 @@ import {
   Badge,
   Breadcrumbs,
   Button,
-  Card,
   Container,
   Group,
   Menu,
@@ -29,6 +28,7 @@ import {
 } from '../api/customers';
 import { useListState } from '../hooks/useListState';
 import { StatusCard } from '../components/StatusCard';
+import { EntityCard } from '../components/EntityCard';
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -284,51 +284,49 @@ export function CustomerDetail() {
         <Title order={2}>{customer.name}</Title>
       </Group>
 
-      <Card withBorder shadow="sm" radius="md" padding="lg" mb="xl">
-        <Stack gap="sm">
-          <Group justify="space-between">
-            <Text size="lg" fw={600}>
-              פרטי לקוח
-            </Text>
-            <Badge variant="light" size="lg" color="blue">
-              {petCount} חיות מחמד
-            </Badge>
-          </Group>
-
-          <Stack gap={4}>
-            {customer.email && (
-              <Group gap="xs">
-                <Text size="sm" fw={500}>
-                  אימייל:
-                </Text>
-                <Text size="sm" c="dimmed">
-                  {customer.email}
-                </Text>
-              </Group>
-            )}
-            {customer.phone && (
-              <Group gap="xs">
-                <Text size="sm" fw={500}>
-                  טלפון:
-                </Text>
-                <Text size="sm" c="dimmed">
-                  {customer.phone}
-                </Text>
-              </Group>
-            )}
-            {customer.address && (
-              <Group gap="xs">
-                <Text size="sm" fw={500}>
-                  כתובת:
-                </Text>
-                <Text size="sm" c="dimmed">
-                  {customer.address}
-                </Text>
-              </Group>
-            )}
-          </Stack>
+      <EntityCard
+        id={customer.id}
+        title="פרטי לקוח"
+        badge={
+          <Badge key="pet-count" variant="light" size="lg" color="blue">
+            {petCount} חיות מחמד
+          </Badge>
+        }
+        className="customer-info-card"
+      >
+        <Stack gap={4}>
+          {customer.email && (
+            <Group gap="xs">
+              <Text size="sm" fw={500}>
+                אימייל:
+              </Text>
+              <Text size="sm" c="dimmed">
+                {customer.email}
+              </Text>
+            </Group>
+          )}
+          {customer.phone && (
+            <Group gap="xs">
+              <Text size="sm" fw={500}>
+                טלפון:
+              </Text>
+              <Text size="sm" c="dimmed">
+                {customer.phone}
+              </Text>
+            </Group>
+          )}
+          {customer.address && (
+            <Group gap="xs">
+              <Text size="sm" fw={500}>
+                כתובת:
+              </Text>
+              <Text size="sm" c="dimmed">
+                {customer.address}
+              </Text>
+            </Group>
+          )}
         </Stack>
-      </Card>
+      </EntityCard>
 
       <Group justify="space-between" mb="md">
         <Title order={3}>חיות מחמד</Title>
@@ -346,57 +344,22 @@ export function CustomerDetail() {
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
           {pets.map((pet) => (
-            <Card
+            <EntityCard
               key={pet.id}
-              withBorder
-              shadow="sm"
-              radius="md"
-              padding="md"
-              className="pet-card"
-              style={{ cursor: 'pointer', position: 'relative' }}
+              id={pet.id}
+              title={pet.name}
+              badge={
+                <Badge key="pet-type" variant="light" color={pet.type === 'dog' ? 'teal' : 'grape'}>
+                  {pet.type === 'dog' ? 'כלב' : 'חתול'}
+                </Badge>
+              }
+              deleteAction={{
+                label: 'מחק חיית מחמד',
+                onClick: () => openPetDeleteModal(customer.id, pet.id, pet.name),
+              }}
               onClick={() => navigate(`/customers/${customer.id}/pets/${pet.id}`)}
-            >
-              <Menu shadow="md" width={150} position="bottom-start">
-                <Menu.Target>
-                  <Button
-                    variant="subtle"
-                    size="xs"
-                    style={{
-                      position: 'absolute',
-                      top: 8,
-                      left: 8,
-                      padding: '4px',
-                      width: '24px',
-                      height: '24px',
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <IconDots size={14} />
-                  </Button>
-                </Menu.Target>
-                <Menu.Dropdown>
-                  <Menu.Item
-                    color="red"
-                    leftSection={<IconX size={16} />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openPetDeleteModal(customer.id, pet.id, pet.name);
-                    }}
-                  >
-                    מחק חיית מחמד
-                  </Menu.Item>
-                </Menu.Dropdown>
-              </Menu>
-
-              <Stack gap="xs">
-                <Group justify="space-between" align="center">
-                  <Title order={4}>{pet.name}</Title>
-                  <Badge variant="light" color={pet.type === 'dog' ? 'teal' : 'grape'}>
-                    {pet.type === 'dog' ? 'כלב' : 'חתול'}
-                  </Badge>
-                </Group>
-              </Stack>
-            </Card>
+              className="pet-card"
+            />
           ))}
         </SimpleGrid>
       )}

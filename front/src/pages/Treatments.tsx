@@ -2,10 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Badge,
   Button,
-  Card,
   Container,
   Group,
-  Menu,
   Modal,
   NumberInput,
   SimpleGrid,
@@ -14,7 +12,6 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
-import { IconDots, IconX } from '@tabler/icons-react';
 import {
   listTreatments,
   createTreatment,
@@ -24,6 +21,7 @@ import {
 } from '../api/treatments';
 import { useListState } from '../hooks/useListState';
 import { StatusCard } from '../components/StatusCard';
+import { EntityCard } from '../components/EntityCard';
 
 export function Treatments() {
   const {
@@ -109,50 +107,17 @@ export function Treatments() {
         const hasPrice = typeof price === 'number';
 
         return (
-          <Card
-            key={id}
-            withBorder
-            shadow="sm"
-            radius="md"
-            padding="md"
-            className="treatment-card"
-            style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}
-          >
-            <Menu shadow="md" width={150} position="bottom-start">
-              <Menu.Target>
-                <Button
-                  variant="subtle"
-                  size="xs"
-                  style={{
-                    position: 'absolute',
-                    top: 8,
-                    left: 8,
-                    padding: '4px',
-                    width: '24px',
-                    height: '24px',
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <IconDots size={14} />
-                </Button>
-              </Menu.Target>
-              <Menu.Dropdown>
-                <Menu.Item
-                  color="red"
-                  leftSection={<IconX size={16} />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openDeleteModal(treatment);
-                  }}
-                >
-                  מחק טיפול
-                </Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
-
-            <Group justify="space-between" align="center" mb="sm">
-              {hasPrice && (
-                <Badge variant="light" size="sm" color="blue">
+          <EntityCard
+            id={id}
+            title={name}
+            subtitle={
+              typeof defaultIntervalMonths === 'number'
+                ? `מרווח ברירת מחדל: ${defaultIntervalMonths} חודשים`
+                : 'חד פעמי'
+            }
+            badge={
+              hasPrice && (
+                <Badge key="price" variant="light" size="sm" color="blue">
                   {price.toLocaleString('he-IL', {
                     style: 'currency',
                     currency: 'ILS',
@@ -160,30 +125,15 @@ export function Treatments() {
                     maximumFractionDigits: 0,
                   })}
                 </Badge>
-              )}
-            </Group>
-
-            <Stack gap="xs" style={{ flexGrow: 1 }}>
-              <Title order={4} style={{ wordBreak: 'break-word' }}>
-                {name}
-              </Title>
-              <Text c="dimmed" size="sm">
-                {typeof defaultIntervalMonths === 'number'
-                  ? `מרווח ברירת מחדל: ${defaultIntervalMonths} חודשים`
-                  : 'חד פעמי'}
-              </Text>
-            </Stack>
-
-            <Group justify="flex-end" mt="md">
-              <Button
-                size="xs"
-                variant="light"
-                onClick={() => openEdit({ id, name, price, defaultIntervalMonths })}
-              >
-                ערוך
-              </Button>
-            </Group>
-          </Card>
+              )
+            }
+            deleteAction={{
+              label: 'מחק טיפול',
+              onClick: () => openDeleteModal(treatment),
+            }}
+            editAction={() => openEdit({ id, name, price, defaultIntervalMonths })}
+            className="treatment-card"
+          />
         );
       }),
     [treatments]
