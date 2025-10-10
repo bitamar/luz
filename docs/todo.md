@@ -1,7 +1,7 @@
 ## Architecture Improvements (DO NOW)
 
 ### Backend Critical
-- [ ] remove duplicate name constraint on treatment
+- [x] remove duplicate name constraint on treatment
 - [x] bug - after adding a pet, the customer is returned without their pets _(done: API now returns updated customer including pets; covered by tests)_
 - [ ] add request/response validation (Zod or similar) - currently using manual validation
 - [x] centralized error handling middleware - errors are handled inconsistently _(done: central error plugin + shared `AppError` utility)_
@@ -10,6 +10,7 @@
 - [ ] structured logging with context (request IDs, user IDs)
 - [x] global error handler in Fastify (currently errors bubble up inconsistently) _(done: registered error plugin in `app.ts`)_
 - [ ] don't pass internal error messages outside on prod
+- [ ] fix pets summary on the customers ep - now the customers list always shows 0 pets it should have just a count for now
 
 ### Frontend Critical
 - [ ] add state management library (React Query/TanStack Query) - currently no caching
@@ -26,7 +27,7 @@
 ### Security & Data Integrity (DO NOW)
 - [x] add rate limiting middleware (fastify-rate-limit)
 - [ ] validate user ownership in middleware - currently each route does it manually
-- [ ] add indexes on foreign keys (petId, customerId, userId) - currently slow queries
+- [x] add indexes on foreign keys (petId, customerId, userId) - currently slow queries
 - [ ] add database constraints for data integrity (CHECK constraints)
 - [ ] sanitize user inputs (prevent XSS, SQL injection via ORM)
 - [ ] add CSRF protection for state-changing operations

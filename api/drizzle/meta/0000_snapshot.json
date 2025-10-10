@@ -1,5 +1,5 @@
 {
-  "id": "343578d0-4664-4378-951e-ff3aef9b3d5b",
+  "id": "0a6aeb3e-31bb-40a4-9f98-6d1b5ae7e540",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -73,7 +73,38 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "appointment_pet_idx": {
+          "name": "appointment_pet_idx",
+          "columns": [
+            {
+              "expression": "pet_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "appointment_customer_idx": {
+          "name": "appointment_customer_idx",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "appointments_pet_id_pets_id_fk": {
           "name": "appointments_pet_id_pets_id_fk",
@@ -164,6 +195,21 @@
         }
       },
       "indexes": {
+        "customer_user_idx": {
+          "name": "customer_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "customers_user_id_phone_unique": {
           "name": "customers_user_id_phone_unique",
           "columns": [
@@ -286,7 +332,23 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "pet_customer_idx": {
+          "name": "pet_customer_idx",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "pets_customer_id_customers_id_fk": {
           "name": "pets_customer_id_customers_id_fk",
@@ -340,7 +402,23 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "session_user_idx": {
+          "name": "session_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "sessions_user_id_users_id_fk": {
           "name": "sessions_user_id_users_id_fk",
@@ -416,23 +494,17 @@
         }
       },
       "indexes": {
-        "treatments_user_id_name_unique": {
-          "name": "treatments_user_id_name_unique",
+        "treatment_user_idx": {
+          "name": "treatment_user_idx",
           "columns": [
             {
               "expression": "user_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
-            },
-            {
-              "expression": "name",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
             }
           ],
-          "isUnique": true,
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -592,7 +664,38 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "visit_treatment_visit_idx": {
+          "name": "visit_treatment_visit_idx",
+          "columns": [
+            {
+              "expression": "visit_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "visit_treatment_treatment_idx": {
+          "name": "visit_treatment_treatment_idx",
+          "columns": [
+            {
+              "expression": "treatment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "visit_treatments_visit_id_visits_id_fk": {
           "name": "visit_treatments_visit_id_visits_id_fk",
@@ -670,7 +773,23 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "visit_pet_idx": {
+          "name": "visit_pet_idx",
+          "columns": [
+            {
+              "expression": "pet_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "visits_pet_id_pets_id_fk": {
           "name": "visits_pet_id_pets_id_fk",

@@ -103,5 +103,13 @@ ALTER TABLE "treatments" ADD CONSTRAINT "treatments_user_id_users_id_fk" FOREIGN
 ALTER TABLE "visit_treatments" ADD CONSTRAINT "visit_treatments_visit_id_visits_id_fk" FOREIGN KEY ("visit_id") REFERENCES "public"."visits"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "visit_treatments" ADD CONSTRAINT "visit_treatments_treatment_id_treatments_id_fk" FOREIGN KEY ("treatment_id") REFERENCES "public"."treatments"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "visits" ADD CONSTRAINT "visits_pet_id_pets_id_fk" FOREIGN KEY ("pet_id") REFERENCES "public"."pets"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "appointment_pet_idx" ON "appointments" USING btree ("pet_id");--> statement-breakpoint
+CREATE INDEX "appointment_customer_idx" ON "appointments" USING btree ("customer_id");--> statement-breakpoint
+CREATE INDEX "customer_user_idx" ON "customers" USING btree ("user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "customers_user_id_phone_unique" ON "customers" USING btree ("user_id","phone");--> statement-breakpoint
-CREATE UNIQUE INDEX "treatments_user_id_name_unique" ON "treatments" USING btree ("user_id","name");
+CREATE INDEX "pet_customer_idx" ON "pets" USING btree ("customer_id");--> statement-breakpoint
+CREATE INDEX "session_user_idx" ON "sessions" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "treatment_user_idx" ON "treatments" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "visit_treatment_visit_idx" ON "visit_treatments" USING btree ("visit_id");--> statement-breakpoint
+CREATE INDEX "visit_treatment_treatment_idx" ON "visit_treatments" USING btree ("treatment_id");--> statement-breakpoint
+CREATE INDEX "visit_pet_idx" ON "visits" USING btree ("pet_id");
