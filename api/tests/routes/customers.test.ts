@@ -1,7 +1,8 @@
 import { beforeAll, afterAll, beforeEach, afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../../src/app.js';
-import { resetDb, seedCustomer } from '../utils/db.js';
+import { resetDb } from '../utils/db.js';
+import { seedCustomer } from '../utils/seed-helpers.js';
 import { injectAuthed } from '../utils/inject.js';
 import { createTestUserWithSessionTx } from '../utils/test-helpers.js';
 
@@ -72,8 +73,6 @@ describe('routes/customers', () => {
 
     // Create a customer for this user
     const customer = await seedCustomer(user.id, { name: 'Lola' });
-
-    console.log(`Testing with session ID: ${session.id} for user ID: ${user.id}`);
 
     // Small delay to ensure session is fully available
     await new Promise((resolve) => setTimeout(resolve, 50));

@@ -129,11 +129,6 @@ export async function createTestUserWithSessionTx() {
       return { user, session };
     });
 
-    // Log success for debugging
-    console.log(
-      `Successfully created user and session in transaction: userId=${result.user.id}, sessionId=${result.session.id}`
-    );
-
     return result;
   } catch (error) {
     console.error('Error creating user and session in transaction:', error);

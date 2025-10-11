@@ -42,8 +42,6 @@ describe('routes/customers', () => {
       })
       .returning();
 
-    console.log(`Testing with session ID: ${session.id} for user ID: ${user.id}`);
-
     // Small delay to ensure session is fully available
     await new Promise((resolve) => setTimeout(resolve, 50));
 

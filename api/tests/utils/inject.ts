@@ -30,9 +30,6 @@ export async function injectAuthed(
   // Format the cookie properly - exact format is crucial for authentication
   const cookieHeader = `${SESSION_COOKIE_NAME}=${sessionId}; Path=/; HttpOnly`;
 
-  // Log the cookie being used for debugging
-  console.log('Using auth cookie:', cookieHeader);
-
   // Merge with existing cookies if present
   const headers = {
     ...(options.headers ?? {}),
