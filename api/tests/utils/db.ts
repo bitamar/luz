@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { URL } from 'node:url';
 import pg from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
+import { sql } from 'drizzle-orm';
 import * as schema from '../../src/db/schema.js';
 import {
   appointments,
@@ -41,14 +42,53 @@ function assertTestDatabase() {
 
 export async function resetDb() {
   assertTestDatabase();
-  await testDb.delete(visitTreatments);
-  await testDb.delete(appointments);
-  await testDb.delete(visits);
-  await testDb.delete(pets);
-  await testDb.delete(treatments);
-  await testDb.delete(customers);
-  await testDb.delete(sessions);
-  await testDb.delete(users);
+
+  try {
+    // First try to delete using Drizzle ORM approach (which allows better type safety)
+    await testDb.delete(visitTreatments);
+    await testDb.delete(appointments);
+    await testDb.delete(visits);
+    await testDb.delete(pets);
+    await testDb.delete(treatments);
+    await testDb.delete(customers);
+    await testDb.delete(sessions);
+    await testDb.delete(users);
+
+    console.log('Database reset completed successfully');
+  } catch (error) {
+    console.error('Error during standard database reset, trying with CASCADE:', error);
+
+    // If the standard approach fails, try with raw SQL using CASCADE
+    try {
+      // Use raw SQL with CASCADE to forcibly clear tables
+      await testDb.execute(
+        sql`TRUNCATE TABLE 
+        visit_treatments, appointments, visits, pets, treatments, 
+        customers, sessions, users
+        CASCADE`
+      );
+
+      console.log('Database reset with CASCADE completed successfully');
+    } catch (cascadeError) {
+      console.error('Error during CASCADE reset:', cascadeError);
+
+      // Diagnostic info about what's still in the database
+      try {
+        const customersCount = await testDb.select({ count: sql`count(*)` }).from(customers);
+        const sessionsCount = await testDb.select({ count: sql`count(*)` }).from(sessions);
+        const usersCount = await testDb.select({ count: sql`count(*)` }).from(users);
+        console.log('Remaining data counts:', {
+          customers: customersCount[0]?.count ?? 0,
+          sessions: sessionsCount[0]?.count ?? 0,
+          users: usersCount[0]?.count ?? 0,
+        });
+      } catch (countError) {
+        console.error('Error checking remaining data:', countError);
+      }
+
+      throw cascadeError;
+    }
+  }
 }
 
 export async function createTestUserWithSession() {

@@ -1,67 +1,30 @@
-import { beforeAll, afterAll, beforeEach, afterEach, describe, expect, it } from 'vitest';
-import type { FastifyInstance } from 'fastify';
-import { buildServer } from '../../src/app.js';
-import { resetDb, seedCustomer } from '../utils/db.js';
-import { injectAuthed } from '../utils/inject.js';
-import { createTestUserWithSessionTx } from '../utils/test-helpers.js';
-
-function getJson<T>(response: Awaited<ReturnType<typeof injectAuthed>>) {
-  return { statusCode: response.statusCode, body: response.json() as T };
-}
-
-interface AddedPetResponse {
-  pet: {
-    id: string;
-    name: string;
-    type: 'dog' | 'cat';
-    gender: 'male' | 'female';
-    customerId: string;
-  };
-}
-
-interface PetsListResponse {
-  pets: Array<{
-    id: string;
-    name: string;
-    type: 'dog' | 'cat';
-    customerId: string;
-  }>;
-}
-
-interface CustomersListResponse {
-  customers: Array<{
-    id: string;
-    name: string;
-    pets: Array<{ id: string; name: string; type: 'dog' | 'cat' }>;
-  }>;
-}
-
-interface CustomerResponse {
-  customer: {
-    id: string;
-    name: string;
-    email: string | null;
-    phone: string | null;
-    address: string | null;
-    pets: Array<{ id: string; name: string; type: 'dog' | 'cat' }>;
-  };
-}
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { setupApiTest } from '../../utils/setup-api-test.js';
+import { seedCustomer } from '../../utils/seed-helpers.js';
+import { createCustomerData, createPetData } from '../../utils/test-factories.js';
+import {
+  CustomerResponse,
+  CustomersListResponse,
+  PetResponse,
+  PetsListResponse,
+} from '../../utils/response-types.js';
+import { injectAuthed } from '../../utils/inject.js';
+import { getJson } from '../../utils/json-response.js';
+import { resetDb, testDb } from '../../utils/db.js';
+import { customers } from '../../../src/db/schema.js';
+import { createTestUserWithSessionTx } from '../../utils/test-helpers.js';
 
 describe('routes/customers', () => {
-  let app: FastifyInstance;
+  // Reset the database before each test
+  // This is important because setupApiTest with useResetDb: false doesn't reset the database
+  const { getApp } = setupApiTest({ useResetDb: false });
 
-  beforeAll(async () => {
-    app = await buildServer({ logger: false });
-  });
-
-  afterAll(async () => {
-    await app.close();
-  });
-
+  // Reset before each test to start with clean state
   beforeEach(async () => {
     await resetDb();
   });
 
+  // Ensure we clean up after tests too
   afterEach(async () => {
     await resetDb();
   });
@@ -70,26 +33,34 @@ describe('routes/customers', () => {
     // Use transaction-based setup to ensure proper user/session creation
     const { user, session } = await createTestUserWithSessionTx();
 
-    // Create a customer for this user
-    const customer = await seedCustomer(user.id, { name: 'Lola' });
+    // Create customer after user is guaranteed to exist
+    const [customer] = await testDb
+      .insert(customers)
+      .values({
+        userId: user.id,
+        name: 'Lola',
+      })
+      .returning();
 
     console.log(`Testing with session ID: ${session.id} for user ID: ${user.id}`);
 
     // Small delay to ensure session is fully available
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    // Make sure we're sending the correct payload format
-    const response = await injectAuthed(app, session.id, {
-      method: 'POST',
-      url: `/customers/${customer.id}/pets`,
-      payload: {
-        name: 'Milo',
-        type: 'dog',
-        gender: 'male',
-      },
+    const petData = createPetData({
+      name: 'Milo',
+      type: 'dog',
+      gender: 'male',
     });
 
-    const result = getJson<AddedPetResponse>(response);
+    // Test your API endpoints
+    const response = await injectAuthed(getApp(), session.id, {
+      method: 'POST',
+      url: `/customers/${customer.id}/pets`,
+      payload: petData,
+    });
+
+    const result = getJson<PetResponse>(response);
 
     expect(result.statusCode).toBe(201);
     expect(result.body).toMatchObject({
@@ -101,7 +72,7 @@ describe('routes/customers', () => {
       },
     });
 
-    const petsResponse = await injectAuthed(app, session.id, {
+    const petsResponse = await injectAuthed(getApp(), session.id, {
       method: 'GET',
       url: `/customers/${customer.id}/pets`,
     });
@@ -116,7 +87,7 @@ describe('routes/customers', () => {
       }),
     ]);
 
-    const listResponse = await injectAuthed(app, session.id, {
+    const listResponse = await injectAuthed(getApp(), session.id, {
       method: 'GET',
       url: '/customers',
     });
@@ -129,11 +100,18 @@ describe('routes/customers', () => {
   });
 
   it('returns full customer payload after creation', async () => {
+    // Use transaction-based setup to avoid foreign key constraint errors
     const { session } = await createTestUserWithSessionTx();
-    const response = await injectAuthed(app, session.id, {
+
+    const customerData = createCustomerData({
+      name: 'Nova',
+      email: 'nova@example.com',
+    });
+
+    const response = await injectAuthed(getApp(), session.id, {
       method: 'POST',
       url: '/customers',
-      payload: { name: 'Nova', email: 'nova@example.com' },
+      payload: customerData,
     });
 
     const result = getJson<CustomerResponse>(response);
@@ -146,10 +124,11 @@ describe('routes/customers', () => {
   });
 
   it('returns full customer payload after update', async () => {
+    // Use transaction-based setup to avoid foreign key constraint errors
     const { user, session } = await createTestUserWithSessionTx();
-    const customer = await seedCustomer(user.id, { name: 'Old Name' });
+    const customer = await seedCustomer(user.id, createCustomerData({ name: 'Old Name' }));
 
-    const response = await injectAuthed(app, session.id, {
+    const response = await injectAuthed(getApp(), session.id, {
       method: 'PUT',
       url: `/customers/${customer.id}`,
       payload: { name: 'New Name' },
