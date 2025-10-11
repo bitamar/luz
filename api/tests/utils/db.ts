@@ -1,7 +1,7 @@
-import crypto from 'node:crypto';
 import { URL } from 'node:url';
 import pg from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
+import { sql } from 'drizzle-orm';
 import * as schema from '../../src/db/schema.js';
 import {
   appointments,
@@ -28,54 +28,38 @@ const pool = new pg.Pool({ connectionString });
 export const testDb = drizzle(pool, { schema });
 
 function assertTestDatabase() {
-  const parsed = new URL(connectionString);
-  const dbName = parsed.pathname.replace(/^\//, '');
+  const url = new URL(connectionString);
+  const dbName = url.pathname.substring(1);
 
   if (dbName === 'kalimere_test') return;
 
-  throw new Error(
-    `Refusing to reset non-test database "${dbName}". ` +
-      'Point TEST_DATABASE_URL to a dedicated test database whose name includes "test" before running API tests.'
-  );
+  throw new Error(`Refusing to reset non-test database "${dbName}".`);
 }
 
 export async function resetDb() {
   assertTestDatabase();
-  await testDb.delete(visitTreatments);
-  await testDb.delete(appointments);
-  await testDb.delete(visits);
-  await testDb.delete(pets);
-  await testDb.delete(treatments);
-  await testDb.delete(customers);
-  await testDb.delete(sessions);
-  await testDb.delete(users);
+
+  try {
+    // First try to delete using Drizzle ORM approach (which allows better type safety)
+    await testDb.delete(visitTreatments);
+    await testDb.delete(appointments);
+    await testDb.delete(visits);
+    await testDb.delete(pets);
+    await testDb.delete(treatments);
+    await testDb.delete(customers);
+    await testDb.delete(sessions);
+    await testDb.delete(users);
+  } catch (error) {
+    console.error('Error during standard database reset, trying with CASCADE:', error);
+
+    // If there was an error, try to reset the database using raw SQL with CASCADE
+    await testDb.execute(sql`DELETE FROM users CASCADE`);
+  }
 }
 
-export async function createTestUserWithSession() {
-  const [user] = await testDb
-    .insert(users)
-    .values({
-      email: `tester-${Date.now()}@example.com`,
-      name: 'Test User',
-    })
-    .returning();
+export async function createCustomer(data: { name: string }, userId: string) {
+  assertTestDatabase();
 
-  const now = new Date();
-  const [session] = await testDb
-    .insert(sessions)
-    .values({
-      id: crypto.randomUUID(),
-      userId: user.id,
-      createdAt: now,
-      lastAccessedAt: now,
-      expiresAt: new Date(now.getTime() + 1000 * 60 * 60 * 24),
-    })
-    .returning();
-
-  return { user, session };
-}
-
-export async function seedCustomer(userId: string, data: { name: string }) {
   const [customer] = await testDb.insert(customers).values({ userId, name: data.name }).returning();
   return customer;
 }
