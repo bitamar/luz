@@ -28,6 +28,7 @@ vi.mock('../../src/env.js', () => ({
     OAUTH_REDIRECT_URI: 'https://app.local/auth/google/callback',
     GOOGLE_CLIENT_ID: 'id',
     GOOGLE_CLIENT_SECRET: 'secret',
+    DATABASE_URL: 'postgres://user:pass@localhost:5432/test',
   },
 }));
 
