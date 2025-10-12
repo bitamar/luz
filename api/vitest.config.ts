@@ -4,6 +4,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    setupFiles: ['tests/setup.ts'],
+    poolOptions: { threads: { singleThread: true } },
     coverage: {
       provider: 'v8',
       enabled: false,

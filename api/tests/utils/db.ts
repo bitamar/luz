@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { URL } from 'node:url';
 import pg from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../src/db/schema.js';
 import {
   appointments,
@@ -15,23 +16,42 @@ import {
 } from '../../src/db/schema.js';
 import { env } from '../../src/env.js';
 
-const connectionString = (() => {
+let cachedConnectionString: string | undefined;
+let pool: pg.Pool | undefined;
+let testDbInstance: NodePgDatabase<typeof schema> | undefined;
+let poolClosing = false;
+
+function resolveConnectionString() {
+  if (cachedConnectionString) return cachedConnectionString;
+
   if (process.env.NODE_ENV !== 'test') throw new Error('API tests must run with NODE_ENV="test"');
 
-  const testUrl = env.TEST_DATABASE_URL;
+  const testUrl = env.TEST_DATABASE_URL ?? process.env.TEST_DATABASE_URL;
   if (!testUrl) throw new Error('TEST_DATABASE_URL must be set when running API tests');
 
-  return testUrl;
-})();
+  cachedConnectionString = testUrl;
+  return cachedConnectionString;
+}
 
-const pool = new pg.Pool({ connectionString });
-export const testDb = drizzle(pool, { schema });
+function getPool() {
+  if (!pool) {
+    pool = new pg.Pool({ connectionString: resolveConnectionString() });
+  }
+  return pool;
+}
+
+function getTestDb() {
+  if (!testDbInstance) {
+    testDbInstance = drizzle(getPool(), { schema });
+  }
+  return testDbInstance;
+}
 
 function assertTestDatabase() {
-  const parsed = new URL(connectionString);
+  const parsed = new URL(resolveConnectionString());
   const dbName = parsed.pathname.replace(/^\//, '');
 
-  if (dbName === 'kalimere_test') return;
+  if (dbName.includes('test')) return;
 
   throw new Error(
     `Refusing to reset non-test database "${dbName}". ` +
@@ -41,18 +61,20 @@ function assertTestDatabase() {
 
 export async function resetDb() {
   assertTestDatabase();
-  await testDb.delete(visitTreatments);
-  await testDb.delete(appointments);
-  await testDb.delete(visits);
-  await testDb.delete(pets);
-  await testDb.delete(treatments);
-  await testDb.delete(customers);
-  await testDb.delete(sessions);
-  await testDb.delete(users);
+  const db = getTestDb();
+  await db.delete(visitTreatments);
+  await db.delete(appointments);
+  await db.delete(visits);
+  await db.delete(pets);
+  await db.delete(treatments);
+  await db.delete(customers);
+  await db.delete(sessions);
+  await db.delete(users);
 }
 
 export async function createTestUserWithSession() {
-  const [user] = await testDb
+  const db = getTestDb();
+  const [user] = await db
     .insert(users)
     .values({
       email: `tester-${Date.now()}@example.com`,
@@ -61,7 +83,7 @@ export async function createTestUserWithSession() {
     .returning();
 
   const now = new Date();
-  const [session] = await testDb
+  const [session] = await db
     .insert(sessions)
     .values({
       id: crypto.randomUUID(),
@@ -76,12 +98,14 @@ export async function createTestUserWithSession() {
 }
 
 export async function seedCustomer(userId: string, data: { name: string }) {
-  const [customer] = await testDb.insert(customers).values({ userId, name: data.name }).returning();
+  const db = getTestDb();
+  const [customer] = await db.insert(customers).values({ userId, name: data.name }).returning();
   return customer;
 }
 
 export async function seedPet(customerId: string, data: { name: string; type?: 'dog' | 'cat' }) {
-  const [pet] = await testDb
+  const db = getTestDb();
+  const [pet] = await db
     .insert(pets)
     .values({
       customerId,
@@ -91,4 +115,17 @@ export async function seedPet(customerId: string, data: { name: string; type?: '
     })
     .returning();
   return pet;
+}
+
+export async function closeTestDb() {
+  if (!pool || poolClosing) return;
+  poolClosing = true;
+  try {
+    await pool.end();
+    pool = undefined;
+    testDbInstance = undefined;
+    cachedConnectionString = undefined;
+  } finally {
+    poolClosing = false;
+  }
 }
