@@ -15,10 +15,7 @@ const mockCustomers: customersApi.Customer[] = [
     email: 'alice@example.com',
     phone: '050-1234567',
     address: 'Tel Aviv',
-    pets: [
-      { id: 'pet-1', name: 'Bobby', type: 'dog' },
-      { id: 'pet-2', name: 'Mimi', type: 'cat' },
-    ],
+    petsCount: 2,
   },
   {
     id: 'cust-2',
@@ -26,7 +23,7 @@ const mockCustomers: customersApi.Customer[] = [
     email: null,
     phone: null,
     address: null,
-    pets: [],
+    petsCount: 0,
   },
 ];
 
@@ -76,8 +73,6 @@ describe('Customers page', () => {
     expect(card.getByText('050-1234567')).toBeInTheDocument();
     expect(card.getByText('Tel Aviv')).toBeInTheDocument();
     expect(card.getByText('2 חיות')).toBeInTheDocument();
-    expect(card.getByText('כלב • Bobby')).toBeInTheDocument();
-    expect(card.getByText('חתול • Mimi')).toBeInTheDocument();
   });
 
   it('allows creating a customer through the modal', async () => {

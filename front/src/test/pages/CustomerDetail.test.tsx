@@ -19,16 +19,18 @@ vi.mock('react-router-dom', async (importOriginal) => {
 
 vi.mock('../../api/customers');
 
+const basePets: customersApi.PetSummary[] = [
+  { id: 'pet-1', name: 'Bolt', type: 'dog' },
+  { id: 'pet-2', name: 'Misty', type: 'cat' },
+];
+
 const baseCustomer: customersApi.Customer = {
   id: 'cust-1',
   name: 'Dana Vet',
   email: 'dana@example.com',
   phone: '050-1231234',
   address: 'Tel Aviv',
-  pets: [
-    { id: 'pet-1', name: 'Bolt', type: 'dog' },
-    { id: 'pet-2', name: 'Misty', type: 'cat' },
-  ],
+  petsCount: 2,
 };
 
 describe('CustomerDetail page', () => {
@@ -45,7 +47,7 @@ describe('CustomerDetail page', () => {
     listCustomersMock.mockResolvedValue([baseCustomer]);
     // Add mock for getCustomerPets
     getCustomerPetsMock.mockResolvedValue(
-      baseCustomer.pets.map((pet) => ({
+      basePets.map((pet) => ({
         ...pet,
         customerId: baseCustomer.id,
         gender: 'male',
@@ -102,19 +104,35 @@ describe('CustomerDetail page', () => {
   it('allows deleting a pet and updates the list', async () => {
     renderCustomerDetail();
     await waitFor(() => expect(listCustomersMock).toHaveBeenCalled());
+    await waitFor(() => expect(getCustomerPetsMock).toHaveBeenCalled());
 
     const user = userEvent.setup();
+
+    // Wait for pets to be fully loaded
+    await screen.findByText('Bolt');
+
+    // Get the pet card for Bolt
     const boltCard = screen.getByText('Bolt').closest('.pet-card') as HTMLElement;
-    const menuTrigger = within(boltCard)
-      .getAllByRole('button', { hidden: true })
-      .find((btn) => btn.getAttribute('aria-haspopup') === 'menu');
+    expect(boltCard).toBeInTheDocument();
 
-    if (!menuTrigger) throw new Error('Pet menu trigger not found');
+    // Find the menu button within the pet card
+    const menuButton = within(boltCard).getByRole('button', {
+      hidden: true,
+      name: 'פתח תפריט פעולות', // Icon button exposes its label via aria-label
+    });
 
-    await user.click(menuTrigger);
-    await user.click(await screen.findByRole('menuitem', { name: 'מחק חיית מחמד' }));
-    await user.click(await screen.findByRole('button', { name: 'מחק' }));
+    // Click the menu button to open the dropdown
+    await user.click(menuButton);
 
+    // Click the delete option
+    const deletePetOption = await screen.findByRole('menuitem', { name: 'מחק חיית מחמד' });
+    await user.click(deletePetOption);
+
+    // Confirm deletion in the modal
+    const deletePetModal = await screen.findByRole('dialog', { name: 'מחיקת חיית מחמד' });
+    await user.click(within(deletePetModal).getByRole('button', { name: 'מחק' }));
+
+    // Verify the pet was deleted
     await waitFor(() => expect(deletePetMock).toHaveBeenCalledWith('cust-1', 'pet-1'));
     await waitFor(() => expect(screen.queryByText('Bolt')).not.toBeInTheDocument());
   });
@@ -124,26 +142,38 @@ describe('CustomerDetail page', () => {
     await waitFor(() => expect(listCustomersMock).toHaveBeenCalled());
 
     const user = userEvent.setup();
-    const titleGroup = document.querySelector('.customer-title-group');
-    if (!titleGroup) throw new Error('Customer title group not found');
 
-    const menuTrigger = Array.from(titleGroup.querySelectorAll('button')).find(
-      (btn) => btn.getAttribute('aria-haspopup') === 'menu'
-    ) as HTMLElement | undefined;
+    // Wait for the customer details to load completely
+    await screen.findByRole('heading', { name: 'Dana Vet' });
 
-    if (!menuTrigger) throw new Error('Customer menu trigger not found');
+    // Find the customer title group container
+    const titleGroup = screen
+      .getByRole('heading', { name: 'Dana Vet' })
+      .closest('.customer-title-group');
+    expect(titleGroup).toBeInTheDocument();
 
-    await user.click(menuTrigger);
+    // Find the menu button that's a direct child of the title group
+    const menuButton = within(titleGroup as HTMLElement).getByRole('button');
+
+    // Click the menu button to open the dropdown
+    await user.click(menuButton);
+
+    // Click the delete option in the dropdown menu
     await user.click(await screen.findByRole('menuitem', { name: 'מחק לקוח' }));
-    await user.click(await screen.findByRole('button', { name: 'מחק' }));
 
+    // Confirm deletion in the modal
+    const deleteCustomerModal = await screen.findByRole('dialog', { name: 'מחיקת לקוח' });
+    await user.click(within(deleteCustomerModal).getByRole('button', { name: 'מחק' }));
+
+    // Verify the customer was deleted
     await waitFor(() => expect(deleteCustomerMock).toHaveBeenCalledWith('cust-1'));
     expect(navigateMock).toHaveBeenCalledWith('/customers');
   });
 
   it('shows empty state when customer has no pets', async () => {
-    listCustomersMock.mockResolvedValueOnce([{ ...baseCustomer, pets: [] }]);
-    // Also mock getCustomerPets to return an empty array
+    // Just use the normal baseCustomer - no need to add a pets property
+    listCustomersMock.mockResolvedValueOnce([baseCustomer]);
+    // Mock getCustomerPets to return an empty array
     getCustomerPetsMock.mockResolvedValueOnce([]);
 
     renderCustomerDetail();
@@ -200,19 +230,23 @@ describe('CustomerDetail page', () => {
     const user = userEvent.setup();
     await screen.findByText('Bolt');
 
-    const newPet: customersApi.Customer['pets'][number] = {
+    const newPet: customersApi.PetSummary = {
       id: 'pet-new',
       name: 'New Pet',
       type: 'dog',
     };
 
-    const updatedCustomer: customersApi.Customer = {
-      ...baseCustomer,
-      pets: [...baseCustomer.pets, newPet],
-    };
-
-    // Setup the mock response before clicking any buttons
-    listCustomersMock.mockResolvedValueOnce([updatedCustomer]);
+    // Set up the mock response for getCustomerPets to include the new pet
+    const updatedPets = [...basePets, newPet].map((pet) => ({
+      ...pet,
+      customerId: baseCustomer.id,
+      gender: 'male' as const,
+      dateOfBirth: null,
+      breed: null,
+      isSterilized: null,
+      isCastrated: null,
+    }));
+    getCustomerPetsMock.mockResolvedValueOnce(updatedPets);
 
     // Open pet form
     await user.click(screen.getByRole('button', { name: '+ הוסף חיה' }));
@@ -245,7 +279,10 @@ describe('CustomerDetail page', () => {
       { timeout: 7000 }
     );
 
-    await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2), { timeout: 7000 });
+    // Wait for the getCustomerPets to be called again after adding the pet
+    await waitFor(() => expect(getCustomerPetsMock).toHaveBeenCalledTimes(2), { timeout: 7000 });
+
+    // Verify the new pet appears in the UI
     await waitFor(() => expect(screen.getByText('New Pet')).toBeInTheDocument(), { timeout: 7000 });
   }, 10000); // Keep explicit timeout parameter
 });

@@ -1,64 +1,84 @@
 import type { FastifyInstance } from 'fastify';
-import { and, eq } from 'drizzle-orm';
+import { and, count, eq, inArray } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { customers, pets } from '../db/schema.js';
 import { ensureAuthed } from '../plugins/auth.js';
 import { badRequest, notFound } from '../lib/app-error.js';
 
 export async function customerRoutes(app: FastifyInstance) {
+  async function getPetsCountForCustomers(customerIds: string[]) {
+    if (customerIds.length === 0) return new Map<string, number>();
+
+    const rows = await db
+      .select({ customerId: pets.customerId, count: count(pets.id) })
+      .from(pets)
+      .where(and(inArray(pets.customerId, customerIds), eq(pets.isDeleted, false)))
+      .groupBy(pets.customerId);
+
+    const counts = new Map<string, number>();
+    for (const row of rows) {
+      const customerId = row.customerId;
+      if (!customerId) continue;
+      const rawCount = row.count;
+      const numericCount = Number(rawCount ?? 0);
+      counts.set(customerId, Number.isNaN(numericCount) ? 0 : numericCount);
+    }
+
+    return counts;
+  }
+
+  async function getPetsCount(customerId: string) {
+    const counts = await getPetsCountForCustomers([customerId]);
+    return counts.get(customerId) ?? 0;
+  }
+
   async function fetchCustomerWithPets(customerId: string, userId: string) {
-    const row = await db.query.customers.findFirst({
-      where: and(
-        eq(customers.id, customerId),
-        eq(customers.userId, userId),
-        eq(customers.isDeleted, false)
-      ),
-      columns: { id: true, name: true, email: true, phone: true, address: true },
-    });
+    try {
+      const row = await db.query.customers.findFirst({
+        where: and(
+          eq(customers.id, customerId),
+          eq(customers.userId, userId),
+          eq(customers.isDeleted, false)
+        ),
+        columns: { id: true, name: true, email: true, phone: true, address: true },
+      });
 
-    if (!row) return null;
+      if (!row) return null;
 
-    const petRows = await db.query.pets.findMany({
-      where: and(eq(pets.customerId, customerId), eq(pets.isDeleted, false)),
-      columns: { id: true, name: true, type: true },
-      orderBy: (p, { asc }) => asc(p.createdAt),
-    });
+      const petsCount = await getPetsCount(customerId);
 
-    return {
-      id: row.id,
-      name: row.name,
-      email: row.email,
-      phone: row.phone,
-      address: row.address,
-      pets: petRows.map((pet) => ({ id: pet.id, name: pet.name, type: pet.type })),
-    };
+      return {
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        phone: row.phone,
+        address: row.address,
+        petsCount,
+      };
+    } catch (error) {
+      console.error('Error in fetchCustomerWithPets:', error);
+      throw error;
+    }
   }
 
   app.get('/customers', { preHandler: app.authenticate }, async (req, reply) => {
     ensureAuthed(req);
     const userId = req.user.id;
 
-    type CustomerRow = (typeof customers)['$inferSelect'] & {
-      pets: Array<(typeof pets)['$inferSelect']>;
-    };
-    const rows = (await db.query.customers.findMany({
+    const rows = await db.query.customers.findMany({
       where: and(eq(customers.userId, userId), eq(customers.isDeleted, false)),
       columns: { id: true, name: true, email: true, phone: true, address: true },
-      with: {
-        pets: {
-          columns: { id: true, name: true, type: true },
-          where: and(eq(pets.customerId, customers.id), eq(pets.isDeleted, false)),
-        },
-      },
-    })) as CustomerRow[];
+    });
 
-    const result = rows.map(({ id, name, email, phone, address, pets }) => ({
+    const petsCounts = await getPetsCountForCustomers(rows.map((row) => row.id));
+
+    const result = rows.map(({ id, name, email, phone, address }) => ({
       id,
       name,
       email,
       phone,
       address,
-      pets: (pets ?? []).map((p) => ({ id: p.id, name: p.name, type: p.type })),
+      petsCount: petsCounts.get(id) ?? 0,
     }));
 
     return reply.send({ customers: result });
@@ -120,6 +140,7 @@ export async function customerRoutes(app: FastifyInstance) {
         )
         .returning();
       if (!row) throw notFound();
+
       const customerWithPets = await fetchCustomerWithPets(row.id, userId);
       return reply.send({ customer: customerWithPets ?? row });
     }

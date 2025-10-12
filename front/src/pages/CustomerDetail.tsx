@@ -29,6 +29,7 @@ import {
 import { useListState } from '../hooks/useListState';
 import { StatusCard } from '../components/StatusCard';
 import { EntityCard } from '../components/EntityCard';
+import { formatPetsCount } from '../utils/formatPetsCount';
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -141,6 +142,7 @@ export function CustomerDetail() {
 
       // Refresh customer data to ensure consistency with server
       void refreshCustomer();
+      await fetchPets();
     } catch (err) {
       console.error('Failed to add pet:', err);
       // TODO: Error message
@@ -262,7 +264,7 @@ export function CustomerDetail() {
                 width: '24px',
                 height: '24px',
               }}
-              onClick={(e) => e.stopPropagation()}
+              aria-label="פתח תפריט פעולות לקוח"
             >
               <IconDots size={14} />
             </Button>
@@ -289,7 +291,7 @@ export function CustomerDetail() {
         title="פרטי לקוח"
         badge={
           <Badge key="pet-count" variant="light" size="lg" color="blue">
-            {petCount} חיות מחמד
+            {formatPetsCount(petCount)}
           </Badge>
         }
         className="customer-info-card"

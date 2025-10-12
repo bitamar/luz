@@ -37,7 +37,7 @@ const mockCustomer: customersApi.Customer = {
   email: 'dana@example.com',
   phone: '050-1231234',
   address: 'Tel Aviv',
-  pets: [{ id: 'pet-1', name: 'Bolt', type: 'dog' }],
+  petsCount: 1,
 };
 
 describe('PetDetail page', () => {
@@ -80,9 +80,9 @@ describe('PetDetail page', () => {
     expect(screen.getByText('זכר')).toBeInTheDocument();
     expect(screen.getByText('Border Collie')).toBeInTheDocument();
 
-    const ownerLink = screen
-      .getAllByText('Dana Vet')
-      .find((node) => node.closest('.mantine-Card-root'));
+    const ownerLink = (await screen.findAllByText('Dana Vet')).find((node) =>
+      node.closest('.mantine-Card-root')
+    );
 
     expect(ownerLink).toBeTruthy();
   });
@@ -94,9 +94,9 @@ describe('PetDetail page', () => {
     await waitFor(() => expect(getPetMock).toHaveBeenCalled());
     await waitFor(() => expect(getCustomerMock).toHaveBeenCalled());
 
-    const ownerLink = screen
-      .getAllByText('Dana Vet')
-      .find((node) => node.closest('.mantine-Card-root'));
+    const ownerLink = (await screen.findAllByText('Dana Vet')).find((node) =>
+      node.closest('.mantine-Card-root')
+    );
 
     if (!ownerLink) throw new Error('Owner link not found');
 

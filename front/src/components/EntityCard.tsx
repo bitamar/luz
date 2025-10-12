@@ -42,7 +42,13 @@ export function EntityCard({
         cursor: onClick ? 'pointer' : undefined,
         position: 'relative',
       }}
-      onClick={onClick}
+      onClick={(event) => {
+        if (!onClick) return;
+        const target = event.target as HTMLElement | null;
+        if (target?.closest('button, a, input, textarea, select')) return;
+
+        onClick();
+      }}
     >
       <Stack gap="xs" style={{ flexGrow: 1 }}>
         <Group justify="space-between" align="start">
@@ -62,9 +68,7 @@ export function EntityCard({
                       width: '24px',
                       height: '24px',
                     }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
+                    aria-label="פתח תפריט פעולות"
                   >
                     <IconDots size={14} />
                   </Button>

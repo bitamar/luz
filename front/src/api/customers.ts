@@ -24,7 +24,7 @@ export interface Customer {
   email: string | null;
   phone: string | null;
   address: string | null;
-  pets: PetSummary[];
+  petsCount: number;
 }
 
 export async function listCustomers(): Promise<Customer[]> {
