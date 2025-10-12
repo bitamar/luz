@@ -108,6 +108,7 @@ export function Treatments() {
 
         return (
           <EntityCard
+            key={id}
             id={id}
             title={name}
             subtitle={

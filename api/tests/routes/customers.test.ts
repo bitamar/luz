@@ -1,7 +1,7 @@
 import { beforeAll, afterAll, beforeEach, afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../../src/app.js';
-import { createTestUserWithSession, resetDb, seedCustomer } from '../utils/db.js';
+import { createTestUserWithSession, resetDb, seedCustomer, seedPet } from '../utils/db.js';
 import { injectAuthed } from '../utils/inject.js';
 
 function getJson<T>(response: Awaited<ReturnType<typeof injectAuthed>>) {
@@ -31,7 +31,7 @@ interface CustomersListResponse {
   customers: Array<{
     id: string;
     name: string;
-    pets: Array<{ id: string; name: string; type: 'dog' | 'cat' }>;
+    petsCount: number;
   }>;
 }
 
@@ -42,7 +42,7 @@ interface CustomerResponse {
     email: string | null;
     phone: string | null;
     address: string | null;
-    pets: Array<{ id: string; name: string; type: 'dog' | 'cat' }>;
+    petsCount: number;
   };
 }
 
@@ -110,7 +110,7 @@ describe('routes/customers', () => {
     const listResult = getJson<CustomersListResponse>(listResponse);
     expect(listResult.statusCode).toBe(200);
     expect(listResult.body.customers).toEqual([
-      expect.objectContaining({ id: customer.id, name: 'Lola' }),
+      expect.objectContaining({ id: customer.id, name: 'Lola', petsCount: 1 }),
     ]);
   });
 
@@ -127,7 +127,7 @@ describe('routes/customers', () => {
     expect(result.body.customer).toMatchObject({
       name: 'Nova',
       email: 'nova@example.com',
-      pets: [],
+      petsCount: 0,
     });
   });
 
@@ -146,7 +146,49 @@ describe('routes/customers', () => {
     expect(result.body.customer).toMatchObject({
       id: customer.id,
       name: 'New Name',
-      pets: [],
+      petsCount: 0,
+    });
+  });
+
+  it('excludes soft deleted pets from counts', async () => {
+    const { user, session } = await createTestUserWithSession();
+    const customer = await seedCustomer(user.id, { name: 'Counted' });
+
+    await seedPet(customer.id, { name: 'Active' });
+    const deletedPet = await seedPet(customer.id, { name: 'Deleted' });
+
+    await injectAuthed(app, session.id, {
+      method: 'DELETE',
+      url: `/customers/${customer.id}/pets/${deletedPet.id}`,
+    });
+
+    const listResponse = await injectAuthed(app, session.id, {
+      method: 'GET',
+      url: '/customers',
+    });
+
+    const listResult = getJson<CustomersListResponse>(listResponse);
+    expect(listResult.statusCode).toBe(200);
+    expect(listResult.body.customers).toEqual([
+      expect.objectContaining({
+        id: customer.id,
+        name: 'Counted',
+        petsCount: 1,
+      }),
+    ]);
+
+    const updateResponse = await injectAuthed(app, session.id, {
+      method: 'PUT',
+      url: `/customers/${customer.id}`,
+      payload: { name: 'Renamed' },
+    });
+
+    const updateResult = getJson<CustomerResponse>(updateResponse);
+    expect(updateResult.statusCode).toBe(200);
+    expect(updateResult.body.customer).toMatchObject({
+      id: customer.id,
+      name: 'Renamed',
+      petsCount: 1,
     });
   });
 });

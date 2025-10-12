@@ -16,6 +16,7 @@ import { listCustomers, createCustomer, deleteCustomer, type Customer } from '..
 import { useListState } from '../hooks/useListState';
 import { StatusCard } from '../components/StatusCard';
 import { EntityCard } from '../components/EntityCard';
+import { formatPetsCount } from '../utils/formatPetsCount';
 
 export function Customers() {
   const navigate = useNavigate();
@@ -80,62 +81,47 @@ export function Customers() {
 
   const cards = useMemo(
     () =>
-      (customers ?? []).map((c) => {
-        const petCount = c.pets?.length ?? 0;
+      customers.map((customer) => {
+        const { email, id, name, phone, address, petsCount } = customer;
 
         const contactInfo = (
           <Stack gap={2}>
-            {c.email && (
+            {email && (
               <Text size="sm" c="dimmed">
-                {c.email}
+                {email}
               </Text>
             )}
-            {c.phone && (
+            {phone && (
               <Text size="sm" c="dimmed">
-                {c.phone}
+                {phone}
               </Text>
             )}
-            {c.address && (
+            {address && (
               <Text size="sm" c="dimmed">
-                {c.address}
+                {address}
               </Text>
             )}
-          </Stack>
-        );
-
-        const petsSection = petCount > 0 && (
-          <Stack gap={4} mt="xs">
-            <Text size="sm" fw={600}>
-              חיות מחמד
-            </Text>
-            <Group gap={6}>
-              {c.pets.map((p) => (
-                <Badge key={p.id} variant="light" color={p.type === 'dog' ? 'teal' : 'grape'}>
-                  {p.type === 'dog' ? 'כלב' : 'חתול'} • {p.name}
-                </Badge>
-              ))}
-            </Group>
           </Stack>
         );
 
         return (
           <EntityCard
-            id={c.id}
-            title={c.name}
+            key={id}
+            id={id}
+            title={name}
             badge={
               <Badge key="pet-count" variant="light" size="sm" color="blue">
-                {petCount} חיות
+                {formatPetsCount(petsCount)}
               </Badge>
             }
             deleteAction={{
               label: 'מחק לקוח',
-              onClick: () => openDeleteModal(c),
+              onClick: () => openDeleteModal(customer),
             }}
-            onClick={() => navigate(`/customers/${c.id}`)}
+            onClick={() => navigate(`/customers/${id}`)}
             className="customer-card"
           >
             {contactInfo}
-            {petsSection}
           </EntityCard>
         );
       }),

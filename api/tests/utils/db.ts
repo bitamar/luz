@@ -79,3 +79,16 @@ export async function seedCustomer(userId: string, data: { name: string }) {
   const [customer] = await testDb.insert(customers).values({ userId, name: data.name }).returning();
   return customer;
 }
+
+export async function seedPet(customerId: string, data: { name: string; type?: 'dog' | 'cat' }) {
+  const [pet] = await testDb
+    .insert(pets)
+    .values({
+      customerId,
+      name: data.name,
+      type: data.type ?? 'dog',
+      gender: 'male',
+    })
+    .returning();
+  return pet;
+}
