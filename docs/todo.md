@@ -10,7 +10,7 @@
 - [ ] structured logging with context (request IDs, user IDs)
 - [x] global error handler in Fastify (currently errors bubble up inconsistently) _(done: registered error plugin in `app.ts`)_
 - [ ] don't pass internal error messages outside on prod
-- [ ] fix pets summary on the customers ep - now the customers list always shows 0 pets it should have just a count for now
+- [x] fix pets summary on the customers ep - now the customers list always shows 0 pets it should have just a count for now
 
 ### Frontend Critical
 - [ ] add state management library (React Query/TanStack Query) - currently no caching
