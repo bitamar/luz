@@ -3,47 +3,15 @@ import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../../src/app.js';
 import { createTestUserWithSession, resetDb, seedCustomer, seedPet } from '../utils/db.js';
 import { injectAuthed } from '../utils/inject.js';
+import type {
+  CustomerPetsResponse,
+  CustomerResponse,
+  CustomersListResponse,
+  PetResponse,
+} from '../../src/schemas/customers.js';
 
 function getJson<T>(response: Awaited<ReturnType<typeof injectAuthed>>) {
   return { statusCode: response.statusCode, body: response.json() as T };
-}
-
-interface AddedPetResponse {
-  pet: {
-    id: string;
-    name: string;
-    type: 'dog' | 'cat';
-    gender: 'male' | 'female';
-    customerId: string;
-  };
-}
-
-interface PetsListResponse {
-  pets: Array<{
-    id: string;
-    name: string;
-    type: 'dog' | 'cat';
-    customerId: string;
-  }>;
-}
-
-interface CustomersListResponse {
-  customers: Array<{
-    id: string;
-    name: string;
-    petsCount: number;
-  }>;
-}
-
-interface CustomerResponse {
-  customer: {
-    id: string;
-    name: string;
-    email: string | null;
-    phone: string | null;
-    address: string | null;
-    petsCount: number;
-  };
 }
 
 describe('routes/customers', () => {
@@ -75,7 +43,7 @@ describe('routes/customers', () => {
       payload: { name: 'Milo', type: 'dog', gender: 'male' },
     });
 
-    const result = getJson<AddedPetResponse>(response);
+    const result = getJson<PetResponse>(response);
 
     expect(result.statusCode).toBe(201);
     expect(result.body).toMatchObject({
@@ -92,7 +60,7 @@ describe('routes/customers', () => {
       url: `/customers/${customer.id}/pets`,
     });
 
-    const petsResult = getJson<PetsListResponse>(petsResponse);
+    const petsResult = getJson<CustomerPetsResponse>(petsResponse);
     expect(petsResult.statusCode).toBe(200);
     expect(petsResult.body.pets).toEqual([
       expect.objectContaining({

@@ -19,3 +19,7 @@ export const updateSettingsBodySchema = z
     phone: nonEmptyString,
   })
   .strict();
+
+export type User = z.infer<typeof userSchema>;
+export type SettingsResponse = z.infer<typeof settingsResponseSchema>;
+export type UpdateSettingsBody = z.infer<typeof updateSettingsBodySchema>;

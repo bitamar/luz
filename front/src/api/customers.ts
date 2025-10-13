@@ -1,81 +1,68 @@
 import { fetchJson } from '../lib/http';
+import {
+  createCustomerBodySchema,
+  createPetBodySchema,
+  customerPetsResponseSchema,
+  customerResponseSchema,
+  customersListResponseSchema,
+  petResponseSchema,
+} from '@contracts/customers';
+import type { CreateCustomerBody, CreatePetBody, Customer, Pet } from '@contracts/customers';
 
-export interface PetSummary {
-  id: string;
-  name: string;
-  type: 'dog' | 'cat';
-}
+export type {
+  CreateCustomerBody,
+  CreatePetBody,
+  Customer,
+  CustomerPetsResponse,
+  CustomerResponse,
+  CustomersListResponse,
+  Pet,
+  PetResponse,
+} from '@contracts/customers';
 
-export interface Pet {
-  id: string;
-  customerId: string;
-  name: string;
-  type: 'dog' | 'cat';
-  gender: 'male' | 'female';
-  dateOfBirth: string | null;
-  breed: string | null;
-  isSterilized: boolean | null;
-  isCastrated: boolean | null;
-}
-
-export interface Customer {
-  id: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
-  petsCount: number;
-}
+export type PetSummary = Pick<Pet, 'id' | 'name' | 'type'>;
 
 export async function listCustomers(): Promise<Customer[]> {
-  const result = await fetchJson<{ customers: Customer[] }>('/customers');
+  const json = await fetchJson<unknown>('/customers');
+  const result = customersListResponseSchema.parse(json);
   return result.customers;
 }
 
-export async function createCustomer(input: {
-  name: string;
-  email?: string | null;
-  phone?: string | null;
-  address?: string | null;
-}): Promise<Customer> {
-  const result = await fetchJson<{ customer: Customer }>('/customers', {
+export async function createCustomer(input: CreateCustomerBody): Promise<Customer> {
+  const payload = createCustomerBodySchema.parse(input);
+  const json = await fetchJson<unknown>('/customers', {
     method: 'POST',
-    body: JSON.stringify(input),
+    body: JSON.stringify(payload),
   });
+  const result = customerResponseSchema.parse(json);
   return result.customer;
 }
 
 export async function getCustomerPets(customerId: string): Promise<Pet[]> {
-  const result = await fetchJson<{ pets: Pet[] }>(`/customers/${customerId}/pets`);
+  const json = await fetchJson<unknown>(`/customers/${customerId}/pets`);
+  const result = customerPetsResponseSchema.parse(json);
   return result.pets;
 }
 
 export async function getCustomer(customerId: string): Promise<Customer> {
-  const result = await fetchJson<{ customer: Customer }>(`/customers/${customerId}`);
+  const json = await fetchJson<unknown>(`/customers/${customerId}`);
+  const result = customerResponseSchema.parse(json);
   return result.customer;
 }
 
 export async function getPet(customerId: string, petId: string): Promise<Pet> {
-  const result = await fetchJson<{ pet: Pet }>(`/customers/${customerId}/pets/${petId}`);
+  const json = await fetchJson<unknown>(`/customers/${customerId}/pets/${petId}`);
+  const result = petResponseSchema.parse(json);
   return result.pet;
 }
 
-export async function addPetToCustomer(
-  customerId: string,
-  input: {
-    name: string;
-    type: 'dog' | 'cat';
-    gender: 'male' | 'female';
-    dateOfBirth?: string | null;
-    breed?: string | null;
-    isSterilized?: boolean | null;
-    isCastrated?: boolean | null;
-  }
-): Promise<Pet> {
-  const result = await fetchJson<{ pet: Pet }>(`/customers/${customerId}/pets`, {
+export async function addPetToCustomer(customerId: string, input: CreatePetBody): Promise<Pet> {
+  const payload = createPetBodySchema.parse(input);
+  const json = await fetchJson<unknown>(`/customers/${customerId}/pets`, {
     method: 'POST',
-    body: JSON.stringify(input),
+    body: JSON.stringify(payload),
   });
+  const result = petResponseSchema.parse(json);
   return result.pet;
 }
 

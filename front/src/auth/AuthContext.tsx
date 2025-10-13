@@ -1,8 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import type { AuthUser } from './types';
+import type { User as AuthUser } from '@contracts/users';
 import { getMe, logout as apiLogout, getGoogleLoginUrl } from './api';
-
-// AuthUser is defined in src/auth/types.ts
 
 interface AuthContextValue {
   user: AuthUser | null;

@@ -21,6 +21,4 @@ if (!('ResizeObserver' in window)) {
   }
   // @ts-expect-error - we're defining it for the test environment
   window.ResizeObserver = ResizeObserver;
-  // @ts-expect-error
-  global.ResizeObserver = ResizeObserver;
 }
