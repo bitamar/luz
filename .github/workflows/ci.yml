@@ -104,7 +104,7 @@ jobs:
         run: npm ci
       - name: Install API contracts dependencies
         working-directory: ${{ github.workspace }}/api
-        run: npm ci --omit=dev
+        run: npm ci
 
       - name: TypeScript compilation
         run: npx tsc --noEmit
