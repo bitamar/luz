@@ -23,6 +23,7 @@ vi.mock('../../src/env.js', () => ({
     GOOGLE_CLIENT_SECRET: 'client-secret',
     TWILIO_SID: 'AC123456789012345678901234567890',
     TWILIO_AUTH_TOKEN: 'twilio-token',
+    TWILIO_WHATSAPP_FROM: 'whatsapp:+19854651922',
     URL: 'http://localhost:3000',
     RATE_LIMIT_MAX: 100,
     RATE_LIMIT_TIME_WINDOW: 1000,

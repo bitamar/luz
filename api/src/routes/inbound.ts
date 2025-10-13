@@ -16,7 +16,7 @@ const inboundRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
 
       const client = twilio(env.TWILIO_SID, env.TWILIO_AUTH_TOKEN);
       await client.messages.create({
-        from: 'whatsapp:+19854651922',
+        from: env.TWILIO_WHATSAPP_FROM,
         to: from,
         body: `קיבלתי ממך: ${message}`,
       });

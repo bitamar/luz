@@ -14,6 +14,30 @@ import { db } from '../../src/db/client.js';
 import { users } from '../../src/db/schema.js';
 import * as sessionModule from '../../src/auth/session.js';
 
+vi.mock('openid-client', () => ({
+  discovery: vi.fn().mockResolvedValue({}),
+  ClientSecretPost: (secret: string) => ({ secret }),
+  authorizationCodeGrant: vi.fn(),
+}));
+
+vi.mock('../../src/env.js', () => ({
+  env: {
+    APP_ORIGIN: 'http://localhost:5173',
+    JWT_SECRET: 'x'.repeat(32),
+    DATABASE_URL: 'postgres://user:pass@localhost:5432/db',
+    GOOGLE_CLIENT_ID: 'client-id',
+    GOOGLE_CLIENT_SECRET: 'client-secret',
+    TWILIO_SID: 'AC123456789012345678901234567890',
+    TWILIO_AUTH_TOKEN: 'twilio-token',
+    TWILIO_WHATSAPP_FROM: 'whatsapp:+19854651922',
+    URL: 'http://localhost:3000',
+    RATE_LIMIT_MAX: 100,
+    RATE_LIMIT_TIME_WINDOW: 1000,
+    OAUTH_REDIRECT_URI: 'http://localhost:3000/auth/google/callback',
+    NODE_ENV: 'test',
+  },
+}));
+
 function getJson<T>(response: Awaited<ReturnType<typeof injectAuthed>>) {
   return { statusCode: response.statusCode, body: response.json() as T };
 }

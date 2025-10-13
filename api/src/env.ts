@@ -11,6 +11,9 @@ const Env = z.object({
   GOOGLE_CLIENT_SECRET: z.string(),
   TWILIO_SID: z.string(),
   TWILIO_AUTH_TOKEN: z.string(),
+  TWILIO_WHATSAPP_FROM: z.string().regex(/^whatsapp:\+[1-9]\d{6,14}$/i, {
+    message: 'TWILIO_WHATSAPP_FROM must be in format whatsapp:+E164',
+  }),
   URL: z.string().url(),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   RATE_LIMIT_TIME_WINDOW: z
