@@ -99,13 +99,8 @@ jobs:
           cache-dependency-path: |
             front/package-lock.json
             api/package-lock.json
-
-      - name: Install API dependencies
-        working-directory: ${{ github.workspace }}/api
-        run: npm ci
-
-      - name: Install frontend dependencies
-        run: npm ci
+      - name: Install dependencies
+        run: npm ci && pushd ../api && npm ci && popd
 
       - name: TypeScript compilation
         run: npx tsc --noEmit
