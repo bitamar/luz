@@ -3,7 +3,7 @@
 ### Backend Critical
 - [x] remove duplicate name constraint on treatment
 - [x] bug - after adding a pet, the customer is returned without their pets _(done: API now returns updated customer including pets; covered by tests)_
-- [ ] add request/response validation (Zod or similar) - currently using manual validation
+- [x] add request/response validation (Zod or similar) - currently using manual validation
 - [x] centralized error handling middleware - errors are handled inconsistently _(done: central error plugin + shared `AppError` utility)_
 - [ ] move sessions from in-memory to database - will lose all sessions on restart
 - [ ] API request/response schemas shared with frontend (tRPC or shared types)
