@@ -6,10 +6,18 @@ const errorsPluginFn: FastifyPluginAsync = async (app) => {
   app.setErrorHandler((error, request, reply) => {
     const normalized = normalizeError(error);
 
+    const logFields: Record<string, unknown> = {
+      err: error,
+      requestId: request.id,
+    };
+    if (request.user) {
+      logFields.userId = request.user.id;
+    }
+
     if (!normalized.expose) {
-      request.log.error({ err: error, requestId: request.id }, 'request_failed');
+      request.log.error(logFields, 'request_failed');
     } else {
-      request.log.debug({ err: error, requestId: request.id }, 'request_failed');
+      request.log.debug(logFields, 'request_failed');
     }
 
     const body: Record<string, unknown> = {

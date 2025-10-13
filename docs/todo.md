@@ -7,10 +7,11 @@
 - [x] centralized error handling middleware - errors are handled inconsistently _(done: central error plugin + shared `AppError` utility)_
 - [x] move sessions from in-memory to database - will lose all sessions on restart _(done: sessions persisted via Postgres with expiry upkeep)_
 - [x] API request/response schemas shared with frontend (tRPC or shared types) _(done: shared Zod schemas + frontend runtime validation)_
-- [ ] structured logging with context (request IDs, user IDs)
+- [x] structured logging with context (request IDs, user IDs) _(done: request logger now includes request/user/session IDs with lifecycle hooks)_
 - [x] global error handler in Fastify (currently errors bubble up inconsistently) _(done: registered error plugin in `app.ts`)_
 - [ ] don't pass internal error messages outside on prod
 - [x] fix pets summary on the customers ep - now the customers list always shows 0 pets it should have just a count for now
+- [ ] 90% coverage + show status on pr
 
 ### Frontend Critical
 - [ ] add state management library (React Query/TanStack Query) - currently no caching
