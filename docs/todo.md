@@ -2,7 +2,11 @@
 
 ### Mvp Critical
 - [ ] Visit entity - user can record / schedule visits to pets. visit has list of treatments, each one should be able to override default price and default recurring date. should have list of notes
-- 
+- [ ] Show a calendar of visits
+- [ ] Invoice entity - user can create an invoice for a visit, with treatments, prices, total, paid/unpaid status
+- [ ] create future visits, probably a nightly job
+- [ ] on the customer level, allow a checkbox for sending whatsapp reminders for visits
+- [ ] on the customer level, show a log of activity including whatsapp reminders, and incoming whatsapp messages
 
 ### Backend Critical
 - [x] remove duplicate name constraint on treatment

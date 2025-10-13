@@ -1,10 +1,14 @@
 import type { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 import { normalizeError, notFound } from '../lib/app-error.js';
+import { env } from '../env.js';
 
 const errorsPluginFn: FastifyPluginAsync = async (app) => {
   app.setErrorHandler((error, request, reply) => {
     const normalized = normalizeError(error);
+    const isProduction = env.NODE_ENV === 'production';
+    const isServerError = normalized.statusCode >= 500;
+    const exposeToClient = normalized.expose && (!isServerError || !isProduction);
 
     const logFields: { err: unknown; requestId: string; userId?: string } = {
       err: error,
@@ -14,7 +18,7 @@ const errorsPluginFn: FastifyPluginAsync = async (app) => {
       logFields.userId = request.user.id;
     }
 
-    if (!normalized.expose) {
+    if (!exposeToClient) {
       request.log.error(logFields, 'request_failed');
     } else {
       request.log.debug(logFields, 'request_failed');
@@ -25,35 +29,37 @@ const errorsPluginFn: FastifyPluginAsync = async (app) => {
       requestId: request.id,
     };
 
-    if (normalized.expose && normalized.message) {
+    if (exposeToClient && normalized.message) {
       body['message'] = normalized.message;
     }
 
-    if (normalized.expose && normalized.details !== undefined) {
+    if (exposeToClient && normalized.details !== undefined) {
       body['details'] = normalized.details;
     }
 
-    if (normalized.extras) {
+    if (exposeToClient && normalized.extras) {
       for (const [key, value] of Object.entries(normalized.extras)) {
         if (value !== undefined) body[key] = value;
       }
     }
 
-    if (
-      body['max'] === undefined &&
-      isRecord(normalized.details) &&
-      typeof normalized.details['max'] === 'number'
-    ) {
-      body['max'] = normalized.details['max'];
-    }
-    if (body['reset'] === undefined && isRecord(normalized.details)) {
-      const fromDetails =
-        typeof normalized.details['reset'] === 'number'
-          ? normalized.details['reset']
-          : typeof normalized.details['ttl'] === 'number'
-            ? normalized.details['ttl']
-            : undefined;
-      if (fromDetails !== undefined) body['reset'] = fromDetails;
+    if (exposeToClient) {
+      if (
+        body['max'] === undefined &&
+        isRecord(normalized.details) &&
+        typeof normalized.details['max'] === 'number'
+      ) {
+        body['max'] = normalized.details['max'];
+      }
+      if (body['reset'] === undefined && isRecord(normalized.details)) {
+        const fromDetails =
+          typeof normalized.details['reset'] === 'number'
+            ? normalized.details['reset']
+            : typeof normalized.details['ttl'] === 'number'
+              ? normalized.details['ttl']
+              : undefined;
+        if (fromDetails !== undefined) body['reset'] = fromDetails;
+      }
     }
 
     return reply.status(normalized.statusCode).send(body);
