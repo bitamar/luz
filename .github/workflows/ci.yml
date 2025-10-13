@@ -83,6 +83,10 @@ jobs:
         if: always()
         run: node .github/scripts/coverage-summary.js api "API Coverage" >> $GITHUB_STEP_SUMMARY
 
+      - name: Align API lcov source paths
+        if: github.event_name == 'pull_request'
+        run: sed -i 's#^SF:src/#SF:api/src/#' api/coverage/lcov.info || true
+
       - name: Install lcov (genhtml)
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         run: sudo apt-get update && sudo apt-get install -y lcov
@@ -136,6 +140,10 @@ jobs:
       - name: Frontend coverage summary
         if: always()
         run: node .github/scripts/coverage-summary.js front "Frontend Coverage" >> $GITHUB_STEP_SUMMARY
+
+      - name: Align Frontend lcov source paths
+        if: github.event_name == 'pull_request'
+        run: sed -i 's#^SF:src/#SF:front/src/#' front/coverage/lcov.info || true
 
       - name: Install lcov (genhtml)
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
