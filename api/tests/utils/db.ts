@@ -74,27 +74,29 @@ export async function resetDb() {
 
 export async function createTestUserWithSession() {
   const db = getTestDb();
-  const [user] = await db
-    .insert(users)
-    .values({
-      email: `tester-${Date.now()}@example.com`,
-      name: 'Test User',
-    })
-    .returning();
+  return db.transaction(async (tx) => {
+    const [user] = await tx
+      .insert(users)
+      .values({
+        email: `tester-${crypto.randomUUID()}@example.com`,
+        name: 'Test User',
+      })
+      .returning();
 
-  const now = new Date();
-  const [session] = await db
-    .insert(sessions)
-    .values({
-      id: crypto.randomUUID(),
-      userId: user.id,
-      createdAt: now,
-      lastAccessedAt: now,
-      expiresAt: new Date(now.getTime() + 1000 * 60 * 60 * 24),
-    })
-    .returning();
+    const now = new Date();
+    const [session] = await tx
+      .insert(sessions)
+      .values({
+        id: crypto.randomUUID(),
+        userId: user.id,
+        createdAt: now,
+        lastAccessedAt: now,
+        expiresAt: new Date(now.getTime() + 1000 * 60 * 60 * 24),
+      })
+      .returning();
 
-  return { user, session };
+    return { user, session };
+  });
 }
 
 export async function seedCustomer(userId: string, data: { name: string }) {

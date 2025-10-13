@@ -38,14 +38,10 @@ describe('authPlugin', () => {
     await app.register(cookie, { secret: 'secret' });
     await app.register(authPlugin);
 
-    app.get(
-      '/test',
-      { preHandler: app.authenticate },
-      async (request) => ({
-        userId: request.user?.id,
-        sessionId: request.sessionId,
-      })
-    );
+    app.get('/test', { preHandler: app.authenticate }, async (request) => ({
+      userId: request.user?.id,
+      sessionId: request.sessionId,
+    }));
 
     const res = await app.inject({
       method: 'GET',
@@ -67,11 +63,7 @@ describe('authPlugin', () => {
     await app.register(cookie, { secret: 'secret' });
     await app.register(authPlugin);
 
-    app.get(
-      '/test',
-      { preHandler: app.authenticate },
-      async () => ({ ok: true })
-    );
+    app.get('/test', { preHandler: app.authenticate }, async () => ({ ok: true }));
 
     const res = await app.inject({ method: 'GET', url: '/test' });
 
