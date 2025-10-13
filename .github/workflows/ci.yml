@@ -83,6 +83,10 @@ jobs:
         if: always()
         run: node .github/scripts/coverage-summary.js api "API Coverage" >> $GITHUB_STEP_SUMMARY
 
+      - name: Install lcov (genhtml)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: sudo apt-get update && sudo apt-get install -y lcov
+
       - name: API coverage comment
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: zgosalvez/github-actions-report-lcov@v4
@@ -132,6 +136,10 @@ jobs:
       - name: Frontend coverage summary
         if: always()
         run: node .github/scripts/coverage-summary.js front "Frontend Coverage" >> $GITHUB_STEP_SUMMARY
+
+      - name: Install lcov (genhtml)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: sudo apt-get update && sudo apt-get install -y lcov
 
       - name: Frontend coverage comment
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
