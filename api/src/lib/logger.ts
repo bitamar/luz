@@ -1,22 +1,29 @@
-import pino, { type Logger, type LoggerOptions } from 'pino';
+import type { FastifyLoggerOptions } from 'fastify';
+import pino, { type LoggerOptions as PinoLoggerOptions } from 'pino';
+import { env } from '../env.js';
 
 const defaultLevel =
-  process.env.LOG_LEVEL ??
-  (process.env.NODE_ENV === 'test' ? 'warn' : process.env.NODE_ENV === 'development' ? 'debug' : 'info');
+  env.LOG_LEVEL ??
+  (env.NODE_ENV === 'test' ? 'warn' : env.NODE_ENV === 'development' ? 'debug' : 'info');
 
-export function createLogger(options: LoggerOptions = {}): Logger {
-  return pino({
-    level: options.level ?? defaultLevel,
-    base: options.base ?? undefined,
-    timestamp: options.timestamp ?? pino.stdTimeFunctions.isoTime,
-    formatters: {
-      level(label) {
-        return { level: label };
-      },
-      bindings(bindings) {
-        return { ...bindings };
-      },
-    },
+type LoggerConfig = Partial<FastifyLoggerOptions & PinoLoggerOptions>;
+
+export function createLogger(options: LoggerConfig = {}): LoggerConfig {
+  const existingFormatters = (options.formatters ?? {}) as NonNullable<
+    PinoLoggerOptions['formatters']
+  >;
+  const formatters: NonNullable<PinoLoggerOptions['formatters']> = {
+    ...existingFormatters,
+    level: existingFormatters.level ?? ((label: string) => ({ level: label })),
+    bindings:
+      existingFormatters.bindings ?? ((bindings: Record<string, unknown>) => ({ ...bindings })),
+  };
+
+  return {
     ...options,
-  });
+    level: options.level ?? defaultLevel,
+    base: options.base ?? null,
+    timestamp: options.timestamp ?? pino.stdTimeFunctions.isoTime,
+    formatters,
+  };
 }

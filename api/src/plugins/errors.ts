@@ -6,7 +6,7 @@ const errorsPluginFn: FastifyPluginAsync = async (app) => {
   app.setErrorHandler((error, request, reply) => {
     const normalized = normalizeError(error);
 
-    const logFields: Record<string, unknown> = {
+    const logFields: { err: unknown; requestId: string; userId?: string } = {
       err: error,
       requestId: request.id,
     };

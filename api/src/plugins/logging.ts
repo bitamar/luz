@@ -1,15 +1,25 @@
-import type { FastifyBaseLogger, FastifyPluginAsync } from 'fastify';
+import { performance } from 'node:perf_hooks';
+import type { FastifyBaseLogger, FastifyPluginAsync, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 
-function getBindings(logger: FastifyBaseLogger): Record<string, unknown> {
-  const candidate = logger as FastifyBaseLogger & { bindings?: () => Record<string, unknown> };
+type LoggerBindings = {
+  requestId?: string;
+  userId?: string;
+  sessionId?: string;
+  [key: string]: unknown;
+};
+
+function getBindings(logger: FastifyBaseLogger): LoggerBindings {
+  const candidate = logger as FastifyBaseLogger & { bindings?: () => LoggerBindings };
   if (typeof candidate.bindings !== 'function') return {};
   try {
-    return candidate.bindings() ?? {};
+    return (candidate.bindings() ?? {}) as LoggerBindings;
   } catch {
     return {};
   }
 }
+
+const requestStartTimes = new WeakMap<FastifyRequest, number>();
 
 const loggingPluginFn: FastifyPluginAsync = async (app) => {
   app.addHook('onRequest', async (request) => {
@@ -17,6 +27,7 @@ const loggingPluginFn: FastifyPluginAsync = async (app) => {
     if (bindings.requestId !== request.id) {
       request.log = request.log.child({ requestId: request.id });
     }
+    requestStartTimes.set(request, performance.now());
     request.log.debug(
       {
         method: request.method,
@@ -40,10 +51,15 @@ const loggingPluginFn: FastifyPluginAsync = async (app) => {
   });
 
   app.addHook('onResponse', async (request, reply) => {
+    const start = requestStartTimes.get(request);
+    const responseTime = typeof start === 'number' ? performance.now() - start : undefined;
+    if (start !== undefined) {
+      requestStartTimes.delete(request);
+    }
     request.log.info(
       {
         statusCode: reply.statusCode,
-        responseTime: reply.getResponseTime(),
+        responseTime,
       },
       'request_completed'
     );

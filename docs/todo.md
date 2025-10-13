@@ -1,5 +1,9 @@
 ## Architecture Improvements (DO NOW)
 
+### Mvp Critical
+- [ ] Visit entity - user can record / schedule visits to pets. visit has list of treatments, each one should be able to override default price and default recurring date. should have list of notes
+- 
+
 ### Backend Critical
 - [x] remove duplicate name constraint on treatment
 - [x] bug - after adding a pet, the customer is returned without their pets _(done: API now returns updated customer including pets; covered by tests)_

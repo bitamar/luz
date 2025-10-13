@@ -6,6 +6,7 @@ import * as sessionModule from '../src/auth/session.js';
 
 vi.mock('openid-client', () => ({
   discovery: vi.fn().mockResolvedValue({}),
+  ClientSecretPost: (secret: string) => ({ secret }),
 }));
 
 vi.mock('../src/env.js', () => ({
@@ -48,7 +49,7 @@ describe('logging plugin', () => {
       const logger = request.log as typeof request.log & {
         bindings?: () => Record<string, unknown>;
       };
-      const bindings = typeof logger.bindings === 'function' ? logger.bindings() ?? {} : {};
+      const bindings = typeof logger.bindings === 'function' ? (logger.bindings() ?? {}) : {};
       return reply.send(bindings);
     });
 
@@ -98,7 +99,7 @@ describe('logging plugin', () => {
         const logger = request.log as typeof request.log & {
           bindings?: () => Record<string, unknown>;
         };
-        const bindings = typeof logger.bindings === 'function' ? logger.bindings() ?? {} : {};
+        const bindings = typeof logger.bindings === 'function' ? (logger.bindings() ?? {}) : {};
         return reply.send(bindings);
       }
     );
