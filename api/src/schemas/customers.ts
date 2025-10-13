@@ -109,3 +109,18 @@ export const customerPetParamsSchema = z.object({
 export const customerPetsResponseSchema = z.object({
   pets: z.array(petSchema),
 });
+
+export type Customer = z.infer<typeof customerSchema>;
+export type CustomersListResponse = z.infer<typeof customersListResponseSchema>;
+export type CustomerResponse = z.infer<typeof customerResponseSchema>;
+export type CreateCustomerBody = z.infer<typeof createCustomerBodySchema>;
+export type UpdateCustomerParams = z.infer<typeof updateCustomerParamsSchema>;
+export type UpdateCustomerBody = z.infer<typeof updateCustomerBodySchema>;
+export type DeleteCustomerParams = z.infer<typeof deleteCustomerParamsSchema>;
+export type Pet = z.infer<typeof petSchema>;
+export type PetResponse = z.infer<typeof petResponseSchema>;
+export type CreatePetParams = z.infer<typeof createPetParamsSchema>;
+export type CreatePetBody = z.infer<typeof createPetBodySchema>;
+export type CustomerPetsParams = z.infer<typeof customerPetsParamsSchema>;
+export type CustomerPetParams = z.infer<typeof customerPetParamsSchema>;
+export type CustomerPetsResponse = z.infer<typeof customerPetsResponseSchema>;

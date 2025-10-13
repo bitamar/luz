@@ -57,3 +57,12 @@ export const treatmentParamsSchema = z.object({
 });
 
 export const deleteTreatmentResponseSchema = okResponseSchema;
+
+export type Treatment = z.infer<typeof treatmentSchema>;
+export type TreatmentsListResponse = z.infer<typeof treatmentsListResponseSchema>;
+export type CreateTreatmentBody = z.infer<typeof createTreatmentBodySchema>;
+export type TreatmentResponse = z.infer<typeof treatmentResponseSchema>;
+export type UpdateTreatmentParams = z.infer<typeof updateTreatmentParamsSchema>;
+export type UpdateTreatmentBody = z.infer<typeof updateTreatmentBodySchema>;
+export type TreatmentParams = z.infer<typeof treatmentParamsSchema>;
+export type DeleteTreatmentResponse = z.infer<typeof deleteTreatmentResponseSchema>;

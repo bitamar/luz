@@ -1,10 +1,12 @@
 import { fetchJson } from '../lib/http';
-import type { AuthUser } from './types';
 import { API_BASE_URL } from '../config';
+import { settingsResponseSchema, updateSettingsBodySchema } from '@contracts/users';
+import type { SettingsResponse, UpdateSettingsBody } from '@contracts/users';
 
-export async function getMe(): Promise<{ user: AuthUser } | null> {
+export async function getMe(): Promise<SettingsResponse | null> {
   try {
-    return await fetchJson<{ user: AuthUser }>('/me');
+    const json = await fetchJson<unknown>('/me');
+    return settingsResponseSchema.parse(json);
   } catch {
     return null;
   }
@@ -18,15 +20,16 @@ export function getGoogleLoginUrl(): string {
   return `${API_BASE_URL}/auth/google`;
 }
 
-export async function getSettings(): Promise<{ user: AuthUser }> {
-  return await fetchJson<{ user: AuthUser }>('/settings');
+export async function getSettings(): Promise<SettingsResponse> {
+  const json = await fetchJson<unknown>('/settings');
+  return settingsResponseSchema.parse(json);
 }
 
-export async function updateSettings(input: { name: string | null; phone: string }): Promise<{
-  user: AuthUser;
-}> {
-  return await fetchJson<{ user: AuthUser }>('/settings', {
+export async function updateSettings(input: UpdateSettingsBody): Promise<SettingsResponse> {
+  const payload = updateSettingsBodySchema.parse(input);
+  const json = await fetchJson<unknown>('/settings', {
     method: 'PUT',
-    body: JSON.stringify(input),
+    body: JSON.stringify(payload),
   });
+  return settingsResponseSchema.parse(json);
 }

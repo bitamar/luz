@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import App from '../../App';
 import * as authApi from '../../auth/api';
-import { type AuthUser } from '../../auth/types';
+import type { User as AuthUser } from '@contracts/users';
 import { renderWithProviders } from '../utils/renderWithProviders';
 
 const mockUser: AuthUser = {

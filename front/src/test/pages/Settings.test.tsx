@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import { Settings } from '../../pages/Settings';
 import * as authApi from '../../auth/api';
 import { renderWithProviders } from '../utils/renderWithProviders';
@@ -39,15 +39,13 @@ describe('Settings page', () => {
 
     await waitFor(() => expect(getSettingsMock).toHaveBeenCalled());
 
-    const user = userEvent.setup();
-
     const nameInput = screen.getByLabelText(/שם/);
     const phoneInput = screen.getByLabelText(/טלפון/);
 
-    await user.clear(nameInput);
-    await user.type(nameInput, 'New Name');
-    await user.clear(phoneInput);
-    await user.type(phoneInput, '050-1111111');
+    fireEvent.change(nameInput, { target: { value: 'New Name' } });
+    fireEvent.change(phoneInput, { target: { value: '050-1111111' } });
+
+    const user = userEvent.setup();
 
     await user.click(screen.getByRole('button', { name: 'שמירה' }));
 
