@@ -100,7 +100,12 @@ jobs:
             front/package-lock.json
             api/package-lock.json
       - name: Install dependencies
-        run: npm ci && pushd ../api && npm ci && popd
+        run: |
+          npm ci
+          npm install --no-save @rollup/rollup-linux-x64-gnu
+          pushd ../api
+          npm ci
+          popd
 
       - name: TypeScript compilation
         run: npx tsc --noEmit
