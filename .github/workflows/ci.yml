@@ -81,22 +81,16 @@ jobs:
 
       - name: API coverage summary
         if: always()
-        run: node .github/scripts/coverage-summary.js api "API Coverage" >> $GITHUB_STEP_SUMMARY
-
-      - name: Align API lcov source paths
-        if: github.event_name == 'pull_request'
-        run: sed -i 's#^SF:src/#SF:api/src/#' api/coverage/lcov.info || true
-
-      - name: Install lcov (genhtml)
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: sudo apt-get update && sudo apt-get install -y lcov
+        run: |
+          node .github/scripts/coverage-summary.js api "API Coverage" > api-coverage.md || true
+          cat api-coverage.md >> $GITHUB_STEP_SUMMARY || true
 
       - name: API coverage comment
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        uses: zgosalvez/github-actions-report-lcov@v4
+        uses: marocchino/sticky-pull-request-comment@v2
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          coverage-files: api/coverage/lcov.info
+          header: API Coverage
+          path: api-coverage.md
 
       - name: Cleanup database
         if: always()
@@ -139,19 +133,13 @@ jobs:
 
       - name: Frontend coverage summary
         if: always()
-        run: node .github/scripts/coverage-summary.js front "Frontend Coverage" >> $GITHUB_STEP_SUMMARY
-
-      - name: Align Frontend lcov source paths
-        if: github.event_name == 'pull_request'
-        run: sed -i 's#^SF:src/#SF:front/src/#' front/coverage/lcov.info || true
-
-      - name: Install lcov (genhtml)
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: sudo apt-get update && sudo apt-get install -y lcov
+        run: |
+          node .github/scripts/coverage-summary.js front "Frontend Coverage" > front-coverage.md || true
+          cat front-coverage.md >> $GITHUB_STEP_SUMMARY || true
 
       - name: Frontend coverage comment
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        uses: zgosalvez/github-actions-report-lcov@v4
+        uses: marocchino/sticky-pull-request-comment@v2
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          coverage-files: front/coverage/lcov.info
+          header: Frontend Coverage
+          path: front-coverage.md
