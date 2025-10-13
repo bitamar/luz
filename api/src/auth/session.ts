@@ -1,20 +1,19 @@
 import crypto from 'node:crypto';
 import type { DbUser, SessionData } from './types.js';
 import { db } from '../db/client.js';
-import { sessions as sessionsTable } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
+import { sessions as sessionsTable } from '../db/schema.js';
 import { SESSION_TTL } from './constants.js';
 
-export function createSession(user: DbUser): SessionData {
+export async function createSession(user: DbUser): Promise<SessionData> {
   const id = crypto.randomUUID();
   const now = new Date();
-  const data: SessionData = { id, user, createdAt: now, lastAccessedAt: now };
-  // Persist to DB (fire and forget)
   const expiresAt = new Date(now.getTime() + 1000 * SESSION_TTL);
-  db.insert(sessionsTable)
-    .values({ id, userId: user.id, createdAt: now, lastAccessedAt: now, expiresAt })
-    .catch(() => {});
-  return data;
+  await db
+    .insert(sessionsTable)
+    .values({ id, userId: user.id, createdAt: now, lastAccessedAt: now, expiresAt });
+
+  return { id, user, createdAt: now, lastAccessedAt: now };
 }
 
 export async function getSession(sessionId: string | undefined): Promise<SessionData | undefined> {
@@ -45,9 +44,7 @@ export async function getSession(sessionId: string | undefined): Promise<Session
   return data;
 }
 
-export function deleteSession(sessionId: string | undefined): void {
+export async function deleteSession(sessionId: string | undefined): Promise<void> {
   if (!sessionId) return;
-  db.delete(sessionsTable)
-    .where(eq(sessionsTable.id, sessionId))
-    .catch(() => {});
+  await db.delete(sessionsTable).where(eq(sessionsTable.id, sessionId));
 }

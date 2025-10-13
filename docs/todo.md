@@ -5,7 +5,7 @@
 - [x] bug - after adding a pet, the customer is returned without their pets _(done: API now returns updated customer including pets; covered by tests)_
 - [x] add request/response validation (Zod or similar) - currently using manual validation
 - [x] centralized error handling middleware - errors are handled inconsistently _(done: central error plugin + shared `AppError` utility)_
-- [ ] move sessions from in-memory to database - will lose all sessions on restart
+- [x] move sessions from in-memory to database - will lose all sessions on restart _(done: sessions persisted via Postgres with expiry upkeep)_
 - [ ] API request/response schemas shared with frontend (tRPC or shared types)
 - [ ] structured logging with context (request IDs, user IDs)
 - [x] global error handler in Fastify (currently errors bubble up inconsistently) _(done: registered error plugin in `app.ts`)_

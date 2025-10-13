@@ -58,7 +58,7 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     // Create session and set cookie
-    const session = createSession(result.data.user);
+    const session = await createSession(result.data.user);
     reply.setCookie(SESSION_COOKIE_NAME, session.id, SESSION_COOKIE_OPTIONS);
 
     // On success, redirect back to the SPA (dashboard)
@@ -76,7 +76,7 @@ export async function authRoutes(app: FastifyInstance) {
   // Logout: delete session and clear cookie
   app.post('/auth/logout', async (req, reply) => {
     const sessionId = req.cookies[SESSION_COOKIE_NAME];
-    deleteSession(sessionId);
+    await deleteSession(sessionId);
     reply.clearCookie(SESSION_COOKIE_NAME, { path: '/' });
     return reply.send({ ok: true });
   });
