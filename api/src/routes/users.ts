@@ -1,41 +1,74 @@
-import type { FastifyInstance } from 'fastify';
+import { eq } from 'drizzle-orm';
+import { z } from 'zod';
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { db } from '../db/client.js';
 import { users } from '../db/schema.js';
 import { ensureAuthed } from '../plugins/auth.js';
-import { eq } from 'drizzle-orm';
-import { badRequest, conflict, notFound } from '../lib/app-error.js';
+import { conflict, notFound } from '../lib/app-error.js';
+import { settingsResponseSchema, updateSettingsBodySchema, userSchema } from '../schemas/users.js';
 
-type UpdateSettingsBody = { name?: string | null; phone: string };
+type UserDto = z.infer<typeof userSchema>;
 
-export async function userRoutes(app: FastifyInstance) {
-  app.get('/settings', { preHandler: app.authenticate }, async (req, reply) => {
-    ensureAuthed(req);
-    const { user } = req;
-    return reply.send({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatarUrl: user.avatarUrl,
-        phone: user.phone ?? null,
-      },
-    });
-  });
+function serializeUser(input: {
+  id: string;
+  email: string;
+  name?: string | null;
+  avatarUrl?: string | null;
+  phone?: string | null;
+}): UserDto {
+  return {
+    id: input.id,
+    email: input.email,
+    name: input.name ?? null,
+    avatarUrl: input.avatarUrl ?? null,
+    phone: input.phone ?? null,
+  };
+}
 
-  app.put<{ Body: UpdateSettingsBody }>(
+const userRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
+  app.get(
     '/settings',
-    { preHandler: app.authenticate },
-    async (req, reply) => {
+    {
+      preHandler: app.authenticate,
+      schema: {
+        response: {
+          200: settingsResponseSchema,
+        },
+      },
+    },
+    async (req) => {
+      ensureAuthed(req);
+      const { user } = req;
+      return {
+        user: serializeUser({
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          avatarUrl: user.avatarUrl,
+          phone: user.phone,
+        }),
+      };
+    }
+  );
+
+  app.put(
+    '/settings',
+    {
+      preHandler: app.authenticate,
+      schema: {
+        body: updateSettingsBodySchema,
+        response: {
+          200: settingsResponseSchema,
+        },
+      },
+    },
+    async (req) => {
       ensureAuthed(req);
       const userId = req.user.id;
 
-      const { name, phone } = req.body ?? ({} as UpdateSettingsBody);
-      if (typeof phone !== 'string' || phone.trim().length === 0) {
-        throw badRequest({ code: 'phone_required', message: 'phone is required' });
-      }
-
-      const normalizedPhone = phone.trim();
-      const nextName = typeof name === 'string' ? name : null;
+      const { name, phone } = req.body;
+      const normalizedPhone = phone;
+      const nextName = name ?? null;
 
       try {
         const [row] = await db
@@ -46,17 +79,16 @@ export async function userRoutes(app: FastifyInstance) {
 
         if (!row) throw notFound();
 
-        return reply.send({
-          user: {
+        return {
+          user: serializeUser({
             id: row.id,
             email: row.email,
             name: row.name,
             avatarUrl: row.avatarUrl,
-            phone: row.phone ?? null,
-          },
-        });
+            phone: row.phone,
+          }),
+        };
       } catch (err: unknown) {
-        // Unique (phone) constraint -> 409 conflict
         if (
           err &&
           typeof err === 'object' &&
@@ -70,4 +102,6 @@ export async function userRoutes(app: FastifyInstance) {
       }
     }
   );
-}
+};
+
+export const userRoutes = userRoutesPlugin;

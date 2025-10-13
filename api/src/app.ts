@@ -3,6 +3,11 @@ import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import formbody from '@fastify/formbody';
 import Fastify, { type FastifyServerOptions } from 'fastify';
+import {
+  serializerCompiler,
+  validatorCompiler,
+  type ZodTypeProvider,
+} from 'fastify-type-provider-zod';
 import { env } from './env.js';
 import { authRoutes } from './routes/auth.js';
 import { userRoutes } from './routes/users.js';
@@ -13,7 +18,10 @@ import { authPlugin } from './plugins/auth.js';
 import { errorPlugin } from './plugins/errors.js';
 
 export async function buildServer(options: FastifyServerOptions = {}) {
-  const app = Fastify({ logger: true, ...options });
+  const app = Fastify({ logger: true, ...options }).withTypeProvider<ZodTypeProvider>();
+
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
 
   await app.register(cors, {
     origin: env.APP_ORIGIN,
