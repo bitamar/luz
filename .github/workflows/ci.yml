@@ -72,7 +72,38 @@ jobs:
           TWILIO_SID: AC00000000000000000000000000000000
           TWILIO_AUTH_TOKEN: 00000000000000000000000000000000
           TWILIO_WHATSAPP_FROM: whatsapp:+15555550100
-        run: npm run test --workspace api
+        run: npm run coverage --workspace api
+
+      - name: Post API coverage to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          # noinspection YAMLSchemaValidation
+          script: |
+            const fs = require('fs');
+            const path = 'api/coverage/coverage-summary.json';
+            if (!fs.existsSync(path)) {
+              core.warning('API coverage summary not found');
+              return;
+            }
+            const summary = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const t = summary.total;
+            const pct = (n) => (typeof n === 'number' ? n.toFixed(2) : String(n));
+            const body = `<!-- api-coverage -->\n` +
+              `API Coverage\n` +
+              `- Lines: ${pct(t.lines.pct)}%\n` +
+              `- Statements: ${pct(t.statements.pct)}%\n` +
+              `- Functions: ${pct(t.functions.pct)}%\n` +
+              `- Branches: ${pct(t.branches.pct)}%`;
+
+            const { owner, repo, number } = context.issue;
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number: number, per_page: 100 });
+            const existing = comments.find(c => c.body && c.body.includes('<!-- api-coverage -->'));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number: number, body });
+            }
 
       - name: Cleanup database
         if: always()
@@ -108,7 +139,38 @@ jobs:
         run: npm run lint --workspace front
 
       - name: Run tests
-        run: npm run test --workspace front
+        run: npm run test:coverage --workspace front
 
       - name: Format check
         run: npm run format:check --workspace front
+
+      - name: Post Frontend coverage to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          # noinspection YAMLSchemaValidation
+          script: |
+            const fs = require('fs');
+            const path = 'front/coverage/coverage-summary.json';
+            if (!fs.existsSync(path)) {
+              core.warning('Frontend coverage summary not found');
+              return;
+            }
+            const summary = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const t = summary.total;
+            const pct = (n) => (typeof n === 'number' ? n.toFixed(2) : String(n));
+            const body = `<!-- front-coverage -->\n` +
+              `Frontend Coverage\n` +
+              `- Lines: ${pct(t.lines.pct)}%\n` +
+              `- Statements: ${pct(t.statements.pct)}%\n` +
+              `- Functions: ${pct(t.functions.pct)}%\n` +
+              `- Branches: ${pct(t.branches.pct)}%`;
+
+            const { owner, repo, number } = context.issue;
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number: number, per_page: 100 });
+            const existing = comments.find(c => c.body && c.body.includes('<!-- front-coverage -->'));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number: number, body });
+            }
