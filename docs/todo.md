@@ -1,13 +1,5 @@
 ## Architecture Improvements (DO NOW)
 
-### Mvp Critical
-- [ ] Visit entity - user can record / schedule visits to pets. visit has list of treatments, each one should be able to override default price and default recurring date. should have list of notes
-- [ ] Show a calendar of visits
-- [ ] Invoice entity - user can create an invoice for a visit, with treatments, prices, total, paid/unpaid status
-- [ ] create future visits, probably a nightly job
-- [ ] on the customer level, allow a checkbox for sending whatsapp reminders for visits
-- [ ] on the customer level, show a log of activity including whatsapp reminders, and incoming whatsapp messages
-
 ### Backend Critical
 - [x] remove duplicate name constraint on treatment
 - [x] bug - after adding a pet, the customer is returned without their pets _(done: API now returns updated customer including pets; covered by tests)_
@@ -17,9 +9,9 @@
 - [x] API request/response schemas shared with frontend (tRPC or shared types) _(done: shared Zod schemas + frontend runtime validation)_
 - [x] structured logging with context (request IDs, user IDs) _(done: request logger now includes request/user/session IDs with lifecycle hooks)_
 - [x] global error handler in Fastify (currently errors bubble up inconsistently) _(done: registered error plugin in `app.ts`)_
-- [ ] don't pass internal error messages outside on prod
+- [x] don't pass internal error messages outside on prod
 - [x] fix pets summary on the customers ep - now the customers list always shows 0 pets it should have just a count for now
-- [ ] 90% coverage + show status on pr
+- [x] 90% coverage + show status on pr
 
 ### Frontend Critical
 - [ ] add state management library (React Query/TanStack Query) - currently no caching
@@ -53,6 +45,11 @@
 - [ ] create an invoice for a visit
 - [ ] all visits view for the user, with a calendar
 - [ ] make sure all queries can only return data belonging to the current user (Auth)
+- [ ] Visit entity - user can record / schedule visits to pets. visit has list of treatments, each one should be able to override default price and default recurring date. should have list of notes
+- [ ] Invoice entity - user can create an invoice for a visit, with treatments, prices, total, paid/unpaid status
+- [ ] create future visits, probably a nightly job
+- [ ] on the customer level, allow a checkbox for sending whatsapp reminders for visits
+- [ ] on the customer level, show a log of activity including whatsapp reminders, and incoming whatsapp messages
 
 ## Phase 1 - Polish & Essential Features
 

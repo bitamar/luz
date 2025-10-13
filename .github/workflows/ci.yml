@@ -6,6 +6,11 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   api:
     name: API - Build, Lint & Test
@@ -71,7 +76,21 @@ jobs:
           GOOGLE_CLIENT_SECRET: dummy-google-client-secret
           TWILIO_SID: AC00000000000000000000000000000000
           TWILIO_AUTH_TOKEN: 00000000000000000000000000000000
-        run: npm run test --workspace api
+          TWILIO_WHATSAPP_FROM: whatsapp:+15555550100
+        run: npm run coverage --workspace api
+
+      - name: API coverage summary
+        if: always()
+        run: |
+          node .github/scripts/coverage-summary.js api "API Coverage" > api-coverage.md || true
+          cat api-coverage.md >> $GITHUB_STEP_SUMMARY || true
+
+      - name: API coverage comment
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: API Coverage
+          path: api-coverage.md
 
       - name: Cleanup database
         if: always()
@@ -107,7 +126,20 @@ jobs:
         run: npm run lint --workspace front
 
       - name: Run tests
-        run: npm run test --workspace front
+        run: npm run test:coverage --workspace front
 
       - name: Format check
         run: npm run format:check --workspace front
+
+      - name: Frontend coverage summary
+        if: always()
+        run: |
+          node .github/scripts/coverage-summary.js front "Frontend Coverage" > front-coverage.md || true
+          cat front-coverage.md >> $GITHUB_STEP_SUMMARY || true
+
+      - name: Frontend coverage comment
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: Frontend Coverage
+          path: front-coverage.md

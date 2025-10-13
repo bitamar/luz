@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import crypto from 'node:crypto';
 import { createSession, deleteSession, getSession } from '../../src/auth/session.js';
 import { db } from '../../src/db/client.js';
 import { users, sessions } from '../../src/db/schema.js';
@@ -14,7 +15,7 @@ describe('auth/session', () => {
     const [user] = await db
       .insert(users)
       .values({
-        email: `user-${Date.now()}@example.com`,
+        email: `user-${crypto.randomUUID()}@example.com`,
         name: 'Session Tester',
       })
       .returning();

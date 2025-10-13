@@ -5,11 +5,11 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/**/*.test.ts'],
     setupFiles: ['tests/setup.ts'],
-    poolOptions: { threads: { singleThread: true } },
+    maxWorkers: 1,
     coverage: {
       provider: 'v8',
       enabled: false,
-      reporter: ['text', 'lcov'],
+      reporter: ['text', 'lcov', 'json-summary'],
       include: ['src/**/*.ts'],
       exclude: [
         'src/auth/types.ts',

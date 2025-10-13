@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import * as oidc from 'openid-client';
 import { env } from '../env.js';
 import { DrizzleUserRepository } from '../auth/repo.drizzle.js';
 import { startGoogleAuth, finishGoogleAuth } from '../auth/service.js';
+import { getGoogleOidcConfig } from '../auth/oidc.js';
 import {
   OIDC_COOKIE_NAME,
   SESSION_COOKIE_NAME,
@@ -12,12 +12,7 @@ import { createSession, deleteSession, getSession } from '../auth/session.js';
 import { AppError, unauthorized } from '../lib/app-error.js';
 
 export async function authRoutes(app: FastifyInstance) {
-  const config = await oidc.discovery(
-    new URL('https://accounts.google.com'),
-    env.GOOGLE_CLIENT_ID,
-    undefined,
-    oidc.ClientSecretPost(env.GOOGLE_CLIENT_SECRET)
-  );
+  const config = await getGoogleOidcConfig(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET);
 
   app.get('/auth/google', async (_req, reply) => {
     const { cookie, redirectUrl } = startGoogleAuth(config, {

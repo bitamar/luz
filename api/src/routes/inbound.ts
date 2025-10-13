@@ -4,8 +4,6 @@ import { env } from '../env.js';
 import { okResponseSchema } from '../schemas/common.js';
 import { inboundBodySchema } from '../schemas/inbound.js';
 
-const client = twilio(env.TWILIO_SID, env.TWILIO_AUTH_TOKEN);
-
 const inboundRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
   app.post(
     '/inbound',
@@ -16,8 +14,9 @@ const inboundRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       const from = req.body.From;
       const message = req.body.Body;
 
+      const client = twilio(env.TWILIO_SID, env.TWILIO_AUTH_TOKEN);
       await client.messages.create({
-        from: 'whatsapp:+19854651922',
+        from: env.TWILIO_WHATSAPP_FROM,
         to: from,
         body: `קיבלתי ממך: ${message}`,
       });

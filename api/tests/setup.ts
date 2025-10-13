@@ -1,8 +1,6 @@
 import 'dotenv/config';
 import { afterAll } from 'vitest';
 
-process.env.NODE_ENV = process.env.NODE_ENV ?? 'test';
-
 const testConnectionString = process.env.TEST_DATABASE_URL;
 
 if (!testConnectionString) throw new Error('TEST_DATABASE_URL is not set.');

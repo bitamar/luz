@@ -9,5 +9,9 @@ export function injectAuthed(app: FastifyInstance, sessionId: string, options: I
       ...(options.headers ?? {}),
       cookie: options.headers?.cookie ? `${options.headers.cookie}; ${cookieHeader}` : cookieHeader,
     },
+    cookies: {
+      ...(options as { cookies?: Record<string, string> }).cookies,
+      [SESSION_COOKIE_NAME]: sessionId,
+    },
   });
 }

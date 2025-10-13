@@ -31,7 +31,8 @@ export async function buildServer(options: FastifyServerOptions = {}) {
       ((request) => {
         const requestIdHeader = request.headers['x-request-id'];
         if (typeof requestIdHeader === 'string' && requestIdHeader.length > 0) {
-          return requestIdHeader;
+          const first = requestIdHeader.split(',')[0]?.trim();
+          if (first && first.length > 0) return first;
         }
         if (Array.isArray(requestIdHeader) && requestIdHeader.length > 0) {
           const [first] = requestIdHeader;
