@@ -100,10 +100,11 @@ jobs:
             front/package-lock.json
             api/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
-      - name: Install API contracts dependencies
+      - name: Install API dependencies
         working-directory: ${{ github.workspace }}/api
+        run: npm ci
+
+      - name: Install frontend dependencies
         run: npm ci
 
       - name: TypeScript compilation
