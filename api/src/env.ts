@@ -16,6 +16,8 @@ const Env = z.object({
   RATE_LIMIT_TIME_WINDOW: z
     .union([z.coerce.number().int().positive(), z.string()])
     .default('1 minute'),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 
 const parsed = Env.parse(process.env);

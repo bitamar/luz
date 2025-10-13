@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
@@ -16,9 +17,29 @@ import { treatmentRoutes } from './routes/treatments.js';
 import { customerRoutes } from './routes/customers.js';
 import { authPlugin } from './plugins/auth.js';
 import { errorPlugin } from './plugins/errors.js';
+import { loggingPlugin } from './plugins/logging.js';
+import { createLogger } from './lib/logger.js';
 
 export async function buildServer(options: FastifyServerOptions = {}) {
-  const app = Fastify({ logger: true, ...options }).withTypeProvider<ZodTypeProvider>();
+  const { logger: providedLogger, genReqId, ...rest } = options;
+  const logger = providedLogger ?? createLogger();
+  const app = Fastify({
+    ...rest,
+    logger,
+    genReqId:
+      genReqId ??
+      ((request) => {
+        const requestIdHeader = request.headers['x-request-id'];
+        if (typeof requestIdHeader === 'string' && requestIdHeader.length > 0) {
+          return requestIdHeader;
+        }
+        if (Array.isArray(requestIdHeader) && requestIdHeader.length > 0) {
+          const [first] = requestIdHeader;
+          if (typeof first === 'string' && first.length > 0) return first;
+        }
+        return randomUUID();
+      }),
+  }).withTypeProvider<ZodTypeProvider>();
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
@@ -37,13 +58,15 @@ export async function buildServer(options: FastifyServerOptions = {}) {
   await app.register(rateLimit, {
     max: env.RATE_LIMIT_MAX,
     timeWindow: env.RATE_LIMIT_TIME_WINDOW,
-    errorResponseBuilder: (_req, context) => ({
+    errorResponseBuilder: (request, context) => ({
       statusCode: 429,
       error: 'too_many_requests',
       max: context.max,
       reset: context.ttl,
+      requestId: request.id,
     }),
   });
+  await app.register(loggingPlugin);
   await app.register(authPlugin);
   await app.register(errorPlugin);
 

@@ -1,5 +1,9 @@
 ## Architecture Improvements (DO NOW)
 
+### Mvp Critical
+- [ ] Visit entity - user can record / schedule visits to pets. visit has list of treatments, each one should be able to override default price and default recurring date. should have list of notes
+- 
+
 ### Backend Critical
 - [x] remove duplicate name constraint on treatment
 - [x] bug - after adding a pet, the customer is returned without their pets _(done: API now returns updated customer including pets; covered by tests)_
@@ -7,10 +11,11 @@
 - [x] centralized error handling middleware - errors are handled inconsistently _(done: central error plugin + shared `AppError` utility)_
 - [x] move sessions from in-memory to database - will lose all sessions on restart _(done: sessions persisted via Postgres with expiry upkeep)_
 - [x] API request/response schemas shared with frontend (tRPC or shared types) _(done: shared Zod schemas + frontend runtime validation)_
-- [ ] structured logging with context (request IDs, user IDs)
+- [x] structured logging with context (request IDs, user IDs) _(done: request logger now includes request/user/session IDs with lifecycle hooks)_
 - [x] global error handler in Fastify (currently errors bubble up inconsistently) _(done: registered error plugin in `app.ts`)_
 - [ ] don't pass internal error messages outside on prod
 - [x] fix pets summary on the customers ep - now the customers list always shows 0 pets it should have just a count for now
+- [ ] 90% coverage + show status on pr
 
 ### Frontend Critical
 - [ ] add state management library (React Query/TanStack Query) - currently no caching

@@ -28,6 +28,11 @@ const authPluginFn: FastifyPluginAsync = async (app) => {
 
     req.user = session.user;
     req.sessionId = session.id;
+    req.log = req.log.child({
+      userId: session.user.id,
+      sessionId: session.id,
+    });
+    req.log.debug({ userId: session.user.id, sessionId: session.id }, 'request_authenticated');
   });
 };
 
