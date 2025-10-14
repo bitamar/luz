@@ -149,6 +149,25 @@ describe('routes/customers', () => {
     });
   });
 
+  it('returns the requested customer', async () => {
+    const { user, sessionId } = await createAuthedUser();
+    const customer = await seedCustomer(user.id, { name: 'Target' });
+    await seedPet(customer.id, { name: 'Counted' });
+
+    const response = await injectAuthed(app, sessionId, {
+      method: 'GET',
+      url: `/customers/${customer.id}`,
+    });
+
+    const result = getJson<CustomerResponse>(response);
+    expect(result.statusCode).toBe(200);
+    expect(result.body.customer).toMatchObject({
+      id: customer.id,
+      name: 'Target',
+      petsCount: 1,
+    });
+  });
+
   it('returns full customer payload after update', async () => {
     const { user, sessionId } = await createAuthedUser();
     const customer = await seedCustomer(user.id, { name: 'Old Name' });

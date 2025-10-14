@@ -173,6 +173,38 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
     }
   );
 
+  app.get(
+    '/customers/:id',
+    {
+      preHandler: app.authenticate,
+      schema: {
+        params: updateCustomerParamsSchema,
+        response: {
+          200: customerResponseSchema,
+        },
+      },
+    },
+    async (req) => {
+      ensureAuthed(req);
+      const userId = req.user.id;
+      const { id } = req.params;
+
+      const row = await db.query.customers.findFirst({
+        where: and(
+          eq(customers.id, id),
+          eq(customers.userId, userId),
+          eq(customers.isDeleted, false)
+        ),
+        columns: { id: true, name: true, email: true, phone: true, address: true },
+      });
+
+      if (!row) throw notFound();
+
+      const petsCount = await getPetsCount(row.id);
+      return { customer: buildCustomer(row, petsCount) };
+    }
+  );
+
   app.put(
     '/customers/:id',
     {
