@@ -174,7 +174,9 @@ export function Treatments() {
   const queryError = isError ? extractErrorMessage(error, 'אירעה שגיאה בטעינת הטיפולים') : null;
   const isEmpty = !loading && !queryError && treatments.length === 0;
   const mutationInFlight =
-    createTreatmentMutation.isPending || updateTreatmentMutation.isPending || deleteTreatmentMutation.isPending;
+    createTreatmentMutation.isPending ||
+    updateTreatmentMutation.isPending ||
+    deleteTreatmentMutation.isPending;
 
   return (
     <Container size="lg" mt="xl">

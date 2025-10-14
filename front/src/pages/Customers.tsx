@@ -233,7 +233,11 @@ export function Customers() {
             <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
               ביטול
             </Button>
-            <Button color="red" onClick={onDeleteCustomer} loading={deleteCustomerMutation.isPending}>
+            <Button
+              color="red"
+              onClick={onDeleteCustomer}
+              loading={deleteCustomerMutation.isPending}
+            >
               מחק
             </Button>
           </Group>

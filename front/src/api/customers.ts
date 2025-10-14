@@ -42,13 +42,21 @@ export async function createCustomer(input: CreateCustomerBody): Promise<Custome
   return result.customer;
 }
 
-export async function getCustomerPets(customerId: string, options: RequestOptions = {}): Promise<Pet[]> {
-  const json = await fetchJson<unknown>(`/customers/${customerId}/pets`, { signal: options.signal });
+export async function getCustomerPets(
+  customerId: string,
+  options: RequestOptions = {}
+): Promise<Pet[]> {
+  const json = await fetchJson<unknown>(`/customers/${customerId}/pets`, {
+    signal: options.signal,
+  });
   const result = customerPetsResponseSchema.parse(json);
   return result.pets;
 }
 
-export async function getCustomer(customerId: string, options: RequestOptions = {}): Promise<Customer> {
+export async function getCustomer(
+  customerId: string,
+  options: RequestOptions = {}
+): Promise<Customer> {
   const json = await fetchJson<unknown>(`/customers/${customerId}`, { signal: options.signal });
   const result = customerResponseSchema.parse(json);
   return result.customer;

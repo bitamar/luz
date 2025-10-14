@@ -75,9 +75,7 @@ export function PetDetail() {
   const customer = customerQuery.data;
 
   const breadcrumbItems = useMemo(() => {
-    const items = [
-      { title: 'לקוחות', href: '/customers' },
-    ];
+    const items = [{ title: 'לקוחות', href: '/customers' }];
 
     if (customer) {
       items.push({ title: customer.name, href: `/customers/${customer.id}` });
@@ -112,7 +110,10 @@ export function PetDetail() {
           status="notFound"
           title="חיית המחמד לא נמצאה"
           description="ייתכן שהחיה נמחקה או שאינך מורשה לצפות בה."
-          primaryAction={{ label: 'חזרה ללקוח', onClick: () => navigate(customerId ? `/customers/${customerId}` : '/customers') }}
+          primaryAction={{
+            label: 'חזרה ללקוח',
+            onClick: () => navigate(customerId ? `/customers/${customerId}` : '/customers'),
+          }}
         />
       </Container>
     );
@@ -136,7 +137,10 @@ export function PetDetail() {
           description={message}
           primaryAction={{ label: 'נסה שוב', onClick: () => void petQuery.refetch() }}
           secondaryAction={
-            <Button variant="subtle" onClick={() => navigate(customerId ? `/customers/${customerId}` : '/customers')}>
+            <Button
+              variant="subtle"
+              onClick={() => navigate(customerId ? `/customers/${customerId}` : '/customers')}
+            >
               חזרה ללקוח
             </Button>
           }
@@ -224,7 +228,11 @@ export function PetDetail() {
         </Stack>
       </Card>
 
-      <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="מחיקת חיית מחמד">
+      <Modal
+        opened={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="מחיקת חיית מחמד"
+      >
         <Stack>
           <Text>
             האם אתה בטוח שברצונך למחוק את חיית המחמד "{pet.name}"? פעולה זו אינה ניתנת לביטול.

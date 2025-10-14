@@ -25,7 +25,8 @@ export async function fetchJson<T>(path: string, init: RequestInit = {}): Promis
 
   if (!response.ok) {
     const body = await response.json().catch(() => undefined);
-    const message = (body && (body as { error?: string; message?: string }).error) ||
+    const message =
+      (body && (body as { error?: string; message?: string }).error) ||
       (body && (body as { message?: string }).message) ||
       `Request failed: ${response.status}`;
     throw new HttpError(response.status, message, body);
