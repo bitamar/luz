@@ -9,14 +9,30 @@ import {
   SESSION_COOKIE_OPTIONS,
 } from '../auth/constants.js';
 import { createSession, deleteSession, getSession } from '../auth/session.js';
-import { AppError, unauthorized } from '../lib/app-error.js';
+import { AppError, badRequest, unauthorized } from '../lib/app-error.js';
+import { isHostAllowed, parseOriginHeader } from '../lib/origin.js';
 
 export async function authRoutes(app: FastifyInstance) {
   const config = await getGoogleOidcConfig(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET);
 
-  app.get('/auth/google', async (_req, reply) => {
+  app.get('/auth/google', async (req, reply) => {
+    // Derive the initiating app origin from headers (prefer Origin, fallback to Referer).
+    // If missing or not allowed, return 400 (no implicit fallbacks).
+    let appOrigin: string | undefined;
+    const { origin, referer } = req.headers;
+    const candidate = typeof origin === 'string' && origin.length > 0 ? origin : referer;
+    if (typeof candidate === 'string' && candidate.length > 0) {
+      const parsed = parseOriginHeader(candidate);
+      if (parsed && isHostAllowed(parsed.host, env.ALLOWED_APP_ORIGINS)) {
+        appOrigin = parsed.origin;
+      }
+    }
+    if (!appOrigin)
+      throw badRequest({ code: 'invalid_origin', message: 'Origin is missing or not allowed' });
+
     const { cookie, redirectUrl } = startGoogleAuth(config, {
       redirectUri: env.OAUTH_REDIRECT_URI,
+      appOrigin,
     });
     reply.setCookie(cookie.name, cookie.value, cookie.options);
     return reply.redirect(redirectUrl);
@@ -57,7 +73,11 @@ export async function authRoutes(app: FastifyInstance) {
     reply.setCookie(SESSION_COOKIE_NAME, session.id, SESSION_COOKIE_OPTIONS);
 
     // On success, redirect back to the SPA (dashboard)
-    return reply.redirect(`${env.APP_ORIGIN}/`);
+    const parsedOrigin = parseOriginHeader(result.data.appOrigin);
+    if (!parsedOrigin || !isHostAllowed(parsedOrigin.host, env.ALLOWED_APP_ORIGINS)) {
+      throw badRequest({ code: 'invalid_origin', message: 'Origin is missing or not allowed' });
+    }
+    return reply.redirect(`${parsedOrigin.origin}/`);
   });
 
   // Return current user from session

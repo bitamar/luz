@@ -22,23 +22,17 @@ vi.mock('openid-client', () => ({
   authorizationCodeGrant: vi.fn(),
 }));
 
-vi.mock('../../src/env.js', () => ({
-  env: {
-    URL: 'https://app.local',
-    OAUTH_REDIRECT_URI: 'https://app.local/auth/google/callback',
-    GOOGLE_CLIENT_ID: 'id',
-    GOOGLE_CLIENT_SECRET: 'secret',
-    DATABASE_URL: 'postgres://user:pass@localhost:5432/test',
-  },
-}));
-
 describe('routes/auth', () => {
   it('GET /auth/google redirects and sets cookie', async () => {
     const app = Fastify();
     await app.register(cookie, { secret: 's' });
     await app.register(errorPlugin);
     await app.register(authRoutes);
-    const res = await app.inject({ method: 'GET', url: '/auth/google' });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/auth/google',
+      headers: { origin: 'http://localhost:5173' },
+    });
     expect(res.statusCode).toBe(302);
     expect(res.headers['set-cookie']).toBeTruthy();
     expect(res.headers.location).toContain('https://accounts.google.com/o/oauth2/v2/auth');

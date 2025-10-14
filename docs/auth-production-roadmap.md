@@ -107,6 +107,10 @@ Backend (`api/.env`):
 ```
 URL=http://localhost:3000
 APP_ORIGIN=http://localhost:5173
+# Allow multiple frontends (prod + PR envs). Comma-separated host list; one '*' wildcard for digits.
+# Examples:
+#   front-kalimere.up.railway.app,front-kalimere-pr-*.up.railway.app,localhost:5173
+ALLOWED_APP_ORIGINS=localhost:5173
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 JWT_SECRET=change_me_32_chars_min
@@ -128,5 +132,3 @@ VITE_API_BASE_URL=http://localhost:3000
 - `/auth/logout` terminates the session server-side and clears cookie. [Done]
 - No tokens are stored client-side; only server-side session is used. [Done]
 - Cross-origin/same-site flow works reliably with proper cookie attributes (or same-origin is used). [Done]
-
-

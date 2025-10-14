@@ -19,6 +19,7 @@ import { authPlugin } from './plugins/auth.js';
 import { errorPlugin } from './plugins/errors.js';
 import { loggingPlugin } from './plugins/logging.js';
 import { createLogger } from './lib/logger.js';
+import { isHostAllowed, parseOriginHeader } from './lib/origin.js';
 
 export async function buildServer(options: FastifyServerOptions = {}) {
   const { logger: providedLogger, genReqId, ...rest } = options;
@@ -46,7 +47,12 @@ export async function buildServer(options: FastifyServerOptions = {}) {
   app.setSerializerCompiler(serializerCompiler);
 
   await app.register(cors, {
-    origin: env.APP_ORIGIN,
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, false);
+      const parsed = parseOriginHeader(origin);
+      if (!parsed) return cb(null, false);
+      return cb(null, isHostAllowed(parsed.host, env.ALLOWED_APP_ORIGINS));
+    },
     credentials: true,
     methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
