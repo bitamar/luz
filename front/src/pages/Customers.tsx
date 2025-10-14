@@ -35,8 +35,8 @@ export function Customers() {
     refetch,
   } = useQuery({
     queryKey: queryKeys.customers(),
-    queryFn: ({ signal }) => listCustomers({ signal }),
-    select: (rows) => [...rows].sort((a, b) => a.name.localeCompare(b.name, 'he-IL')),
+    queryFn: ({ signal }: { signal: AbortSignal }) => listCustomers({ signal }),
+    select: (rows: Customer[]) => [...rows].sort((a, b) => a.name.localeCompare(b.name, 'he-IL')),
   });
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -60,7 +60,7 @@ export function Customers() {
       showSuccessNotification('הלקוח נוסף בהצלחה');
       void queryClient.invalidateQueries({ queryKey: queryKeys.customers() });
     },
-    onError: (err) => {
+    onError: (err: unknown) => {
       showErrorNotification(extractErrorMessage(err, 'הוספת הלקוח נכשלה'));
     },
   });
@@ -71,7 +71,7 @@ export function Customers() {
       showSuccessNotification('הלקוח נמחק');
       void queryClient.invalidateQueries({ queryKey: queryKeys.customers() });
     },
-    onError: (err) => {
+    onError: (err: unknown) => {
       showErrorNotification(extractErrorMessage(err, 'מחיקת הלקוח נכשלה'));
     },
     onSettled: () => {
@@ -101,7 +101,7 @@ export function Customers() {
     await deleteCustomerMutation.mutateAsync(customerToDelete.id);
   }
 
-  const customers = customersData ?? [];
+  const customers: Customer[] = customersData ?? [];
 
   const cards = useMemo(
     () =>

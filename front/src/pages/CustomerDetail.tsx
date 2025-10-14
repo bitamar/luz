@@ -24,6 +24,7 @@ import {
   deletePet,
   getCustomer,
   getCustomerPets,
+  type Pet,
 } from '../api/customers';
 import { StatusCard } from '../components/StatusCard';
 import { EntityCard } from '../components/EntityCard';
@@ -44,13 +45,13 @@ export function CustomerDetail() {
 
   const customerQuery = useQuery({
     queryKey: customerId ? queryKeys.customer(customerId) : ['customer', ''],
-    queryFn: ({ signal }) => getCustomer(customerId, { signal }),
+    queryFn: ({ signal }: { signal: AbortSignal }) => getCustomer(customerId, { signal }),
     enabled: Boolean(customerId),
   });
 
   const petsQuery = useQuery({
     queryKey: customerId ? queryKeys.pets(customerId) : ['pets', ''],
-    queryFn: ({ signal }) => getCustomerPets(customerId, { signal }),
+    queryFn: ({ signal }: { signal: AbortSignal }) => getCustomerPets(customerId, { signal }),
     enabled: Boolean(customerId),
   });
 
@@ -77,7 +78,7 @@ export function CustomerDetail() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.customer(customerId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.customers() });
     },
-    onError: (err) => {
+    onError: (err: unknown) => {
       showErrorNotification(extractErrorMessage(err, 'הוספת חיית המחמד נכשלה'));
     },
   });
@@ -89,7 +90,7 @@ export function CustomerDetail() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.customers() });
       navigate('/customers');
     },
-    onError: (err) => {
+    onError: (err: unknown) => {
       showErrorNotification(extractErrorMessage(err, 'מחיקת הלקוח נכשלה'));
     },
     onSettled: () => {
@@ -106,7 +107,7 @@ export function CustomerDetail() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.customer(customerId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.customers() });
     },
-    onError: (err) => {
+    onError: (err: unknown) => {
       showErrorNotification(extractErrorMessage(err, 'מחיקת חיית המחמד נכשלה'));
     },
     onSettled: () => {
@@ -123,7 +124,7 @@ export function CustomerDetail() {
     customerError instanceof HttpError && customerError.status === 404 && customerQuery.isError;
 
   const customer = customerQuery.data;
-  const pets = petsQuery.data ?? [];
+  const pets: Pet[] = petsQuery.data ?? [];
   const petCount = pets.length;
 
   const breadcrumbItems = useMemo(

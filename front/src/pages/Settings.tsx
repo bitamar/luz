@@ -13,6 +13,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSettings, updateSettings } from '../auth/api';
 import { StatusCard } from '../components/StatusCard';
 import { queryKeys } from '../lib/queryKeys';
+import type { SettingsResponse } from '@contracts/users';
 import {
   extractErrorMessage,
   showErrorNotification,
@@ -27,7 +28,7 @@ export function Settings() {
 
   const settingsQuery = useQuery({
     queryKey: queryKeys.settings(),
-    queryFn: ({ signal }) => getSettings({ signal }),
+    queryFn: ({ signal }: { signal: AbortSignal }) => getSettings({ signal }),
   });
 
   useEffect(() => {
@@ -39,12 +40,12 @@ export function Settings() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: updateSettings,
-    onSuccess: (data) => {
+    onSuccess: (data: SettingsResponse) => {
       showSuccessNotification('ההגדרות נשמרו בהצלחה');
       queryClient.setQueryData(queryKeys.settings(), data);
       void queryClient.invalidateQueries({ queryKey: queryKeys.me() });
     },
-    onError: (err) => {
+    onError: (err: unknown) => {
       showErrorNotification(extractErrorMessage(err, 'שמירת ההגדרות נכשלה'));
     },
   });

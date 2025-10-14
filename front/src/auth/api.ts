@@ -9,7 +9,8 @@ type RequestOptions = {
 
 export async function getMe(options: RequestOptions = {}): Promise<SettingsResponse | null> {
   try {
-    const json = await fetchJson<unknown>('/me', { signal: options.signal });
+    const requestInit = options.signal ? { signal: options.signal } : undefined;
+    const json = await fetchJson<unknown>('/me', requestInit);
     return settingsResponseSchema.parse(json);
   } catch {
     return null;
@@ -25,7 +26,8 @@ export function getGoogleLoginUrl(): string {
 }
 
 export async function getSettings(options: RequestOptions = {}): Promise<SettingsResponse> {
-  const json = await fetchJson<unknown>('/settings', { signal: options.signal });
+  const requestInit = options.signal ? { signal: options.signal } : undefined;
+  const json = await fetchJson<unknown>('/settings', requestInit);
   return settingsResponseSchema.parse(json);
 }
 

@@ -39,8 +39,8 @@ export function Treatments() {
     refetch,
   } = useQuery({
     queryKey: queryKeys.treatments(),
-    queryFn: ({ signal }) => listTreatments({ signal }),
-    select: (rows) => [...rows].sort((a, b) => a.name.localeCompare(b.name, 'he-IL')),
+    queryFn: ({ signal }: { signal: AbortSignal }) => listTreatments({ signal }),
+    select: (rows: Treatment[]) => [...rows].sort((a, b) => a.name.localeCompare(b.name, 'he-IL')),
   });
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -77,7 +77,7 @@ export function Treatments() {
       showSuccessNotification('הטיפול נוצר בהצלחה');
       void queryClient.invalidateQueries({ queryKey: queryKeys.treatments() });
     },
-    onError: (err) => {
+    onError: (err: unknown) => {
       showErrorNotification(extractErrorMessage(err, 'יצירת הטיפול נכשלה'));
     },
   });
@@ -89,7 +89,7 @@ export function Treatments() {
       showSuccessNotification('הטיפול עודכן בהצלחה');
       void queryClient.invalidateQueries({ queryKey: queryKeys.treatments() });
     },
-    onError: (err) => {
+    onError: (err: unknown) => {
       showErrorNotification(extractErrorMessage(err, 'עדכון הטיפול נכשל'));
     },
   });
@@ -105,7 +105,7 @@ export function Treatments() {
       showSuccessNotification('הטיפול נמחק');
       void queryClient.invalidateQueries({ queryKey: queryKeys.treatments() });
     },
-    onError: (err) => {
+    onError: (err: unknown) => {
       showErrorNotification(extractErrorMessage(err, 'מחיקת הטיפול נכשלה'));
     },
     onSettled: () => {
@@ -132,7 +132,7 @@ export function Treatments() {
 
   const cards = useMemo(
     () =>
-      treatments.map((treatment) => {
+      treatments.map((treatment: Treatment) => {
         const { id, name, price, defaultIntervalMonths } = treatment;
         const hasPrice = typeof price === 'number';
 

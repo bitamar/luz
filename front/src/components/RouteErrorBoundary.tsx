@@ -18,13 +18,13 @@ class RouteErrorBoundaryInner extends Component<
   RouteErrorBoundaryInnerProps,
   RouteErrorBoundaryInnerState
 > {
-  state: RouteErrorBoundaryInnerState = { hasError: false, error: null };
+  override state: RouteErrorBoundaryInnerState = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: Error): RouteErrorBoundaryInnerState {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error in routed content', error, errorInfo);
   }
 
@@ -33,7 +33,7 @@ class RouteErrorBoundaryInner extends Component<
     this.props.onReset();
   };
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       const message = extractErrorMessage(this.state.error, 'אירעה שגיאה בלתי צפויה');
       return (

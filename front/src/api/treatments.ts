@@ -20,7 +20,8 @@ type RequestOptions = {
 };
 
 export async function listTreatments(options: RequestOptions = {}): Promise<Treatment[]> {
-  const json = await fetchJson<unknown>('/treatments', { signal: options.signal });
+  const requestInit = options.signal ? { signal: options.signal } : undefined;
+  const json = await fetchJson<unknown>('/treatments', requestInit);
   const result = treatmentsListResponseSchema.parse(json);
   return result.treatments;
 }

@@ -17,7 +17,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const { data, isPending } = useQuery({
     queryKey: queryKeys.me(),
-    queryFn: ({ signal }) => getMe({ signal }),
+    queryFn: ({ signal }: { signal: AbortSignal }) => getMe({ signal }),
     staleTime: 5 * 60 * 1000,
   });
 

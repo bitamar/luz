@@ -38,13 +38,13 @@ export function PetDetail() {
 
   const petQuery = useQuery({
     queryKey: petQueryKey,
-    queryFn: ({ signal }) => getPet(customerId!, petId!, { signal }),
+    queryFn: ({ signal }: { signal: AbortSignal }) => getPet(customerId!, petId!, { signal }),
     enabled: Boolean(customerId && petId),
   });
 
   const customerQuery = useQuery({
     queryKey: customerId ? queryKeys.customer(customerId) : ['customer', ''],
-    queryFn: ({ signal }) => getCustomer(customerId!, { signal }),
+    queryFn: ({ signal }: { signal: AbortSignal }) => getCustomer(customerId!, { signal }),
     enabled: Boolean(customerId),
   });
 
@@ -59,7 +59,7 @@ export function PetDetail() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.customers() });
       navigate(`/customers/${customerId}`);
     },
-    onError: (err) => {
+    onError: (err: unknown) => {
       showErrorNotification(extractErrorMessage(err, 'מחיקת חיית המחמד נכשלה'));
     },
     onSettled: () => {
