@@ -6,6 +6,7 @@ import { PetDetail } from '../../pages/PetDetail';
 import * as customersApi from '../../api/customers';
 import { renderWithProviders } from '../utils/renderWithProviders';
 import { suppressConsoleError } from '../utils/suppressConsoleError';
+import { HttpError } from '../../lib/http';
 
 const navigateMock = vi.fn();
 
@@ -72,19 +73,20 @@ describe('PetDetail page', () => {
   it('renders pet details and owner information', async () => {
     renderPetDetail();
 
-    await waitFor(() => expect(getPetMock).toHaveBeenCalledWith('cust-1', 'pet-1'));
-    await waitFor(() => expect(getCustomerMock).toHaveBeenCalledWith('cust-1'));
+    await waitFor(() => expect(getPetMock).toHaveBeenCalled());
+    const [petCustomerId, petId] = getPetMock.mock.calls[0] ?? [];
+    expect(petCustomerId).toBe('cust-1');
+    expect(petId).toBe('pet-1');
 
-    expect(screen.getByRole('heading', { name: 'Bolt' })).toBeInTheDocument();
-    expect(screen.getByText('כלב')).toBeInTheDocument();
-    expect(screen.getByText('זכר')).toBeInTheDocument();
-    expect(screen.getByText('Border Collie')).toBeInTheDocument();
+    await waitFor(() => expect(getCustomerMock).toHaveBeenCalled());
+    const [customerIdArg] = getCustomerMock.mock.calls[0] ?? [];
+    expect(customerIdArg).toBe('cust-1');
 
-    const ownerLink = (await screen.findAllByText('Dana Vet')).find((node) =>
-      node.closest('.mantine-Card-root')
-    );
-
-    expect(ownerLink).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Bolt' })).toBeInTheDocument();
+    expect(await screen.findByText('כלב')).toBeInTheDocument();
+    expect(await screen.findByText('זכר')).toBeInTheDocument();
+    expect(await screen.findByText('Border Collie')).toBeInTheDocument();
+    expect(await screen.findByText('Dana Vet')).toBeInTheDocument();
   });
 
   it('navigates to customer page when owner link is clicked', async () => {
@@ -94,11 +96,7 @@ describe('PetDetail page', () => {
     await waitFor(() => expect(getPetMock).toHaveBeenCalled());
     await waitFor(() => expect(getCustomerMock).toHaveBeenCalled());
 
-    const ownerLink = (await screen.findAllByText('Dana Vet')).find((node) =>
-      node.closest('.mantine-Card-root')
-    );
-
-    if (!ownerLink) throw new Error('Owner link not found');
+    const ownerLink = await screen.findByText('Dana Vet');
 
     await user.click(ownerLink);
 
@@ -112,7 +110,7 @@ describe('PetDetail page', () => {
     await waitFor(() => expect(getPetMock).toHaveBeenCalled());
 
     // Open actions menu
-    const menuButton = screen.getByTestId('pet-actions-trigger');
+    const menuButton = await screen.findByTestId('pet-actions-trigger');
     await user.click(menuButton);
 
     // Click delete option
@@ -122,7 +120,10 @@ describe('PetDetail page', () => {
     // Confirm deletion in modal
     await user.click(await screen.findByRole('button', { name: 'מחק' }));
 
-    await waitFor(() => expect(deletePetMock).toHaveBeenCalledWith('cust-1', 'pet-1'));
+    await waitFor(() => expect(deletePetMock).toHaveBeenCalled());
+    const [deleteCustomerId, deletePetId] = deletePetMock.mock.calls[0] ?? [];
+    expect(deleteCustomerId).toBe('cust-1');
+    expect(deletePetId).toBe('pet-1');
     expect(navigateMock).toHaveBeenCalledWith('/customers/cust-1');
   });
 
@@ -134,18 +135,16 @@ describe('PetDetail page', () => {
     await waitFor(() =>
       expect(screen.getByText('לא ניתן להציג את חיית המחמד כעת')).toBeInTheDocument()
     );
-    expect(screen.getByText('אירעה שגיאה בטעינת פרטי חיית המחמד')).toBeInTheDocument();
+    expect(screen.getByText('Request failed: 500')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /נסה שוב/ })).toBeInTheDocument();
   });
 
   it('shows not found state when pet does not exist', async () => {
-    const error = new Error('Not found');
-    error.name = 'NOT_FOUND';
-    getPetMock.mockRejectedValueOnce(error);
+    getPetMock.mockRejectedValueOnce(new HttpError(404, 'Not found'));
     restoreConsoleError = suppressConsoleError(/Not found|NOT_FOUND/);
     renderPetDetail();
 
-    await waitFor(() => expect(screen.getByText('חיית המחמד לא נמצאה')).toBeInTheDocument());
+    expect(await screen.findByText('חיית המחמד לא נמצאה')).toBeInTheDocument();
     expect(screen.getByText('ייתכן שהחיה נמחקה או שאינך מורשה לצפות בה.')).toBeInTheDocument();
   });
 });
