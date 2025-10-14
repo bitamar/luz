@@ -49,10 +49,11 @@ describe('Treatments page', () => {
 
     await waitFor(() => expect(listTreatmentsMock).toHaveBeenCalled());
 
-    expect(screen.getByRole('heading', { name: 'סוגי טיפולים' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'טיפול חדש' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'סוגי טיפולים' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'טיפול חדש' })).toBeInTheDocument();
 
-    const firstCard = screen.getByText('Vaccination').closest('.treatment-card');
+    const firstCardTitle = await screen.findByText('Vaccination');
+    const firstCard = firstCardTitle.closest('.treatment-card');
     expect(firstCard).toBeTruthy();
     if (!firstCard) return;
 
@@ -73,9 +74,11 @@ describe('Treatments page', () => {
     await user.click(screen.getByRole('button', { name: 'טיפול חדש' }));
 
     const modal = (await screen.findByRole('dialog')) as HTMLElement;
-    const nameInput = within(modal).getByLabelText(/שם/) as HTMLInputElement;
-    const intervalInput = within(modal).getByLabelText(/מרווח ברירת מחדל/) as HTMLInputElement;
-    const priceInput = within(modal).getByLabelText(/מחיר/) as HTMLInputElement;
+    const nameInput = (await within(modal).findByLabelText(/שם/)) as HTMLInputElement;
+    const intervalInput = (await within(modal).findByLabelText(
+      /מרווח ברירת מחדל/
+    )) as HTMLInputElement;
+    const priceInput = (await within(modal).findByLabelText(/מחיר/)) as HTMLInputElement;
 
     await user.clear(nameInput);
     await user.type(nameInput, 'Examination');
@@ -88,13 +91,12 @@ describe('Treatments page', () => {
 
     await user.click(within(modal).getByRole('button', { name: 'הוסף' }));
 
-    await waitFor(() =>
-      expect(createTreatmentMock).toHaveBeenCalledWith({
-        name: 'Examination',
-        defaultIntervalMonths: 6,
-        price: 200,
-      })
-    );
+    await waitFor(() => expect(createTreatmentMock).toHaveBeenCalled());
+    expect(createTreatmentMock.mock.calls[0]?.[0]).toEqual({
+      name: 'Examination',
+      defaultIntervalMonths: 6,
+      price: 200,
+    });
     expect(listTreatmentsMock).toHaveBeenCalledTimes(2);
   });
 
@@ -104,9 +106,9 @@ describe('Treatments page', () => {
     await waitFor(() => expect(listTreatmentsMock).toHaveBeenCalled());
 
     const user = userEvent.setup();
-    const firstCard = screen
-      .getByText('Vaccination')
-      .closest('.treatment-card') as HTMLElement | null;
+    const firstCard = (await screen.findByText('Vaccination')).closest(
+      '.treatment-card'
+    ) as HTMLElement | null;
     if (!firstCard) throw new Error('Treatment card not found');
 
     await user.click(within(firstCard).getByRole('button', { name: 'ערוך' }));
@@ -134,9 +136,9 @@ describe('Treatments page', () => {
     await waitFor(() => expect(listTreatmentsMock).toHaveBeenCalled());
 
     const user = userEvent.setup();
-    const firstCard = screen
-      .getByText('Vaccination')
-      .closest('.treatment-card') as HTMLElement | null;
+    const firstCard = (await screen.findByText('Vaccination')).closest(
+      '.treatment-card'
+    ) as HTMLElement | null;
     if (!firstCard) throw new Error('Treatment card not found');
 
     const menuButtons = within(firstCard).getAllByRole('button', { hidden: true });
@@ -147,7 +149,8 @@ describe('Treatments page', () => {
     await user.click(await screen.findByRole('menuitem', { name: 'מחק טיפול' }));
     await user.click(await screen.findByRole('button', { name: 'מחק' }));
 
-    await waitFor(() => expect(deleteTreatmentMock).toHaveBeenCalledWith('treat-1'));
+    await waitFor(() => expect(deleteTreatmentMock).toHaveBeenCalled());
+    expect(deleteTreatmentMock.mock.calls[0]?.[0]).toBe('treat-1');
   });
 
   it('shows empty state when there are no treatments', async () => {
@@ -166,8 +169,8 @@ describe('Treatments page', () => {
     renderWithProviders(<Treatments />);
 
     await screen.findByText('לא ניתן להציג טיפולים כעת');
-    expect(screen.getByText(/אירעה שגיאה בטעינת הטיפולים/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /נסה שוב/ })).toBeInTheDocument();
+    expect(await screen.findByText('Request failed: 500')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /נסה שוב/ })).toBeInTheDocument();
   });
 
   it('allows retry after error', async () => {

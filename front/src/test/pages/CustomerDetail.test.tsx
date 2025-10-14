@@ -6,6 +6,7 @@ import { CustomerDetail } from '../../pages/CustomerDetail';
 import * as customersApi from '../../api/customers';
 import { renderWithProviders } from '../utils/renderWithProviders';
 import { suppressConsoleError } from '../utils/suppressConsoleError';
+import { HttpError } from '../../lib/http';
 
 const navigateMock = vi.fn();
 
@@ -24,6 +25,16 @@ const basePets: customersApi.PetSummary[] = [
   { id: 'pet-2', name: 'Misty', type: 'cat' },
 ];
 
+const enrichPet = (pet: customersApi.PetSummary) => ({
+  ...pet,
+  customerId: baseCustomer.id,
+  gender: 'male' as const,
+  dateOfBirth: null,
+  breed: null,
+  isSterilized: null,
+  isCastrated: null,
+});
+
 const baseCustomer: customersApi.Customer = {
   id: 'cust-1',
   name: 'Dana Vet',
@@ -34,7 +45,7 @@ const baseCustomer: customersApi.Customer = {
 };
 
 describe('CustomerDetail page', () => {
-  const listCustomersMock = vi.mocked(customersApi.listCustomers);
+  const getCustomerMock = vi.mocked(customersApi.getCustomer);
   const addPetMock = vi.mocked(customersApi.addPetToCustomer);
   const deleteCustomerMock = vi.mocked(customersApi.deleteCustomer);
   const deletePetMock = vi.mocked(customersApi.deletePet);
@@ -44,19 +55,9 @@ describe('CustomerDetail page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     navigateMock.mockReset();
-    listCustomersMock.mockResolvedValue([baseCustomer]);
+    getCustomerMock.mockResolvedValue(baseCustomer);
     // Add mock for getCustomerPets
-    getCustomerPetsMock.mockResolvedValue(
-      basePets.map((pet) => ({
-        ...pet,
-        customerId: baseCustomer.id,
-        gender: 'male',
-        dateOfBirth: null,
-        breed: null,
-        isSterilized: null,
-        isCastrated: null,
-      }))
-    );
+    getCustomerPetsMock.mockResolvedValue(basePets.map(enrichPet));
     addPetMock.mockResolvedValue({
       id: 'pet-new',
       customerId: 'cust-1',
@@ -91,28 +92,32 @@ describe('CustomerDetail page', () => {
   it('renders customer summary information and pets', async () => {
     renderCustomerDetail();
 
-    await waitFor(() => expect(listCustomersMock).toHaveBeenCalled());
+    await waitFor(() => expect(getCustomerMock).toHaveBeenCalled());
 
-    expect(screen.getByRole('heading', { name: 'Dana Vet' })).toBeInTheDocument();
-    expect(screen.getByText('dana@example.com')).toBeInTheDocument();
-    expect(screen.getByText('050-1231234')).toBeInTheDocument();
-    expect(screen.getByText('Tel Aviv')).toBeInTheDocument();
-    expect(screen.getByText('Bolt')).toBeInTheDocument();
-    expect(screen.getByText('Misty')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Dana Vet' })).toBeInTheDocument();
+    expect(await screen.findByText('dana@example.com')).toBeInTheDocument();
+    expect(await screen.findByText('050-1231234')).toBeInTheDocument();
+    expect(await screen.findByText('Tel Aviv')).toBeInTheDocument();
+    expect(await screen.findByText('Bolt')).toBeInTheDocument();
+    expect(await screen.findByText('Misty')).toBeInTheDocument();
   });
 
   it('allows deleting a pet and updates the list', async () => {
+    getCustomerPetsMock
+      .mockResolvedValueOnce(basePets.map(enrichPet))
+      .mockResolvedValueOnce(basePets.filter((pet) => pet.id !== 'pet-1').map(enrichPet));
+
     renderCustomerDetail();
-    await waitFor(() => expect(listCustomersMock).toHaveBeenCalled());
+    await waitFor(() => expect(getCustomerMock).toHaveBeenCalled());
     await waitFor(() => expect(getCustomerPetsMock).toHaveBeenCalled());
 
     const user = userEvent.setup();
 
     // Wait for pets to be fully loaded
-    await screen.findByText('Bolt');
+    const boltTitle = await screen.findByText('Bolt');
 
     // Get the pet card for Bolt
-    const boltCard = screen.getByText('Bolt').closest('.pet-card') as HTMLElement;
+    const boltCard = boltTitle.closest('.pet-card') as HTMLElement;
     expect(boltCard).toBeInTheDocument();
 
     // Find the menu button within the pet card
@@ -139,7 +144,7 @@ describe('CustomerDetail page', () => {
 
   it('allows deleting the customer and navigates back to list', async () => {
     renderCustomerDetail();
-    await waitFor(() => expect(listCustomersMock).toHaveBeenCalled());
+    await waitFor(() => expect(getCustomerMock).toHaveBeenCalled());
 
     const user = userEvent.setup();
 
@@ -172,46 +177,43 @@ describe('CustomerDetail page', () => {
 
   it('shows empty state when customer has no pets', async () => {
     // Just use the normal baseCustomer - no need to add a pets property
-    listCustomersMock.mockResolvedValueOnce([baseCustomer]);
+    getCustomerMock.mockResolvedValueOnce(baseCustomer);
     // Mock getCustomerPets to return an empty array
     getCustomerPetsMock.mockResolvedValueOnce([]);
 
     renderCustomerDetail();
 
-    await waitFor(() =>
-      expect(screen.getByText('אין עדיין חיות מחמד ללקוח זה')).toBeInTheDocument()
-    );
+    expect(await screen.findByText('אין עדיין חיות מחמד ללקוח זה')).toBeInTheDocument();
     expect(
       screen.getByText('לחץ על "+ הוסף חיה" כדי להוסיף חיית מחמד ראשונה.')
     ).toBeInTheDocument();
   });
 
   it('shows not found state when customer does not exist', async () => {
-    listCustomersMock.mockResolvedValueOnce([]);
+    getCustomerMock.mockRejectedValueOnce(new HttpError(404, 'Not Found'));
 
     renderCustomerDetail();
 
     restoreConsoleError = suppressConsoleError(/NOT_FOUND/);
 
-    await waitFor(() => expect(screen.getByText('הלקוח לא נמצא')).toBeInTheDocument());
+    await screen.findByText('הלקוח לא נמצא');
     expect(screen.getByText('ייתכן שהלקוח נמחק או שאינך מורשה לצפות בו.')).toBeInTheDocument();
   });
 
   it('shows error state when loading the customer fails', async () => {
-    listCustomersMock.mockRejectedValueOnce(new Error('Request failed: 500'));
+    getCustomerMock.mockRejectedValueOnce(new Error('Request failed: 500'));
     restoreConsoleError = suppressConsoleError(/Failed to load data/);
 
     renderCustomerDetail();
 
     await waitFor(() => expect(screen.getByText('לא ניתן להציג את הלקוח כעת')).toBeInTheDocument());
-    expect(screen.getByText('אירעה שגיאה בטעינת הלקוח')).toBeInTheDocument();
+    expect(screen.getByText('Request failed: 500')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /נסה שוב/ })).toBeInTheDocument();
   });
 
   it('allows retry after error', async () => {
-    listCustomersMock
-      .mockRejectedValueOnce(new Error('Request failed: 500'))
-      .mockResolvedValueOnce([baseCustomer]);
+    getCustomerMock.mockRejectedValueOnce(new Error('Request failed: 500'));
+    getCustomerMock.mockResolvedValueOnce(baseCustomer);
     restoreConsoleError = suppressConsoleError(/Failed to load data/);
 
     renderCustomerDetail();
@@ -220,7 +222,7 @@ describe('CustomerDetail page', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /נסה שוב/ }));
 
-    await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(getCustomerMock).toHaveBeenCalledTimes(2));
     await screen.findByRole('heading', { name: 'Dana Vet' });
   });
 

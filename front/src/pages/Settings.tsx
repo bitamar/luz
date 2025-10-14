@@ -9,44 +9,76 @@ import {
   useMantineColorScheme,
 } from '@mantine/core';
 import { IconMoon, IconSun } from '@tabler/icons-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSettings, updateSettings } from '../auth/api';
+import { StatusCard } from '../components/StatusCard';
+import { queryKeys } from '../lib/queryKeys';
+import type { SettingsResponse } from '@contracts/users';
+import {
+  extractErrorMessage,
+  showErrorNotification,
+  showSuccessNotification,
+} from '../lib/notifications';
 
 export function Settings() {
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const [name, setName] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const settingsQuery = useQuery({
+    queryKey: queryKeys.settings(),
+    queryFn: ({ signal }: { signal: AbortSignal }) => getSettings({ signal }),
+  });
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await getSettings();
-        if (!cancelled) {
-          setName(data.user.name ?? '');
-          setPhone(data.user.phone ?? '');
-        }
-      } catch (error) {
-        if (!cancelled) setError(error instanceof Error ? error.message : 'failed');
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (settingsQuery.data) {
+      setName(settingsQuery.data.user.name ?? '');
+      setPhone(settingsQuery.data.user.phone ?? '');
+    }
+  }, [settingsQuery.data]);
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: updateSettings,
+    onSuccess: (data: SettingsResponse) => {
+      showSuccessNotification('ההגדרות נשמרו בהצלחה');
+      queryClient.setQueryData(queryKeys.settings(), data);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.me() });
+    },
+    onError: (err: unknown) => {
+      showErrorNotification(extractErrorMessage(err, 'שמירת ההגדרות נכשלה'));
+    },
+  });
+
+  if (settingsQuery.isPending) {
+    return (
+      <Stack gap="md">
+        <StatusCard status="loading" title="טוען הגדרות..." align="start" />
+      </Stack>
+    );
+  }
+
+  if (settingsQuery.error) {
+    const message = extractErrorMessage(settingsQuery.error, 'אירעה שגיאה בטעינת ההגדרות');
+    return (
+      <Stack gap="md">
+        <StatusCard
+          status="error"
+          title="לא ניתן להציג את ההגדרות כעת"
+          description={message}
+          align="start"
+          primaryAction={{ label: 'נסה שוב', onClick: () => void settingsQuery.refetch() }}
+        />
+      </Stack>
+    );
+  }
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      await updateSettings({ name: name.trim() ? name.trim() : null, phone: phone.trim() });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'failed');
-    } finally {
-      setLoading(false);
-    }
+    await updateSettingsMutation.mutateAsync({
+      name: name.trim() ? name.trim() : null,
+      phone: phone.trim(),
+    });
   };
 
   return (
@@ -71,9 +103,8 @@ export function Settings() {
           value={phone}
           onChange={({ currentTarget }) => setPhone(currentTarget.value)}
         />
-        {error && <div style={{ color: 'var(--mantine-color-red-6)' }}>{error}</div>}
         <Group justify="flex-end">
-          <Button type="submit" loading={loading} disabled={!phone.trim()}>
+          <Button type="submit" loading={updateSettingsMutation.isPending} disabled={!phone.trim()}>
             שמירה
           </Button>
         </Group>

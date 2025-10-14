@@ -28,19 +28,19 @@
 - [ ] abort pending requests on navigation - currently requests keep running
 
 ### Frontend: TanStack Query Adoption (NOW)
-- [ ] add `@tanstack/react-query` and `@tanstack/react-query-devtools` to `front`
-- [ ] wrap app with `QueryClientProvider` in `front/src/main.tsx` (defaults: `queries.retry=false`, sensible `staleTime`, `refetchOnWindowFocus=true`)
-- [ ] add React Query Devtools in development only
-- [ ] define query keys: `customers`, `customer:id`, `pets:customerId`, `treatments`, `settings`, `me`
-- [ ] plumb `AbortSignal` through: pass `signal` from `useQuery` to `fetchJson` (`RequestInit.signal`)
-- [ ] migrate pages to `useQuery`/`useMutation` with invalidation instead of manual `refresh`/`useEffect`
-- [ ] pages migration order: Treatments → Customers → CustomerDetail (incl. pets) → PetDetail → Settings → Auth `/me`
-- [ ] invalidate on mutations: treatments → `treatments`; customers CRUD → `customers`; add/delete pet → `pets:customerId` and relevant `customer:id`; settings update → `settings` and `me`
-- [ ] replace all usages of `useListState` and remove the hook after migration
-- [ ] add global success/error toasts for mutations (consider `@mantine/notifications`)
-- [ ] add error boundaries around routed content
-- [ ] update `front/src/test/utils/renderWithProviders.tsx` to include `QueryClientProvider` (set `retry=false` in tests)
-- [ ] document query key conventions and invalidation rules
+- [x] add `@tanstack/react-query` and `@tanstack/react-query-devtools` to `front`
+- [x] wrap app with `QueryClientProvider` in `front/src/main.tsx` (defaults: `queries.retry=false`, sensible `staleTime`, `refetchOnWindowFocus=true`)
+- [x] add React Query Devtools in development only
+- [x] define query keys: `customers`, `customer:id`, `pets:customerId`, `treatments`, `settings`, `me`
+- [x] plumb `AbortSignal` through: pass `signal` from `useQuery` to `fetchJson` (`RequestInit.signal`)
+- [x] migrate pages to `useQuery`/`useMutation` with invalidation instead of manual `refresh`/`useEffect`
+- [x] pages migration order: Treatments → Customers → CustomerDetail (incl. pets) → PetDetail → Settings → Auth `/me`
+- [x] invalidate on mutations: treatments → `treatments`; customers CRUD → `customers`; add/delete pet → `pets:customerId` and relevant `customer:id`; settings update → `settings` and `me`
+- [x] replace all usages of `useListState` and remove the hook after migration
+- [x] add global success/error toasts for mutations (consider `@mantine/notifications`)
+- [x] add error boundaries around routed content
+- [x] update `front/src/test/utils/renderWithProviders.tsx` to include `QueryClientProvider` (set `retry=false` in tests)
+- [x] document query key conventions and invalidation rules
 
 ### DevOps / Infrastructure (DO NOW)
 - [x] support PR environments - OAuth redirects to prod instead of staying on PR env (e.g., front-kalimere-pr-1.up.railway.app/login redirects to prod)

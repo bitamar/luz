@@ -60,10 +60,11 @@ describe('Customers page', () => {
 
     await waitFor(() => expect(listCustomersMock).toHaveBeenCalled());
 
-    expect(screen.getByRole('heading', { name: 'לקוחות' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'לקוח חדש' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'לקוחות' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'לקוח חדש' })).toBeInTheDocument();
 
-    const aliceCard = screen.getByText('Alice').closest('.customer-card');
+    const aliceTitle = await screen.findByText('Alice');
+    const aliceCard = aliceTitle.closest('.customer-card');
     expect(aliceCard).toBeTruthy();
     if (!aliceCard) return;
 
@@ -87,25 +88,24 @@ describe('Customers page', () => {
     await user.click(screen.getByRole('button', { name: 'לקוח חדש' }));
 
     const modal = (await screen.findByRole('dialog')) as HTMLElement;
-    const getModalInput = (label: RegExp) =>
-      within(modal).getByLabelText(label) as HTMLInputElement;
+    const getModalInput = async (label: RegExp) =>
+      (await within(modal).findByLabelText(label)) as HTMLInputElement;
 
-    await user.clear(getModalInput(/שם/));
-    await user.type(getModalInput(/שם/), 'Charlie');
-    await user.type(getModalInput(/אימייל/), 'charlie@example.com');
-    await user.type(getModalInput(/טלפון/), '050-7654321');
-    await user.type(getModalInput(/כתובת/), 'Haifa');
+    await user.clear(await getModalInput(/שם/));
+    await user.type(await getModalInput(/שם/), 'Charlie');
+    await user.type(await getModalInput(/אימייל/), 'charlie@example.com');
+    await user.type(await getModalInput(/טלפון/), '050-7654321');
+    await user.type(await getModalInput(/כתובת/), 'Haifa');
 
     await user.click(within(modal).getByRole('button', { name: 'הוסף' }));
 
-    await waitFor(() =>
-      expect(createCustomerMock).toHaveBeenCalledWith({
-        name: 'Charlie',
-        email: 'charlie@example.com',
-        phone: '050-7654321',
-        address: 'Haifa',
-      })
-    );
+    await waitFor(() => expect(createCustomerMock).toHaveBeenCalled());
+    expect(createCustomerMock.mock.calls[0]?.[0]).toEqual({
+      name: 'Charlie',
+      email: 'charlie@example.com',
+      phone: '050-7654321',
+      address: 'Haifa',
+    });
     expect(listCustomersMock).toHaveBeenCalledTimes(2);
   });
 
@@ -115,14 +115,17 @@ describe('Customers page', () => {
     await waitFor(() => expect(listCustomersMock).toHaveBeenCalled());
 
     const user = userEvent.setup();
-    const firstCard = screen.getByText('Alice').closest('.customer-card') as HTMLElement | null;
+    const firstCard = (await screen.findByText('Alice')).closest(
+      '.customer-card'
+    ) as HTMLElement | null;
     if (!firstCard) throw new Error('Customer card not found');
 
     await user.click(within(firstCard).getByRole('button', { hidden: true }));
     await user.click(await screen.findByRole('menuitem', { name: 'מחק לקוח' }));
     await user.click(await screen.findByRole('button', { name: 'מחק' }));
 
-    await waitFor(() => expect(deleteCustomerMock).toHaveBeenCalledWith('cust-1'));
+    await waitFor(() => expect(deleteCustomerMock).toHaveBeenCalled());
+    expect(deleteCustomerMock.mock.calls[0]?.[0]).toBe('cust-1');
   });
 
   it('navigates to detail page when clicking a card', async () => {
@@ -130,7 +133,7 @@ describe('Customers page', () => {
 
     await waitFor(() => expect(listCustomersMock).toHaveBeenCalled());
 
-    const card = screen.getByText('Alice').closest('.customer-card') as HTMLElement | null;
+    const card = (await screen.findByText('Alice')).closest('.customer-card') as HTMLElement | null;
     card?.click();
 
     expect(navigateMock).toHaveBeenCalledWith('/customers/cust-1');
@@ -141,7 +144,7 @@ describe('Customers page', () => {
 
     renderWithProviders(<Customers />);
 
-    await waitFor(() => expect(screen.getByText('אין עדיין לקוחות')).toBeInTheDocument());
+    expect(await screen.findByText('אין עדיין לקוחות')).toBeInTheDocument();
     expect(
       screen.getByText('לחץ על "לקוח חדש" כדי להוסיף את הלקוח הראשון שלך.')
     ).toBeInTheDocument();
@@ -154,7 +157,7 @@ describe('Customers page', () => {
     renderWithProviders(<Customers />);
 
     await screen.findByText('לא ניתן להציג לקוחות כעת');
-    expect(screen.getByText('אירעה שגיאה בטעינת הלקוחות')).toBeInTheDocument();
+    expect(screen.getByText('Request failed: 500')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'נסה שוב' })).toBeInTheDocument();
   });
 
@@ -172,6 +175,6 @@ describe('Customers page', () => {
     await userEvent.click(retryButton);
 
     await waitFor(() => expect(listCustomersMock).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+    await screen.findByText('Alice');
   });
 });

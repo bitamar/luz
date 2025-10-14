@@ -29,9 +29,9 @@ describe('Settings page', () => {
 
     await waitFor(() => expect(getSettingsMock).toHaveBeenCalled());
 
-    expect(screen.getByRole('heading', { name: 'הגדרות משתמש' })).toBeInTheDocument();
-    expect(screen.getByLabelText(/שם/)).toHaveValue('User Test');
-    expect(screen.getByLabelText(/טלפון/)).toHaveValue('050-9999999');
+    expect(await screen.findByRole('heading', { name: 'הגדרות משתמש' })).toBeInTheDocument();
+    expect(await screen.findByLabelText(/שם/)).toHaveValue('User Test');
+    expect(await screen.findByLabelText(/טלפון/)).toHaveValue('050-9999999');
   });
 
   it('submits updated settings', async () => {
@@ -39,8 +39,8 @@ describe('Settings page', () => {
 
     await waitFor(() => expect(getSettingsMock).toHaveBeenCalled());
 
-    const nameInput = screen.getByLabelText(/שם/);
-    const phoneInput = screen.getByLabelText(/טלפון/);
+    const nameInput = await screen.findByLabelText(/שם/);
+    const phoneInput = await screen.findByLabelText(/טלפון/);
 
     fireEvent.change(nameInput, { target: { value: 'New Name' } });
     fireEvent.change(phoneInput, { target: { value: '050-1111111' } });
@@ -49,9 +49,11 @@ describe('Settings page', () => {
 
     await user.click(screen.getByRole('button', { name: 'שמירה' }));
 
-    await waitFor(() =>
-      expect(updateSettingsMock).toHaveBeenCalledWith({ name: 'New Name', phone: '050-1111111' })
-    );
+    await waitFor(() => expect(updateSettingsMock).toHaveBeenCalled());
+    expect(updateSettingsMock.mock.calls[0]?.[0]).toEqual({
+      name: 'New Name',
+      phone: '050-1111111',
+    });
   });
 
   it('displays error message when fetch fails', async () => {

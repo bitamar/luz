@@ -1,21 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { render } from '@testing-library/react';
 import App from '../../App';
-import { DirectionProvider, MantineProvider } from '@mantine/core';
-import { MemoryRouter } from 'react-router-dom';
+import { renderWithProviders } from '../utils/renderWithProviders';
 
 describe('Main bootstrap', () => {
   it('renders App inside providers without crashing', () => {
-    const { container } = render(
-      <DirectionProvider>
-        <MantineProvider>
-          <MemoryRouter>
-            <App />
-          </MemoryRouter>
-        </MantineProvider>
-      </DirectionProvider>
-    );
-
+    const { container } = renderWithProviders(<App />);
     expect(container.firstChild).toBeTruthy();
   });
 });
