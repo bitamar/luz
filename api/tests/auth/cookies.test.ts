@@ -3,12 +3,13 @@ import { parseOidcCookie, serializeOidcCookie, verifyStateMatch } from '../../sr
 
 describe('cookies', () => {
   it('serializes and parses oidc cookie', () => {
-    const raw = serializeOidcCookie({ state: 's', nonce: 'n' });
+    const raw = serializeOidcCookie({ state: 's', nonce: 'n', appOrigin: 'http://localhost:5173' });
     const parsed = parseOidcCookie(raw);
     expect(parsed.ok).toBe(true);
     if (parsed.ok) {
       expect(parsed.data.state).toBe('s');
       expect(parsed.data.nonce).toBe('n');
+      expect(parsed.data.appOrigin).toBe('http://localhost:5173');
     }
   });
 

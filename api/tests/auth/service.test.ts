@@ -25,7 +25,10 @@ describe('service', () => {
   const config = {} as DiscoveredConfig;
 
   it('startGoogleAuth returns cookie and redirect', () => {
-    const res = startGoogleAuth(config, { redirectUri: 'https://app/cb' });
+    const res = startGoogleAuth(config, {
+      redirectUri: 'https://app/cb',
+      appOrigin: 'http://localhost:5173',
+    });
     expect(res.cookie.name).toBe('oidc');
     expect(typeof res.cookie.value).toBe('string');
     expect(res.redirectUrl).toBeTruthy();
@@ -64,7 +67,7 @@ describe('service', () => {
       {
         requestUrl: 'https://app/cb?code=x&state=s',
         query: { code: 'x', state: 's' },
-        rawCookie: JSON.stringify({ state: 's', nonce: 'n' }),
+        rawCookie: JSON.stringify({ state: 's', nonce: 'n', appOrigin: 'http://localhost:5173' }),
       }
     );
     expect(res.ok).toBe(true);
@@ -125,7 +128,7 @@ describe('service', () => {
       {
         requestUrl: 'https://app/cb?code=x&state=DIFF',
         query: { code: 'x', state: 'DIFF' },
-        rawCookie: JSON.stringify({ state: 's', nonce: 'n' }),
+        rawCookie: JSON.stringify({ state: 's', nonce: 'n', appOrigin: 'http://localhost:5173' }),
       }
     );
     expect(res).toEqual({ ok: false, error: 'state_mismatch' });
@@ -144,7 +147,7 @@ describe('service', () => {
       {
         requestUrl: 'https://app/cb?code=x&state=s',
         query: { code: 'x', state: 's' },
-        rawCookie: JSON.stringify({ state: 's', nonce: 'n' }),
+        rawCookie: JSON.stringify({ state: 's', nonce: 'n', appOrigin: 'http://localhost:5173' }),
       }
     );
     expect(res).toEqual({ ok: false, error: 'invalid_claims' });
@@ -163,7 +166,7 @@ describe('service', () => {
       {
         requestUrl: 'https://app/cb?code=x&state=s',
         query: { code: 'x', state: 's' },
-        rawCookie: JSON.stringify({ state: 's', nonce: 'n' }),
+        rawCookie: JSON.stringify({ state: 's', nonce: 'n', appOrigin: 'http://localhost:5173' }),
       }
     );
     expect(res).toEqual({ ok: false, error: 'missing_claims' });
@@ -191,7 +194,7 @@ describe('service', () => {
       {
         requestUrl: 'https://app/cb?code=x&state=s',
         query: { code: 'x', state: 's' },
-        rawCookie: JSON.stringify({ state: 's', nonce: 'n' }),
+        rawCookie: JSON.stringify({ state: 's', nonce: 'n', appOrigin: 'http://localhost:5173' }),
       }
     );
     expect(res).toEqual({ ok: false, error: 'oauth_exchange_failed' });

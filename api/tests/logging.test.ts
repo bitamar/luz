@@ -9,23 +9,6 @@ vi.mock('openid-client', () => ({
   ClientSecretPost: (secret: string) => ({ secret }),
 }));
 
-vi.mock('../src/env.js', () => ({
-  env: {
-    PORT: 3000,
-    APP_ORIGIN: 'http://localhost:5173',
-    JWT_SECRET: 'x'.repeat(32),
-    DATABASE_URL: 'postgres://user:pass@localhost:5432/db',
-    GOOGLE_CLIENT_ID: 'client-id',
-    GOOGLE_CLIENT_SECRET: 'client-secret',
-    TWILIO_SID: 'AC123456789012345678901234567890',
-    TWILIO_AUTH_TOKEN: 'twilio-token',
-    URL: 'http://localhost:3000',
-    RATE_LIMIT_MAX: 2,
-    RATE_LIMIT_TIME_WINDOW: 1000,
-    OAUTH_REDIRECT_URI: 'http://localhost:3000/auth/google/callback',
-  },
-}));
-
 describe('logging plugin', () => {
   let app: FastifyInstance | undefined;
 

@@ -1,7 +1,11 @@
 import { z } from 'zod';
 import type { OidcCookie, Result } from './types.js';
 
-const OidcCookieSchema = z.object({ state: z.string().min(1), nonce: z.string().min(1) });
+const OidcCookieSchema = z.object({
+  state: z.string().min(1),
+  nonce: z.string().min(1),
+  appOrigin: z.string().url(),
+});
 
 export function serializeOidcCookie(value: OidcCookie): string {
   return JSON.stringify(value);

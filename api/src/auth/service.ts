@@ -10,13 +10,16 @@ import {
 import { OIDC_COOKIE_NAME, OIDC_COOKIE_OPTIONS } from './constants.js';
 import type { DiscoveredConfig } from './oidc.js';
 
-export function startGoogleAuth(config: DiscoveredConfig, opts: { redirectUri: string }) {
+export function startGoogleAuth(
+  config: DiscoveredConfig,
+  opts: { redirectUri: string; appOrigin: string }
+) {
   const { state, nonce } = generateStateNonce();
   const authUrl = buildAuthUrl(config, { state, nonce }, { redirectUri: opts.redirectUri });
 
   const cookie = {
     name: OIDC_COOKIE_NAME,
-    value: serializeOidcCookie({ state, nonce }),
+    value: serializeOidcCookie({ state, nonce, appOrigin: opts.appOrigin }),
     options: OIDC_COOKIE_OPTIONS,
   };
 
@@ -31,7 +34,7 @@ export async function finishGoogleAuth(
     redirectUri: string;
   },
   input: { requestUrl: string; query: unknown; rawCookie: string | undefined }
-): Promise<Result<{ user: DbUser }, AuthError>> {
+): Promise<Result<{ user: DbUser; appOrigin: string }, AuthError>> {
   // validate query
   const q = validateCallbackQuery(input.query);
   if (!q.ok) return { ok: false, error: q.error };
@@ -66,5 +69,5 @@ export async function finishGoogleAuth(
     now: deps.now(),
   });
 
-  return { ok: true, data: { user } };
+  return { ok: true, data: { user, appOrigin: parsedCookie.data.appOrigin } };
 }

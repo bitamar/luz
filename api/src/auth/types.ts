@@ -45,4 +45,5 @@ export interface SessionData {
 export interface OidcCookie {
   state: string;
   nonce: string;
+  appOrigin: string;
 }

@@ -1,5 +1,11 @@
 ## Architecture Improvements (DO NOW)
 
+### devex
+- [ ] Webstorm complaints: TS1192: Module "node:crypto" has no default export.
+- [ ] fix all the places with one letter local vars. prefer destructure or full names
+- [ ] a lot of deprecated zod methods, fix them
+- [ ] can we remove all the typeof whatever === 'string' checks and rely on zod?
+
 ### Backend Critical
 - [x] remove duplicate name constraint on treatment
 - [x] bug - after adding a pet, the customer is returned without their pets _(done: API now returns updated customer including pets; covered by tests)_
@@ -37,8 +43,8 @@
 - [ ] document query key conventions and invalidation rules
 
 ### DevOps / Infrastructure (DO NOW)
-- [ ] support PR environments - OAuth redirects to prod instead of staying on PR env (e.g., front-kalimere-pr-1.up.railway.app/login redirects to prod)
-- [ ] run all tests on prs 
+- [x] support PR environments - OAuth redirects to prod instead of staying on PR env (e.g., front-kalimere-pr-1.up.railway.app/login redirects to prod)
+- [x] run all tests on prs 
 
 ### Security & Data Integrity (DO NOW)
 - [x] add rate limiting middleware (fastify-rate-limit)
