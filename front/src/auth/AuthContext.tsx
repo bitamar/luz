@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await apiLogout();
     } finally {
       queryClient.setQueryData(queryKeys.me(), null);
-      queryClient.removeQueries({ queryKey: queryKeys.settings(), exact: false });
+      queryClient.clear();
     }
   }, [queryClient]);
 
