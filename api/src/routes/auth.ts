@@ -73,8 +73,11 @@ export async function authRoutes(app: FastifyInstance) {
     reply.setCookie(SESSION_COOKIE_NAME, session.id, SESSION_COOKIE_OPTIONS);
 
     // On success, redirect back to the SPA (dashboard)
-    const appOrigin = result.data.appOrigin;
-    return reply.redirect(`${appOrigin}/`);
+    const parsedOrigin = parseOriginHeader(result.data.appOrigin);
+    if (!parsedOrigin || !isHostAllowed(parsedOrigin.host, env.ALLOWED_APP_ORIGINS)) {
+      throw badRequest({ code: 'invalid_origin', message: 'Origin is missing or not allowed' });
+    }
+    return reply.redirect(`${parsedOrigin.origin}/`);
   });
 
   // Return current user from session
