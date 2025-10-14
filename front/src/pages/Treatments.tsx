@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Badge,
   Button,
@@ -12,6 +12,7 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   listTreatments,
   createTreatment,
@@ -19,21 +20,27 @@ import {
   deleteTreatment,
   type Treatment,
 } from '../api/treatments';
-import { useListState } from '../hooks/useListState';
 import { StatusCard } from '../components/StatusCard';
 import { EntityCard } from '../components/EntityCard';
+import { queryKeys } from '../lib/queryKeys';
+import {
+  extractErrorMessage,
+  showErrorNotification,
+  showSuccessNotification,
+} from '../lib/notifications';
 
 export function Treatments() {
+  const queryClient = useQueryClient();
   const {
-    data: treatments,
-    loading,
+    data: treatments = [],
+    isPending,
+    isError,
     error,
-    refresh,
-    isEmpty,
-  } = useListState<Treatment[]>({
-    fetcher: listTreatments,
-    getEmpty: (rows) => rows.length === 0,
-    formatError: () => 'אירעה שגיאה בטעינת הטיפולים',
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.treatments(),
+    queryFn: ({ signal }) => listTreatments({ signal }),
+    select: (rows) => [...rows].sort((a, b) => a.name.localeCompare(b.name, 'he-IL')),
   });
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -42,12 +49,6 @@ export function Treatments() {
   const [name, setName] = useState('');
   const [defaultIntervalMonths, setDefaultIntervalMonths] = useState<number | ''>('');
   const [price, setPrice] = useState<number | ''>('');
-
-  useEffect(() => {
-    if (treatments === null) {
-      void refresh();
-    }
-  }, [treatments, refresh]);
 
   function openCreate() {
     setEditId(null);
@@ -70,6 +71,49 @@ export function Treatments() {
     setModalOpen(true);
   }
 
+  const createTreatmentMutation = useMutation({
+    mutationFn: createTreatment,
+    onSuccess: () => {
+      showSuccessNotification('הטיפול נוצר בהצלחה');
+      void queryClient.invalidateQueries({ queryKey: queryKeys.treatments() });
+    },
+    onError: (err) => {
+      showErrorNotification(extractErrorMessage(err, 'יצירת הטיפול נכשלה'));
+    },
+  });
+
+  const updateTreatmentMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof updateTreatment>[1] }) =>
+      updateTreatment(id, payload),
+    onSuccess: () => {
+      showSuccessNotification('הטיפול עודכן בהצלחה');
+      void queryClient.invalidateQueries({ queryKey: queryKeys.treatments() });
+    },
+    onError: (err) => {
+      showErrorNotification(extractErrorMessage(err, 'עדכון הטיפול נכשל'));
+    },
+  });
+
+  function openDeleteModal(treatment: Treatment) {
+    setTreatmentToDelete(treatment);
+    setDeleteModalOpen(true);
+  }
+
+  const deleteTreatmentMutation = useMutation({
+    mutationFn: deleteTreatment,
+    onSuccess: () => {
+      showSuccessNotification('הטיפול נמחק');
+      void queryClient.invalidateQueries({ queryKey: queryKeys.treatments() });
+    },
+    onError: (err) => {
+      showErrorNotification(extractErrorMessage(err, 'מחיקת הטיפול נכשלה'));
+    },
+    onSettled: () => {
+      setDeleteModalOpen(false);
+      setTreatmentToDelete(null);
+    },
+  });
+
   async function onSubmit() {
     if (!name) return;
     const payload = {
@@ -79,30 +123,16 @@ export function Treatments() {
       price: typeof price === 'number' ? price : null,
     };
     if (!editId) {
-      await createTreatment(payload);
+      await createTreatmentMutation.mutateAsync(payload);
     } else {
-      await updateTreatment(editId, payload);
+      await updateTreatmentMutation.mutateAsync({ id: editId, payload });
     }
     setModalOpen(false);
-    await refresh();
-  }
-
-  function openDeleteModal(treatment: Treatment) {
-    setTreatmentToDelete(treatment);
-    setDeleteModalOpen(true);
-  }
-
-  async function onDeleteTreatment() {
-    if (!treatmentToDelete) return;
-    await deleteTreatment(treatmentToDelete.id);
-    setDeleteModalOpen(false);
-    setTreatmentToDelete(null);
-    await refresh();
   }
 
   const cards = useMemo(
     () =>
-      (treatments ?? []).map((treatment) => {
+      treatments.map((treatment) => {
         const { id, name, price, defaultIntervalMonths } = treatment;
         const hasPrice = typeof price === 'number';
 
@@ -140,6 +170,12 @@ export function Treatments() {
     [treatments]
   );
 
+  const loading = isPending;
+  const queryError = isError ? extractErrorMessage(error, 'אירעה שגיאה בטעינת הטיפולים') : null;
+  const isEmpty = !loading && !queryError && treatments.length === 0;
+  const mutationInFlight =
+    createTreatmentMutation.isPending || updateTreatmentMutation.isPending || deleteTreatmentMutation.isPending;
+
   return (
     <Container size="lg" mt="xl">
       <Group justify="space-between" mb="md">
@@ -151,12 +187,12 @@ export function Treatments() {
 
       {loading ? (
         <StatusCard status="loading" title="טוען טיפולים..." />
-      ) : error ? (
+      ) : queryError ? (
         <StatusCard
           status="error"
           title="לא ניתן להציג טיפולים כעת"
-          description={error}
-          primaryAction={{ label: 'נסה שוב', onClick: () => void refresh() }}
+          description={queryError}
+          primaryAction={{ label: 'נסה שוב', onClick: () => void refetch() }}
         />
       ) : isEmpty ? (
         <StatusCard
@@ -201,7 +237,9 @@ export function Treatments() {
             <Button variant="default" onClick={() => setModalOpen(false)}>
               ביטול
             </Button>
-            <Button onClick={onSubmit}>{editId ? 'שמור' : 'הוסף'}</Button>
+            <Button onClick={onSubmit} loading={mutationInFlight} disabled={!name}>
+              {editId ? 'שמור' : 'הוסף'}
+            </Button>
           </Group>
         </Stack>
       </Modal>
@@ -216,7 +254,13 @@ export function Treatments() {
             <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
               ביטול
             </Button>
-            <Button color="red" onClick={onDeleteTreatment}>
+            <Button
+              color="red"
+              onClick={() =>
+                treatmentToDelete && deleteTreatmentMutation.mutate(treatmentToDelete.id)
+              }
+              loading={deleteTreatmentMutation.isPending}
+            >
               מחק
             </Button>
           </Group>

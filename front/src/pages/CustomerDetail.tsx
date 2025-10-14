@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Anchor,
@@ -17,196 +17,136 @@ import {
   Title,
 } from '@mantine/core';
 import { IconDots, IconX } from '@tabler/icons-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  listCustomers,
   addPetToCustomer,
   deleteCustomer,
   deletePet,
+  getCustomer,
   getCustomerPets,
   type Customer,
-  type PetSummary,
 } from '../api/customers';
-import { useListState } from '../hooks/useListState';
 import { StatusCard } from '../components/StatusCard';
 import { EntityCard } from '../components/EntityCard';
 import { formatPetsCount } from '../utils/formatPetsCount';
+import { queryKeys } from '../lib/queryKeys';
+import {
+  extractErrorMessage,
+  showErrorNotification,
+  showSuccessNotification,
+} from '../lib/notifications';
+import { HttpError } from '../lib/http';
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const customerId = id ?? '';
+
+  const customerQuery = useQuery({
+    queryKey: customerId ? queryKeys.customer(customerId) : ['customer', ''],
+    queryFn: ({ signal }) => getCustomer(customerId, { signal }),
+    enabled: Boolean(customerId),
+  });
+
+  const petsQuery = useQuery({
+    queryKey: customerId ? queryKeys.pets(customerId) : ['pets', ''],
+    queryFn: ({ signal }) => getCustomerPets(customerId, { signal }),
+    enabled: Boolean(customerId),
+  });
+
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [petDeleteModalOpen, setPetDeleteModalOpen] = useState(false);
-  const [petToDelete, setPetToDelete] = useState<{
-    customerId: string;
-    petId: string;
-    petName: string;
-  } | null>(null);
+  const [petToDelete, setPetToDelete] = useState<{ customerId: string; petId: string; petName: string } | null>(null);
   const [petName, setPetName] = useState('');
   const [petType, setPetType] = useState<'dog' | 'cat' | ''>('');
   const [petGender, setPetGender] = useState<'male' | 'female' | ''>('');
   const [petBreed, setPetBreed] = useState('');
-  const [pets, setPets] = useState<PetSummary[]>([]);
-  const [petsLoading, setPetsLoading] = useState(false);
-  const [petsError, setPetsError] = useState<string | null>(null);
 
-  const fetchCustomer = useCallback(async () => {
-    if (!id) {
-      const error = new Error('Customer id missing');
-      error.name = 'NOT_FOUND';
-      throw error;
-    }
-
-    const customers = await listCustomers();
-    const found = customers.find((c) => c.id === id);
-
-    if (!found) {
-      const error = new Error('Customer not found');
-      error.name = 'NOT_FOUND';
-      throw error;
-    }
-
-    return found;
-  }, [id]);
-
-  const {
-    data: customer,
-    loading: customerLoading,
-    error: customerError,
-    notFound,
-    refresh: refreshCustomer,
-  } = useListState<Customer>({
-    fetcher: fetchCustomer,
-    isNotFoundError: (err) => err instanceof Error && err.name === 'NOT_FOUND',
-    formatError: () => 'אירעה שגיאה בטעינת הלקוח',
+  const addPetMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof addPetToCustomer>[1]) => addPetToCustomer(customerId, payload),
+    onSuccess: () => {
+      showSuccessNotification('חיית המחמד נוספה בהצלחה');
+      setModalOpen(false);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.pets(customerId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.customer(customerId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.customers() });
+    },
+    onError: (err) => {
+      showErrorNotification(extractErrorMessage(err, 'הוספת חיית המחמד נכשלה'));
+    },
   });
 
-  // Fetch pets separately using the new API endpoint
-  const fetchPets = useCallback(async () => {
-    if (!id) return;
+  const deleteCustomerMutation = useMutation({
+    mutationFn: () => deleteCustomer(customerId),
+    onSuccess: () => {
+      showSuccessNotification('הלקוח נמחק');
+      void queryClient.invalidateQueries({ queryKey: queryKeys.customers() });
+      navigate('/customers');
+    },
+    onError: (err) => {
+      showErrorNotification(extractErrorMessage(err, 'מחיקת הלקוח נכשלה'));
+    },
+    onSettled: () => {
+      setDeleteModalOpen(false);
+    },
+  });
 
-    setPetsLoading(true);
-    setPetsError(null);
-
-    try {
-      const petsList = await getCustomerPets(id);
-      const petSummaries: PetSummary[] = petsList.map((pet) => ({
-        id: pet.id,
-        name: pet.name,
-        type: pet.type,
-      }));
-      setPets(petSummaries);
-    } catch (err) {
-      setPetsError('אירעה שגיאה בטעינת חיות המחמד');
-      console.error('Failed to load pets:', err);
-    } finally {
-      setPetsLoading(false);
-    }
-  }, [id]);
-
-  // Load both customer and pets when component mounts or ID changes
-  useEffect(() => {
-    if (!id) return;
-    void refreshCustomer();
-    void fetchPets();
-  }, [id, refreshCustomer, fetchPets]);
-
-  function openAddPet() {
-    setPetName('');
-    setPetType('');
-    setPetGender('');
-    setPetBreed('');
-    setModalOpen(true);
-  }
-
-  async function onAddPet() {
-    if (!id || !petName || !petType || !petGender) return;
-
-    try {
-      const newPet = await addPetToCustomer(id, {
-        name: petName,
-        type: petType,
-        gender: petGender,
-        breed: petBreed || null,
-      });
-
-      // Add the new pet to our local state
-      const newPetSummary: PetSummary = {
-        id: newPet.id,
-        name: newPet.name,
-        type: newPet.type,
-      };
-
-      setPets((currentPets) => [...currentPets, newPetSummary]);
-      setModalOpen(false);
-
-      // Refresh customer data to ensure consistency with server
-      void refreshCustomer();
-      await fetchPets();
-    } catch (err) {
-      console.error('Failed to add pet:', err);
-      // TODO: Error message
-    }
-  }
-
-  function openDeleteModal() {
-    setDeleteModalOpen(true);
-  }
-
-  async function onDeleteCustomer() {
-    if (!id) return;
-    await deleteCustomer(id);
-    setDeleteModalOpen(false);
-    navigate('/customers');
-  }
-
-  function openPetDeleteModal(customerId: string, petId: string, petName: string) {
-    setPetToDelete({ customerId, petId, petName });
-    setPetDeleteModalOpen(true);
-  }
-
-  async function onDeletePet() {
-    if (!petToDelete) return;
-
-    try {
-      await deletePet(petToDelete.customerId, petToDelete.petId);
-
-      // Update local state by removing the deleted pet
-      setPets((currentPets) => currentPets.filter((pet) => pet.id !== petToDelete.petId));
-
+  const deletePetMutation = useMutation({
+    mutationFn: ({ customerId: cId, petId: pId }: { customerId: string; petId: string }) =>
+      deletePet(cId, pId),
+    onSuccess: () => {
+      showSuccessNotification('חיית המחמד נמחקה');
+      void queryClient.invalidateQueries({ queryKey: queryKeys.pets(customerId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.customer(customerId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.customers() });
+    },
+    onError: (err) => {
+      showErrorNotification(extractErrorMessage(err, 'מחיקת חיית המחמד נכשלה'));
+    },
+    onSettled: () => {
       setPetDeleteModalOpen(false);
       setPetToDelete(null);
-    } catch (err) {
-      console.error('Failed to delete pet:', err);
-      // TODO: show error message
-    }
-  }
+    },
+  });
 
-  const loading = customerLoading || petsLoading;
-  const error = customerError || petsError;
+  const loading = customerQuery.isPending || petsQuery.isPending;
+  const customerError = customerQuery.error;
+  const petsError = petsQuery.error;
+  const combinedError = customerError ?? petsError;
+  const isNotFound =
+    customerError instanceof HttpError && customerError.status === 404 && customerQuery.isError;
 
-  if (loading) {
-    return (
-      <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
-        <StatusCard status="loading" title="טוען פרטי לקוח..." />
-      </Container>
-    );
-  }
+  const customer = customerQuery.data;
+  const pets = petsQuery.data ?? [];
+  const petCount = pets.length;
 
-  if (error) {
-    return (
-      <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
-        <StatusCard
-          status="error"
-          title="לא ניתן להציג את הלקוח כעת"
-          description={error}
-          primaryAction={{ label: 'נסה שוב', onClick: () => void refreshCustomer() }}
-        />
-      </Container>
-    );
-  }
+  const breadcrumbItems = useMemo(
+    () =>
+      [
+        { title: 'לקוחות', href: '/customers' },
+        { title: customer?.name ?? 'לקוח לא ידוע', href: '#' },
+      ].map((item, index) => {
+        const isActive = item.href === '#';
+        return (
+          <Anchor
+            key={index}
+            onClick={(e) => {
+              e.preventDefault();
+              if (!isActive) navigate(item.href);
+            }}
+            style={{ cursor: isActive ? 'default' : 'pointer' }}
+            {...(isActive ? { c: 'dimmed' } : {})}
+          >
+            {item.title}
+          </Anchor>
+        );
+      }),
+    [customer?.name, navigate]
+  );
 
-  if (notFound || !customer) {
+  if (!customerId || isNotFound) {
     return (
       <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
         <StatusCard
@@ -219,38 +159,75 @@ export function CustomerDetail() {
     );
   }
 
-  const petCount = pets.length;
-
-  const breadcrumbItems = [
-    { title: 'לקוחות', href: '/customers' },
-    { title: customer.name, href: '#' },
-  ].map((item, index) => {
-    const isActive = item.href === '#';
+  if (loading) {
     return (
-      <Anchor
-        key={index}
-        onClick={(e) => {
-          e.preventDefault();
-          if (!isActive) navigate(item.href);
-        }}
-        style={{ cursor: isActive ? 'default' : 'pointer' }}
-        {...(isActive ? { c: 'dimmed' } : {})}
-      >
-        {item.title}
-      </Anchor>
+      <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
+        <StatusCard status="loading" title="טוען פרטי לקוח..." />
+      </Container>
     );
-  });
+  }
+
+  if (combinedError) {
+    const message = extractErrorMessage(combinedError, 'אירעה שגיאה בטעינת הלקוח');
+    return (
+      <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
+        <StatusCard
+          status="error"
+          title="לא ניתן להציג את הלקוח כעת"
+          description={message}
+          primaryAction={{
+            label: 'נסה שוב',
+            onClick: () => {
+              void customerQuery.refetch();
+              void petsQuery.refetch();
+            },
+          }}
+        />
+      </Container>
+    );
+  }
+
+  if (!customer) {
+    return null;
+  }
+
+  function openAddPet() {
+    setPetName('');
+    setPetType('');
+    setPetGender('');
+    setPetBreed('');
+    setModalOpen(true);
+  }
+
+  async function onAddPet() {
+    if (!petName || !petType || !petGender) return;
+    await addPetMutation.mutateAsync({
+      name: petName,
+      type: petType,
+      gender: petGender,
+      breed: petBreed || null,
+    });
+  }
+
+  function openDeleteModal() {
+    setDeleteModalOpen(true);
+  }
+
+  function openPetDeleteModal(customerIdValue: string, petIdValue: string, petNameValue: string) {
+    setPetToDelete({ customerId: customerIdValue, petId: petIdValue, petName: petNameValue });
+    setPetDeleteModalOpen(true);
+  }
+
+  async function onDeletePet() {
+    if (!petToDelete) return;
+    await deletePetMutation.mutateAsync({ customerId: petToDelete.customerId, petId: petToDelete.petId });
+  }
 
   return (
     <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
       <Breadcrumbs mb="md">{breadcrumbItems}</Breadcrumbs>
 
-      <Group
-        mb="xl"
-        align="center"
-        className="customer-title-group"
-        style={{ position: 'relative' }}
-      >
+      <Group mb="xl" align="center" className="customer-title-group" style={{ position: 'relative' }}>
         <Menu shadow="md" width={150} position="bottom-start">
           <Menu.Target>
             <Button
@@ -332,7 +309,7 @@ export function CustomerDetail() {
 
       <Group justify="space-between" mb="md">
         <Title order={3}>חיות מחמד</Title>
-        <Button onClick={openAddPet} disabled={loading}>
+        <Button onClick={openAddPet} disabled={addPetMutation.isPending}>
           + הוסף חיה
         </Button>
       </Group>
@@ -405,7 +382,11 @@ export function CustomerDetail() {
             <Button variant="default" onClick={() => setModalOpen(false)}>
               ביטול
             </Button>
-            <Button onClick={onAddPet} disabled={!petName || !petType || !petGender}>
+            <Button
+              onClick={onAddPet}
+              disabled={!petName || !petType || !petGender}
+              loading={addPetMutation.isPending}
+            >
               הוסף
             </Button>
           </Group>
@@ -415,35 +396,34 @@ export function CustomerDetail() {
       <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="מחיקת לקוח">
         <Stack>
           <Text>
-            האם אתה בטוח שברצונך למחוק את הלקוח "{customer?.name}"? פעולה זו תמחק גם את כל חיות
-            המחמד שלו ותהיה בלתי הפיכה.
+            האם אתה בטוח שברצונך למחוק את הלקוח "{customer.name}"? פעולה זו תמחק גם את כל חיות המחמד שלו
+            ותהיה בלתי הפיכה.
           </Text>
           <Group justify="right" mt="sm">
             <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
               ביטול
             </Button>
-            <Button color="red" onClick={onDeleteCustomer}>
+            <Button
+              color="red"
+              onClick={() => customerId && deleteCustomerMutation.mutate()}
+              loading={deleteCustomerMutation.isPending}
+            >
               מחק
             </Button>
           </Group>
         </Stack>
       </Modal>
 
-      <Modal
-        opened={petDeleteModalOpen}
-        onClose={() => setPetDeleteModalOpen(false)}
-        title="מחיקת חיית מחמד"
-      >
+      <Modal opened={petDeleteModalOpen} onClose={() => setPetDeleteModalOpen(false)} title="מחיקת חיית מחמד">
         <Stack>
           <Text>
-            האם אתה בטוח שברצונך למחוק את חיית המחמד "{petToDelete?.petName}"? פעולה זו אינה ניתנת
-            לביטול.
+            האם אתה בטוח שברצונך למחוק את חיית המחמד "{petToDelete?.petName}"? פעולה זו אינה ניתנת לביטול.
           </Text>
           <Group justify="right" mt="sm">
             <Button variant="default" onClick={() => setPetDeleteModalOpen(false)}>
               ביטול
             </Button>
-            <Button color="red" onClick={onDeletePet}>
+            <Button color="red" onClick={onDeletePet} loading={deletePetMutation.isPending}>
               מחק
             </Button>
           </Group>

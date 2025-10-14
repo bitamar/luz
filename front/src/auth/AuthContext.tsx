@@ -1,6 +1,8 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { User as AuthUser } from '@contracts/users';
 import { getMe, logout as apiLogout, getGoogleLoginUrl } from './api';
+import { queryKeys } from '../lib/queryKeys';
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -12,8 +14,15 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [hydrated, setHydrated] = useState(false);
+  const queryClient = useQueryClient();
+  const { data, isPending } = useQuery({
+    queryKey: queryKeys.me(),
+    queryFn: ({ signal }) => getMe({ signal }),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const user = (data?.user as AuthUser | undefined) ?? null;
+  const hydrated = !isPending;
 
   const loginWithGoogle = useCallback(() => {
     window.location.href = getGoogleLoginUrl();
@@ -23,24 +32,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await apiLogout();
     } finally {
-      setUser(null);
+      queryClient.setQueryData(queryKeys.me(), null);
+      queryClient.removeQueries({ queryKey: queryKeys.settings(), exact: false });
     }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await getMe();
-        if (!cancelled && data?.user) setUser(data.user);
-      } finally {
-        if (!cancelled) setHydrated(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  }, [queryClient]);
 
   const value = useMemo(
     () => ({ user: hydrated ? user : null, loginWithGoogle, logout, isHydrated: hydrated }),

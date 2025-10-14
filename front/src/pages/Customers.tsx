@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Badge,
   Button,
@@ -12,24 +12,31 @@ import {
   Title,
 } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { listCustomers, createCustomer, deleteCustomer, type Customer } from '../api/customers';
-import { useListState } from '../hooks/useListState';
 import { StatusCard } from '../components/StatusCard';
 import { EntityCard } from '../components/EntityCard';
 import { formatPetsCount } from '../utils/formatPetsCount';
+import {
+  extractErrorMessage,
+  showErrorNotification,
+  showSuccessNotification,
+} from '../lib/notifications';
+import { queryKeys } from '../lib/queryKeys';
 
 export function Customers() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const {
-    data: customersData,
-    loading,
+    data: customersData = [],
+    isPending,
+    isError,
     error,
-    refresh,
-    isEmpty,
-  } = useListState<Customer[]>({
-    fetcher: listCustomers,
-    getEmpty: (rows) => rows.length === 0,
-    formatError: () => 'אירעה שגיאה בטעינת הלקוחות',
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.customers(),
+    queryFn: ({ signal }) => listCustomers({ signal }),
+    select: (rows) => [...rows].sort((a, b) => a.name.localeCompare(b.name, 'he-IL')),
   });
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -38,11 +45,6 @@ export function Customers() {
   const [newCustomerEmail, setNewCustomerEmail] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
-  useEffect(() => {
-    if (customersData === null) {
-      void refresh();
-    }
-  }, [customersData, refresh]);
 
   function openCreateCustomer() {
     setNewCustomerName('');
@@ -52,16 +54,41 @@ export function Customers() {
     setModalOpen(true);
   }
 
+  const createCustomerMutation = useMutation({
+    mutationFn: createCustomer,
+    onSuccess: () => {
+      showSuccessNotification('הלקוח נוסף בהצלחה');
+      void queryClient.invalidateQueries({ queryKey: queryKeys.customers() });
+    },
+    onError: (err) => {
+      showErrorNotification(extractErrorMessage(err, 'הוספת הלקוח נכשלה'));
+    },
+  });
+
+  const deleteCustomerMutation = useMutation({
+    mutationFn: deleteCustomer,
+    onSuccess: () => {
+      showSuccessNotification('הלקוח נמחק');
+      void queryClient.invalidateQueries({ queryKey: queryKeys.customers() });
+    },
+    onError: (err) => {
+      showErrorNotification(extractErrorMessage(err, 'מחיקת הלקוח נכשלה'));
+    },
+    onSettled: () => {
+      setDeleteModalOpen(false);
+      setCustomerToDelete(null);
+    },
+  });
+
   async function onCreateCustomer() {
     if (!newCustomerName) return;
-    await createCustomer({
+    await createCustomerMutation.mutateAsync({
       name: newCustomerName,
       email: newCustomerEmail || null,
       phone: newCustomerPhone || null,
       address: newCustomerAddress || null,
     });
     setModalOpen(false);
-    await refresh();
   }
 
   function openDeleteModal(customer: Customer) {
@@ -71,10 +98,7 @@ export function Customers() {
 
   async function onDeleteCustomer() {
     if (!customerToDelete) return;
-    await deleteCustomer(customerToDelete.id);
-    setDeleteModalOpen(false);
-    setCustomerToDelete(null);
-    await refresh();
+    await deleteCustomerMutation.mutateAsync(customerToDelete.id);
   }
 
   const customers = customersData ?? [];
@@ -128,6 +152,11 @@ export function Customers() {
     [customers, navigate]
   );
 
+  const loading = isPending;
+  const queryError = isError ? extractErrorMessage(error, 'אירעה שגיאה בטעינת הלקוחות') : null;
+  const isEmpty = !loading && !queryError && customers.length === 0;
+  const isCreating = createCustomerMutation.isPending;
+
   return (
     <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
       <Group justify="space-between" mb="md">
@@ -139,12 +168,12 @@ export function Customers() {
 
       {loading ? (
         <StatusCard status="loading" title="טוען לקוחות..." />
-      ) : error ? (
+      ) : queryError ? (
         <StatusCard
           status="error"
           title="לא ניתן להציג לקוחות כעת"
-          description={error}
-          primaryAction={{ label: 'נסה שוב', onClick: () => void refresh() }}
+          description={queryError}
+          primaryAction={{ label: 'נסה שוב', onClick: () => void refetch() }}
         />
       ) : isEmpty ? (
         <StatusCard
@@ -187,7 +216,7 @@ export function Customers() {
             <Button variant="default" onClick={() => setModalOpen(false)}>
               ביטול
             </Button>
-            <Button onClick={onCreateCustomer} disabled={!newCustomerName}>
+            <Button onClick={onCreateCustomer} disabled={!newCustomerName} loading={isCreating}>
               הוסף
             </Button>
           </Group>
@@ -204,7 +233,7 @@ export function Customers() {
             <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
               ביטול
             </Button>
-            <Button color="red" onClick={onDeleteCustomer}>
+            <Button color="red" onClick={onDeleteCustomer} loading={deleteCustomerMutation.isPending}>
               מחק
             </Button>
           </Group>

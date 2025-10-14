@@ -22,8 +22,12 @@ export type {
 
 export type PetSummary = Pick<Pet, 'id' | 'name' | 'type'>;
 
-export async function listCustomers(): Promise<Customer[]> {
-  const json = await fetchJson<unknown>('/customers');
+type RequestOptions = {
+  signal?: AbortSignal;
+};
+
+export async function listCustomers(options: RequestOptions = {}): Promise<Customer[]> {
+  const json = await fetchJson<unknown>('/customers', { signal: options.signal });
   const result = customersListResponseSchema.parse(json);
   return result.customers;
 }
@@ -38,20 +42,26 @@ export async function createCustomer(input: CreateCustomerBody): Promise<Custome
   return result.customer;
 }
 
-export async function getCustomerPets(customerId: string): Promise<Pet[]> {
-  const json = await fetchJson<unknown>(`/customers/${customerId}/pets`);
+export async function getCustomerPets(customerId: string, options: RequestOptions = {}): Promise<Pet[]> {
+  const json = await fetchJson<unknown>(`/customers/${customerId}/pets`, { signal: options.signal });
   const result = customerPetsResponseSchema.parse(json);
   return result.pets;
 }
 
-export async function getCustomer(customerId: string): Promise<Customer> {
-  const json = await fetchJson<unknown>(`/customers/${customerId}`);
+export async function getCustomer(customerId: string, options: RequestOptions = {}): Promise<Customer> {
+  const json = await fetchJson<unknown>(`/customers/${customerId}`, { signal: options.signal });
   const result = customerResponseSchema.parse(json);
   return result.customer;
 }
 
-export async function getPet(customerId: string, petId: string): Promise<Pet> {
-  const json = await fetchJson<unknown>(`/customers/${customerId}/pets/${petId}`);
+export async function getPet(
+  customerId: string,
+  petId: string,
+  options: RequestOptions = {}
+): Promise<Pet> {
+  const json = await fetchJson<unknown>(`/customers/${customerId}/pets/${petId}`, {
+    signal: options.signal,
+  });
   const result = petResponseSchema.parse(json);
   return result.pet;
 }

@@ -3,9 +3,13 @@ import { API_BASE_URL } from '../config';
 import { settingsResponseSchema, updateSettingsBodySchema } from '@contracts/users';
 import type { SettingsResponse, UpdateSettingsBody } from '@contracts/users';
 
-export async function getMe(): Promise<SettingsResponse | null> {
+type RequestOptions = {
+  signal?: AbortSignal;
+};
+
+export async function getMe(options: RequestOptions = {}): Promise<SettingsResponse | null> {
   try {
-    const json = await fetchJson<unknown>('/me');
+    const json = await fetchJson<unknown>('/me', { signal: options.signal });
     return settingsResponseSchema.parse(json);
   } catch {
     return null;
@@ -20,8 +24,8 @@ export function getGoogleLoginUrl(): string {
   return `${API_BASE_URL}/auth/google`;
 }
 
-export async function getSettings(): Promise<SettingsResponse> {
-  const json = await fetchJson<unknown>('/settings');
+export async function getSettings(options: RequestOptions = {}): Promise<SettingsResponse> {
+  const json = await fetchJson<unknown>('/settings', { signal: options.signal });
   return settingsResponseSchema.parse(json);
 }
 

@@ -15,8 +15,12 @@ export type {
   UpdateTreatmentBody,
 } from '@contracts/treatments';
 
-export async function listTreatments(): Promise<Treatment[]> {
-  const json = await fetchJson<unknown>('/treatments');
+type RequestOptions = {
+  signal?: AbortSignal;
+};
+
+export async function listTreatments(options: RequestOptions = {}): Promise<Treatment[]> {
+  const json = await fetchJson<unknown>('/treatments', { signal: options.signal });
   const result = treatmentsListResponseSchema.parse(json);
   return result.treatments;
 }

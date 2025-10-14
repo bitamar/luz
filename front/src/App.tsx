@@ -12,6 +12,7 @@ import { Settings } from './pages/Settings';
 import { Customers } from './pages/Customers';
 import { CustomerDetail } from './pages/CustomerDetail';
 import { PetDetail } from './pages/PetDetail';
+import { RouteErrorBoundary } from './components/RouteErrorBoundary';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, isHydrated } = useAuth();
@@ -27,7 +28,11 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 }
 
 function PlainLayout() {
-  return <Outlet />;
+  return (
+    <RouteErrorBoundary>
+      <Outlet />
+    </RouteErrorBoundary>
+  );
 }
 
 function ProtectedLayout() {
@@ -54,7 +59,9 @@ function ProtectedLayout() {
       </AppShell.Navbar>
 
       <AppShell.Main style={{ paddingTop: 'var(--app-shell-header-height, 0px)' }}>
-        <Outlet />
+        <RouteErrorBoundary>
+          <Outlet />
+        </RouteErrorBoundary>
       </AppShell.Main>
     </AppShell>
   );

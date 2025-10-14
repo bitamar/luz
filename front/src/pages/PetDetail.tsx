@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Anchor,
@@ -15,74 +15,107 @@ import {
   Title,
 } from '@mantine/core';
 import { IconDots, IconX } from '@tabler/icons-react';
-import { getPet, deletePet, type Pet, getCustomer, type Customer } from '../api/customers';
-import { useListState } from '../hooks/useListState';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { getPet, deletePet, getCustomer } from '../api/customers';
 import { StatusCard } from '../components/StatusCard';
+import { queryKeys } from '../lib/queryKeys';
+import {
+  extractErrorMessage,
+  showErrorNotification,
+  showSuccessNotification,
+} from '../lib/notifications';
+import { HttpError } from '../lib/http';
 
 export function PetDetail() {
   const { customerId, petId } = useParams<{ customerId: string; petId: string }>();
   const navigate = useNavigate();
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [customerLoading, setCustomerLoading] = useState(false);
+  const queryClient = useQueryClient();
 
-  const fetchPet = useCallback(async () => {
-    if (!customerId || !petId) {
-      const error = new Error('Pet not found');
-      error.name = 'NOT_FOUND';
-      throw error;
-    }
-
-    return await getPet(customerId, petId);
+  const petQueryKey = useMemo(() => {
+    if (!customerId || !petId) return ['pet', ''];
+    return [...queryKeys.pets(customerId), petId] as const;
   }, [customerId, petId]);
 
-  const {
-    data: pet,
-    loading,
-    error,
-    notFound,
-    refresh,
-  } = useListState<Pet>({
-    fetcher: fetchPet,
-    isNotFoundError: (err) => err instanceof Error && err.name === 'NOT_FOUND',
-    formatError: () => 'אירעה שגיאה בטעינת פרטי חיית המחמד',
+  const petQuery = useQuery({
+    queryKey: petQueryKey,
+    queryFn: ({ signal }) => getPet(customerId!, petId!, { signal }),
+    enabled: Boolean(customerId && petId),
   });
 
-  // Fetch customer data when pet is loaded
-  useEffect(() => {
-    const loadCustomer = async () => {
-      if (pet && pet.customerId) {
-        try {
-          setCustomerLoading(true);
-          const customerData = await getCustomer(pet.customerId);
-          setCustomer(customerData);
-        } catch (err) {
-          console.error('Failed to load customer data:', err);
-        } finally {
-          setCustomerLoading(false);
-        }
-      }
-    };
+  const customerQuery = useQuery({
+    queryKey: customerId ? queryKeys.customer(customerId) : ['customer', ''],
+    queryFn: ({ signal }) => getCustomer(customerId!, { signal }),
+    enabled: Boolean(customerId),
+  });
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+
+  const deletePetMutation = useMutation({
+    mutationFn: () => deletePet(customerId!, petId!),
+    onSuccess: () => {
+      showSuccessNotification('חיית המחמד נמחקה');
+      void queryClient.invalidateQueries({ queryKey: queryKeys.pets(customerId!) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.customer(customerId!) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.customers() });
+      navigate(`/customers/${customerId}`);
+    },
+    onError: (err) => {
+      showErrorNotification(extractErrorMessage(err, 'מחיקת חיית המחמד נכשלה'));
+    },
+    onSettled: () => {
+      setDeleteModalOpen(false);
+    },
+  });
+
+  const loading = petQuery.isPending || customerQuery.isPending;
+  const petError = petQuery.error;
+  const isPetNotFound = petError instanceof HttpError && petError.status === 404;
+
+  const pet = petQuery.data;
+  const customer = customerQuery.data;
+
+  const breadcrumbItems = useMemo(() => {
+    const items = [
+      { title: 'לקוחות', href: '/customers' },
+    ];
+
+    if (customer) {
+      items.push({ title: customer.name, href: `/customers/${customer.id}` });
+    }
 
     if (pet) {
-      void loadCustomer();
+      items.push({ title: pet.name, href: '#' });
     }
-  }, [pet]);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    return items.map((item, index) => {
+      const isActive = item.href === '#';
+      return (
+        <Anchor
+          key={index}
+          onClick={(e) => {
+            e.preventDefault();
+            if (!isActive) navigate(item.href);
+          }}
+          style={{ cursor: isActive ? 'default' : 'pointer' }}
+          {...(isActive ? { c: 'dimmed' } : {})}
+        >
+          {item.title}
+        </Anchor>
+      );
+    });
+  }, [customer, pet, navigate]);
 
-  function openDeleteModal() {
-    setDeleteModalOpen(true);
-  }
-
-  async function onDeletePet() {
-    if (!customerId || !petId) return;
-    await deletePet(customerId, petId);
-    setDeleteModalOpen(false);
-    navigate(`/customers/${customerId}`);
+  if (!customerId || !petId || isPetNotFound) {
+    return (
+      <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
+        <StatusCard
+          status="notFound"
+          title="חיית המחמד לא נמצאה"
+          description="ייתכן שהחיה נמחקה או שאינך מורשה לצפות בה."
+          primaryAction={{ label: 'חזרה ללקוח', onClick: () => navigate(customerId ? `/customers/${customerId}` : '/customers') }}
+        />
+      </Container>
+    );
   }
 
   if (loading) {
@@ -93,16 +126,17 @@ export function PetDetail() {
     );
   }
 
-  if (error) {
+  if (petQuery.error) {
+    const message = extractErrorMessage(petQuery.error, 'אירעה שגיאה בטעינת חיית המחמד');
     return (
       <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
         <StatusCard
           status="error"
           title="לא ניתן להציג את חיית המחמד כעת"
-          description={error}
-          primaryAction={{ label: 'נסה שוב', onClick: () => void refresh() }}
+          description={message}
+          primaryAction={{ label: 'נסה שוב', onClick: () => void petQuery.refetch() }}
           secondaryAction={
-            <Button variant="subtle" onClick={() => navigate(`/customers/${customerId}`)}>
+            <Button variant="subtle" onClick={() => navigate(customerId ? `/customers/${customerId}` : '/customers')}>
               חזרה ללקוח
             </Button>
           }
@@ -111,42 +145,9 @@ export function PetDetail() {
     );
   }
 
-  if (notFound || !pet) {
-    return (
-      <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
-        <StatusCard
-          status="notFound"
-          title="חיית המחמד לא נמצאה"
-          description="ייתכן שהחיה נמחקה או שאינך מורשה לצפות בה."
-          primaryAction={{
-            label: 'חזרה ללקוח',
-            onClick: () => navigate(`/customers/${customerId}`),
-          }}
-        />
-      </Container>
-    );
+  if (!pet) {
+    return null;
   }
-
-  const breadcrumbItems = [
-    { title: 'לקוחות', href: '/customers' },
-    { title: customer?.name || 'לקוח לא ידוע', href: `/customers/${pet.customerId}` },
-    { title: pet.name, href: '#' },
-  ].map((item, index) => {
-    const isActive = item.href === '#';
-    return (
-      <Anchor
-        key={index}
-        onClick={(e) => {
-          e.preventDefault();
-          if (!isActive) navigate(item.href);
-        }}
-        style={{ cursor: isActive ? 'default' : 'pointer' }}
-        {...(isActive ? { c: 'dimmed' } : {})}
-      >
-        {item.title}
-      </Anchor>
-    );
-  });
 
   const typeLabel = pet.type === 'dog' ? 'כלב' : 'חתול';
   const genderLabel = pet.gender === 'male' ? 'זכר' : 'נקבה';
@@ -162,13 +163,7 @@ export function PetDetail() {
         className="pet-title-group"
         style={{ position: 'relative' }}
       >
-        <Menu
-          shadow="md"
-          width={150}
-          position="bottom-start"
-          opened={menuOpen}
-          onClose={() => setMenuOpen(false)}
-        >
+        <Menu shadow="md" width={150} position="bottom-start">
           <Menu.Target>
             <Button
               variant="subtle"
@@ -183,11 +178,6 @@ export function PetDetail() {
                 width: '24px',
                 height: '24px',
               }}
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                setMenuOpen((prev) => !prev);
-              }}
             >
               <IconDots size={14} />
             </Button>
@@ -198,8 +188,7 @@ export function PetDetail() {
               leftSection={<IconX size={16} />}
               onClick={(e) => {
                 e.stopPropagation();
-                setMenuOpen(false);
-                openDeleteModal();
+                setDeleteModalOpen(true);
               }}
             >
               מחק חיית מחמד
@@ -218,107 +207,37 @@ export function PetDetail() {
           <Text size="lg" fw={600}>
             פרטי חיית מחמד
           </Text>
-
-          <Stack gap="sm">
-            <Group gap="xs">
-              <Text size="sm" fw={500}>
-                מין:
-              </Text>
-              <Text size="sm" c="dimmed">
-                {genderLabel}
-              </Text>
-            </Group>
-
-            {pet.breed && (
-              <Group gap="xs">
-                <Text size="sm" fw={500}>
-                  גזע:
-                </Text>
-                <Text size="sm" c="dimmed">
-                  {pet.breed}
-                </Text>
-              </Group>
-            )}
-
-            {pet.dateOfBirth && (
-              <Group gap="xs">
-                <Text size="sm" fw={500}>
-                  תאריך לידה:
-                </Text>
-                <Text size="sm" c="dimmed">
-                  {new Date(pet.dateOfBirth).toLocaleDateString('he-IL')}
-                </Text>
-              </Group>
-            )}
-
-            {pet.isSterilized !== null && (
-              <Group gap="xs">
-                <Text size="sm" fw={500}>
-                  מסורס/ת:
-                </Text>
-                <Text size="sm" c="dimmed">
-                  {pet.isSterilized ? 'כן' : 'לא'}
-                </Text>
-              </Group>
-            )}
-
-            {pet.isCastrated !== null && (
-              <Group gap="xs">
-                <Text size="sm" fw={500}>
-                  מעוקר:
-                </Text>
-                <Text size="sm" c="dimmed">
-                  {pet.isCastrated ? 'כן' : 'לא'}
-                </Text>
-              </Group>
-            )}
+          <Group>
+            <Badge variant="light" color="blue">
+              {genderLabel}
+            </Badge>
+            {pet.breed && <Badge variant="outline">{pet.breed}</Badge>}
+          </Group>
+          <Stack gap="xs">
+            <Text size="sm" c="dimmed">
+              מזהה חיה: {pet.id}
+            </Text>
+            <Text size="sm" c="dimmed">
+              מזהה לקוח: {pet.customerId}
+            </Text>
           </Stack>
         </Stack>
       </Card>
 
-      <Card withBorder shadow="sm" radius="md" padding="lg">
-        <Stack gap="sm">
-          <Text size="lg" fw={600}>
-            בעל החיה
-          </Text>
-          <Group gap="xs">
-            <Text size="sm" fw={500}>
-              לקוח:
-            </Text>
-            {customerLoading ? (
-              <Text size="sm" c="dimmed">
-                טוען...
-              </Text>
-            ) : (
-              <Anchor
-                size="sm"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate(`/customers/${pet.customerId}`);
-                }}
-                style={{ cursor: 'pointer' }}
-              >
-                {customer?.name || 'לקוח לא ידוע'}
-              </Anchor>
-            )}
-          </Group>
-        </Stack>
-      </Card>
-
-      <Modal
-        opened={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        title="מחיקת חיית מחמד"
-      >
+      <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="מחיקת חיית מחמד">
         <Stack>
           <Text>
-            האם אתה בטוח שברצונך למחוק את חיית המחמד "{pet?.name}"? פעולה זו אינה ניתנת לביטול.
+            האם אתה בטוח שברצונך למחוק את חיית המחמד "{pet.name}"? פעולה זו אינה ניתנת לביטול.
           </Text>
           <Group justify="right" mt="sm">
             <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
               ביטול
             </Button>
-            <Button color="red" onClick={onDeletePet}>
+            <Button
+              color="red"
+              onClick={() => customerId && petId && deletePetMutation.mutate()}
+              loading={deletePetMutation.isPending}
+            >
               מחק
             </Button>
           </Group>
