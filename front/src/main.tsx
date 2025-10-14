@@ -22,7 +22,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           </BrowserRouter>
         </MantineProvider>
       </DirectionProvider>
-      {import.meta.env.DEV ? <ReactQueryDevtools position="bottom-right" /> : null}
+      {import.meta.env.DEV ? <ReactQueryDevtools /> : null}
     </QueryClientProvider>
   </React.StrictMode>
 );
