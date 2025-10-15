@@ -22,6 +22,12 @@ import {
   updateCustomerParamsSchema,
 } from '../schemas/customers.js';
 import { okResponseSchema } from '../schemas/common.js';
+import {
+  ensureCustomerOwnership,
+  ensurePetOwnership,
+  getOwnedCustomer,
+  getOwnedPet,
+} from '../middleware/ownership.js';
 
 type CustomerRow = Pick<
   (typeof customers)['$inferSelect'],
@@ -176,7 +182,7 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/customers/:id',
     {
-      preHandler: app.authenticate,
+      preHandler: [app.authenticate, ensureCustomerOwnership('id')],
       schema: {
         params: updateCustomerParamsSchema,
         response: {
@@ -185,30 +191,27 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
-      ensureAuthed(req);
-      const userId = req.user.id;
-      const { id } = req.params;
-
-      const row = await db.query.customers.findFirst({
-        where: and(
-          eq(customers.id, id),
-          eq(customers.userId, userId),
-          eq(customers.isDeleted, false)
+      const customer = getOwnedCustomer(req);
+      const petsCount = await getPetsCount(customer.id);
+      return {
+        customer: buildCustomer(
+          {
+            id: customer.id,
+            name: customer.name,
+            email: customer.email,
+            phone: customer.phone,
+            address: customer.address,
+          },
+          petsCount
         ),
-        columns: { id: true, name: true, email: true, phone: true, address: true },
-      });
-
-      if (!row) throw notFound();
-
-      const petsCount = await getPetsCount(row.id);
-      return { customer: buildCustomer(row, petsCount) };
+      };
     }
   );
 
   app.put(
     '/customers/:id',
     {
-      preHandler: app.authenticate,
+      preHandler: [app.authenticate, ensureCustomerOwnership('id')],
       schema: {
         params: updateCustomerParamsSchema,
         body: updateCustomerBodySchema,
@@ -218,9 +221,7 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
-      ensureAuthed(req);
-      const userId = req.user.id;
-      const { id } = req.params;
+      const customer = getOwnedCustomer(req);
       const { name, email, phone, address } = req.body;
 
       const updates: Partial<(typeof customers)['$inferInsert']> = {};
@@ -232,9 +233,7 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       const [row] = await db
         .update(customers)
         .set({ ...updates, updatedAt: new Date() })
-        .where(
-          and(eq(customers.id, id), eq(customers.userId, userId), eq(customers.isDeleted, false))
-        )
+        .where(eq(customers.id, customer.id))
         .returning({
           id: customers.id,
           name: customers.name,
@@ -253,7 +252,7 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
   app.delete(
     '/customers/:id',
     {
-      preHandler: app.authenticate,
+      preHandler: [app.authenticate, ensureCustomerOwnership('id')],
       schema: {
         params: deleteCustomerParamsSchema,
         response: {
@@ -262,16 +261,12 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
-      ensureAuthed(req);
-      const userId = req.user.id;
-      const { id } = req.params;
+      const customer = getOwnedCustomer(req);
 
       const [row] = await db
         .update(customers)
         .set({ isDeleted: true, updatedAt: new Date() })
-        .where(
-          and(eq(customers.id, id), eq(customers.userId, userId), eq(customers.isDeleted, false))
-        )
+        .where(eq(customers.id, customer.id))
         .returning({ id: customers.id });
 
       if (!row) throw notFound();
@@ -282,7 +277,7 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/customers/:customerId/pets/:petId',
     {
-      preHandler: app.authenticate,
+      preHandler: [app.authenticate, ensureCustomerOwnership('customerId'), ensurePetOwnership('petId')],
       schema: {
         params: customerPetParamsSchema,
         response: {
@@ -291,30 +286,15 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
-      ensureAuthed(req);
-      const userId = req.user.id;
-      const { customerId, petId } = req.params;
-
-      const pet = await db.query.pets.findFirst({
-        where: and(eq(pets.id, petId), eq(pets.customerId, customerId)),
-        with: {
-          customer: {
-            columns: { id: true, userId: true, isDeleted: true },
-          },
-        },
-      });
-
-      if (!pet || pet.customer.userId !== userId || pet.customer.isDeleted) throw notFound();
-
-      const { customer: _customer, ...petData } = pet;
-      return { pet: serializePet(petData) };
+      const pet = getOwnedPet(req);
+      return { pet: serializePet(pet) };
     }
   );
 
   app.post(
     '/customers/:id/pets',
     {
-      preHandler: app.authenticate,
+      preHandler: [app.authenticate, ensureCustomerOwnership('id')],
       schema: {
         params: createPetParamsSchema,
         body: createPetBodySchema,
@@ -324,28 +304,15 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req, reply) => {
-      ensureAuthed(req);
-      const userId = req.user.id;
-      const { id } = req.params;
+      const customer = getOwnedCustomer(req);
       const body = req.body;
-
-      const customer = await db.query.customers.findFirst({
-        where: and(
-          eq(customers.id, id),
-          eq(customers.userId, userId),
-          eq(customers.isDeleted, false)
-        ),
-        columns: { id: true },
-      });
-
-      if (!customer) throw notFound();
 
       const dateOfBirth = typeof body.dateOfBirth === 'string' ? new Date(body.dateOfBirth) : null;
 
       const [pet] = await db
         .insert(pets)
         .values({
-          customerId: id,
+          customerId: customer.id,
           name: body.name,
           type: body.type,
           gender: body.gender,
@@ -365,7 +332,7 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
   app.delete(
     '/customers/:customerId/pets/:petId',
     {
-      preHandler: app.authenticate,
+      preHandler: [app.authenticate, ensureCustomerOwnership('customerId'), ensurePetOwnership('petId')],
       schema: {
         params: customerPetParamsSchema,
         response: {
@@ -374,27 +341,12 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
-      ensureAuthed(req);
-      const userId = req.user.id;
-      const { customerId, petId } = req.params;
-
-      const pet = await db.query.pets.findFirst({
-        where: and(eq(pets.id, petId), eq(pets.customerId, customerId)),
-        with: {
-          customer: {
-            columns: { id: true, userId: true, isDeleted: true },
-          },
-        },
-      });
-
-      if (!pet || pet.customer.userId !== userId || pet.customer.isDeleted) {
-        throw notFound();
-      }
+      const pet = getOwnedPet(req);
 
       await db
         .update(pets)
         .set({ isDeleted: true, updatedAt: new Date() })
-        .where(eq(pets.id, petId));
+        .where(eq(pets.id, pet.id));
 
       return { ok: true } as const;
     }
@@ -403,7 +355,7 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/customers/:id/pets',
     {
-      preHandler: app.authenticate,
+      preHandler: [app.authenticate, ensureCustomerOwnership('id')],
       schema: {
         params: customerPetsParamsSchema,
         response: {
@@ -412,23 +364,10 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
-      ensureAuthed(req);
-      const userId = req.user.id;
-      const { id } = req.params;
-
-      const customer = await db.query.customers.findFirst({
-        where: and(
-          eq(customers.id, id),
-          eq(customers.userId, userId),
-          eq(customers.isDeleted, false)
-        ),
-        columns: { id: true },
-      });
-
-      if (!customer) throw notFound();
+      const customer = getOwnedCustomer(req);
 
       const petRows = await db.query.pets.findMany({
-        where: and(eq(pets.customerId, id), eq(pets.isDeleted, false)),
+        where: and(eq(pets.customerId, customer.id), eq(pets.isDeleted, false)),
         orderBy: (p, { asc }) => asc(p.createdAt),
       });
 
