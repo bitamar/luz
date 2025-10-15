@@ -12,7 +12,7 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   listTreatments,
   createTreatment,
@@ -23,14 +23,16 @@ import {
 import { StatusCard } from '../components/StatusCard';
 import { EntityCard } from '../components/EntityCard';
 import { queryKeys } from '../lib/queryKeys';
-import {
-  extractErrorMessage,
-  showErrorNotification,
-  showSuccessNotification,
-} from '../lib/notifications';
+import { extractErrorMessage } from '../lib/notifications';
+import { useApiMutation } from '../lib/useApiMutation';
+import type { SettingsResponse } from '@contracts/users';
+
+const sortTreatments = (rows: Treatment[]) =>
+  [...rows].sort((a, b) => a.name.localeCompare(b.name, 'he-IL'));
 
 export function Treatments() {
   const queryClient = useQueryClient();
+  const treatmentsQueryKey = queryKeys.treatments();
   const {
     data: treatments = [],
     isPending,
@@ -38,9 +40,9 @@ export function Treatments() {
     error,
     refetch,
   } = useQuery({
-    queryKey: queryKeys.treatments(),
+    queryKey: treatmentsQueryKey,
     queryFn: ({ signal }: { signal: AbortSignal }) => listTreatments({ signal }),
-    select: (rows: Treatment[]) => [...rows].sort((a, b) => a.name.localeCompare(b.name, 'he-IL')),
+    select: sortTreatments,
   });
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -71,26 +73,81 @@ export function Treatments() {
     setModalOpen(true);
   }
 
-  const createTreatmentMutation = useMutation({
+  const createTreatmentMutation = useApiMutation({
     mutationFn: createTreatment,
-    onSuccess: () => {
-      showSuccessNotification('הטיפול נוצר בהצלחה');
-      void queryClient.invalidateQueries({ queryKey: queryKeys.treatments() });
+    successToast: { message: 'הטיפול נוצר בהצלחה' },
+    errorToast: { fallbackMessage: 'יצירת הטיפול נכשלה' },
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: treatmentsQueryKey });
+      const previousTreatments = queryClient.getQueryData<Treatment[]>(treatmentsQueryKey) ?? [];
+      const authData = queryClient.getQueryData<SettingsResponse | null>(queryKeys.me());
+      const optimisticTreatment: Treatment = {
+        id: `optimistic-${Date.now()}`,
+        userId: authData?.user.id ?? 'optimistic-user',
+        name: payload.name,
+        defaultIntervalMonths: payload.defaultIntervalMonths ?? null,
+        price: payload.price ?? null,
+      };
+      queryClient.setQueryData<Treatment[]>(treatmentsQueryKey, (old = []) =>
+        sortTreatments([...old.filter((item) => item.id !== optimisticTreatment.id), optimisticTreatment]),
+      );
+      return { previousTreatments, optimisticId: optimisticTreatment.id };
     },
-    onError: (err: unknown) => {
-      showErrorNotification(extractErrorMessage(err, 'יצירת הטיפול נכשלה'));
+    onError: (_error, _variables, context) => {
+      queryClient.setQueryData(treatmentsQueryKey, context?.previousTreatments ?? []);
+    },
+    onSuccess: (data, _variables, context) => {
+      queryClient.setQueryData<Treatment[]>(treatmentsQueryKey, (old = []) => {
+        const withoutOptimistic = context?.optimisticId
+          ? old.filter((item) => item.id !== context.optimisticId)
+          : old;
+        return sortTreatments([...withoutOptimistic, data]);
+      });
+      setModalOpen(false);
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: treatmentsQueryKey });
     },
   });
 
-  const updateTreatmentMutation = useMutation({
+  const updateTreatmentMutation = useApiMutation({
     mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof updateTreatment>[1] }) =>
       updateTreatment(id, payload),
-    onSuccess: () => {
-      showSuccessNotification('הטיפול עודכן בהצלחה');
-      void queryClient.invalidateQueries({ queryKey: queryKeys.treatments() });
+    successToast: { message: 'הטיפול עודכן בהצלחה' },
+    errorToast: { fallbackMessage: 'עדכון הטיפול נכשל' },
+    onMutate: async ({ id, payload }) => {
+      await queryClient.cancelQueries({ queryKey: treatmentsQueryKey });
+      const previousTreatments = queryClient.getQueryData<Treatment[]>(treatmentsQueryKey) ?? [];
+      queryClient.setQueryData<Treatment[]>(treatmentsQueryKey, (old = []) =>
+        sortTreatments(
+          old.map((treatment) =>
+            treatment.id === id
+              ? {
+                  ...treatment,
+                  name: payload.name ?? treatment.name,
+                  defaultIntervalMonths:
+                    payload.defaultIntervalMonths !== undefined
+                      ? payload.defaultIntervalMonths
+                      : treatment.defaultIntervalMonths,
+                  price: payload.price !== undefined ? payload.price : treatment.price,
+                }
+              : treatment,
+          ),
+        ),
+      );
+      return { previousTreatments };
     },
-    onError: (err: unknown) => {
-      showErrorNotification(extractErrorMessage(err, 'עדכון הטיפול נכשל'));
+    onError: (_error, _variables, context) => {
+      queryClient.setQueryData(treatmentsQueryKey, context?.previousTreatments ?? []);
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData<Treatment[]>(treatmentsQueryKey, (old = []) =>
+        sortTreatments(old.map((treatment) => (treatment.id === data.id ? data : treatment))),
+      );
+      setModalOpen(false);
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: treatmentsQueryKey });
     },
   });
 
@@ -99,18 +156,27 @@ export function Treatments() {
     setDeleteModalOpen(true);
   }
 
-  const deleteTreatmentMutation = useMutation({
+  const deleteTreatmentMutation = useApiMutation({
     mutationFn: deleteTreatment,
+    successToast: { message: 'הטיפול נמחק' },
+    errorToast: { fallbackMessage: 'מחיקת הטיפול נכשלה' },
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: treatmentsQueryKey });
+      const previousTreatments = queryClient.getQueryData<Treatment[]>(treatmentsQueryKey) ?? [];
+      queryClient.setQueryData<Treatment[]>(treatmentsQueryKey, (old = []) =>
+        old.filter((treatment) => treatment.id !== id),
+      );
+      return { previousTreatments };
+    },
+    onError: (_error, _id, context) => {
+      queryClient.setQueryData(treatmentsQueryKey, context?.previousTreatments ?? []);
+    },
     onSuccess: () => {
-      showSuccessNotification('הטיפול נמחק');
-      void queryClient.invalidateQueries({ queryKey: queryKeys.treatments() });
-    },
-    onError: (err: unknown) => {
-      showErrorNotification(extractErrorMessage(err, 'מחיקת הטיפול נכשלה'));
-    },
-    onSettled: () => {
       setDeleteModalOpen(false);
       setTreatmentToDelete(null);
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: treatmentsQueryKey });
     },
   });
 
@@ -127,7 +193,6 @@ export function Treatments() {
     } else {
       await updateTreatmentMutation.mutateAsync({ id: editId, payload });
     }
-    setModalOpen(false);
   }
 
   const cards = useMemo(

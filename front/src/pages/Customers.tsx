@@ -12,21 +12,22 @@ import {
   Title,
 } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { listCustomers, createCustomer, deleteCustomer, type Customer } from '../api/customers';
 import { StatusCard } from '../components/StatusCard';
 import { EntityCard } from '../components/EntityCard';
 import { formatPetsCount } from '../utils/formatPetsCount';
-import {
-  extractErrorMessage,
-  showErrorNotification,
-  showSuccessNotification,
-} from '../lib/notifications';
+import { extractErrorMessage } from '../lib/notifications';
 import { queryKeys } from '../lib/queryKeys';
+import { useApiMutation } from '../lib/useApiMutation';
+
+const sortCustomers = (rows: Customer[]) =>
+  [...rows].sort((a, b) => a.name.localeCompare(b.name, 'he-IL'));
 
 export function Customers() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const customersQueryKey = queryKeys.customers();
   const {
     data: customersData = [],
     isPending,
@@ -34,9 +35,9 @@ export function Customers() {
     error,
     refetch,
   } = useQuery({
-    queryKey: queryKeys.customers(),
+    queryKey: customersQueryKey,
     queryFn: ({ signal }: { signal: AbortSignal }) => listCustomers({ signal }),
-    select: (rows: Customer[]) => [...rows].sort((a, b) => a.name.localeCompare(b.name, 'he-IL')),
+    select: sortCustomers,
   });
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -54,29 +55,80 @@ export function Customers() {
     setModalOpen(true);
   }
 
-  const createCustomerMutation = useMutation({
+  const createCustomerMutation = useApiMutation({
     mutationFn: createCustomer,
-    onSuccess: () => {
-      showSuccessNotification('הלקוח נוסף בהצלחה');
-      void queryClient.invalidateQueries({ queryKey: queryKeys.customers() });
+    successToast: { message: 'הלקוח נוסף בהצלחה' },
+    errorToast: { fallbackMessage: 'הוספת הלקוח נכשלה' },
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: customersQueryKey });
+      const previousCustomers = queryClient.getQueryData<Customer[]>(customersQueryKey) ?? [];
+      const optimisticCustomer: Customer = {
+        id: `optimistic-${Date.now()}`,
+        name: payload.name,
+        email: payload.email ?? null,
+        phone: payload.phone ?? null,
+        address: payload.address ?? null,
+        petsCount: 0,
+      };
+      queryClient.setQueryData<Customer[]>(customersQueryKey, (old = []) =>
+        sortCustomers([...old.filter((customer) => customer.id !== optimisticCustomer.id), optimisticCustomer]),
+      );
+      return { previousCustomers, optimisticId: optimisticCustomer.id };
     },
-    onError: (err: unknown) => {
-      showErrorNotification(extractErrorMessage(err, 'הוספת הלקוח נכשלה'));
+    onError: (_error, _variables, context) => {
+      queryClient.setQueryData(customersQueryKey, context?.previousCustomers ?? []);
+    },
+    onSuccess: (data, _variables, context) => {
+      queryClient.setQueryData<Customer[]>(customersQueryKey, (old = []) => {
+        const withoutOptimistic = context?.optimisticId
+          ? old.filter((customer) => customer.id !== context.optimisticId)
+          : old;
+        return sortCustomers([...withoutOptimistic, data]);
+      });
+      setModalOpen(false);
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: customersQueryKey });
     },
   });
 
-  const deleteCustomerMutation = useMutation({
+  const deleteCustomerMutation = useApiMutation({
     mutationFn: deleteCustomer,
-    onSuccess: () => {
-      showSuccessNotification('הלקוח נמחק');
-      void queryClient.invalidateQueries({ queryKey: queryKeys.customers() });
+    successToast: { message: 'הלקוח נמחק' },
+    errorToast: { fallbackMessage: 'מחיקת הלקוח נכשלה' },
+    onMutate: async (customerId: string) => {
+      await queryClient.cancelQueries({ queryKey: customersQueryKey });
+      const previousCustomers = queryClient.getQueryData<Customer[]>(customersQueryKey) ?? [];
+      queryClient.setQueryData<Customer[]>(customersQueryKey, (old = []) =>
+        old.filter((customer) => customer.id !== customerId),
+      );
+      await queryClient.cancelQueries({ queryKey: queryKeys.customer(customerId) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.pets(customerId) });
+      const previousCustomer = queryClient.getQueryData(queryKeys.customer(customerId));
+      const previousPets = queryClient.getQueryData(queryKeys.pets(customerId));
+      return { previousCustomers, previousCustomer, previousPets, customerId };
     },
-    onError: (err: unknown) => {
-      showErrorNotification(extractErrorMessage(err, 'מחיקת הלקוח נכשלה'));
+    onError: (_error, _customerId, context) => {
+      queryClient.setQueryData(customersQueryKey, context?.previousCustomers ?? []);
+      if (context?.customerId) {
+        queryClient.setQueryData(queryKeys.customer(context.customerId), context?.previousCustomer);
+        queryClient.setQueryData(queryKeys.pets(context.customerId), context?.previousPets);
+      }
     },
-    onSettled: () => {
+    onSuccess: (_data, _variables, context) => {
       setDeleteModalOpen(false);
       setCustomerToDelete(null);
+      if (context?.customerId) {
+        void queryClient.removeQueries({ queryKey: queryKeys.customer(context.customerId) });
+        void queryClient.removeQueries({ queryKey: queryKeys.pets(context.customerId) });
+      }
+    },
+    onSettled: (_data, _error, _variables, context) => {
+      void queryClient.invalidateQueries({ queryKey: customersQueryKey });
+      if (context?.customerId) {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.customer(context.customerId) });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.pets(context.customerId) });
+      }
     },
   });
 
@@ -88,7 +140,6 @@ export function Customers() {
       phone: newCustomerPhone || null,
       address: newCustomerAddress || null,
     });
-    setModalOpen(false);
   }
 
   function openDeleteModal(customer: Customer) {
