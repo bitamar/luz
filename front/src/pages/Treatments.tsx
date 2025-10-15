@@ -19,6 +19,7 @@ import {
   updateTreatment,
   deleteTreatment,
   type Treatment,
+  type UpdateTreatmentBody,
 } from '../api/treatments';
 import { StatusCard } from '../components/StatusCard';
 import { EntityCard } from '../components/EntityCard';
@@ -51,6 +52,19 @@ export function Treatments() {
   const [name, setName] = useState('');
   const [defaultIntervalMonths, setDefaultIntervalMonths] = useState<number | ''>('');
   const [price, setPrice] = useState<number | ''>('');
+
+  const applyTreatmentUpdates = (
+    treatment: Treatment,
+    payload: UpdateTreatmentBody,
+  ): Treatment => ({
+    ...treatment,
+    name: payload.name ?? treatment.name,
+    defaultIntervalMonths:
+      payload.defaultIntervalMonths !== undefined
+        ? payload.defaultIntervalMonths
+        : treatment.defaultIntervalMonths,
+    price: payload.price !== undefined ? payload.price : treatment.price,
+  });
 
   function openCreate() {
     setEditId(null);
@@ -111,7 +125,7 @@ export function Treatments() {
   });
 
   const updateTreatmentMutation = useApiMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof updateTreatment>[1] }) =>
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateTreatmentBody }) =>
       updateTreatment(id, payload),
     successToast: { message: 'הטיפול עודכן בהצלחה' },
     errorToast: { fallbackMessage: 'עדכון הטיפול נכשל' },
@@ -119,30 +133,27 @@ export function Treatments() {
       await queryClient.cancelQueries({ queryKey: treatmentsQueryKey });
       const previousTreatments = queryClient.getQueryData<Treatment[]>(treatmentsQueryKey) ?? [];
       queryClient.setQueryData<Treatment[]>(treatmentsQueryKey, (old = []) =>
-        sortTreatments(
-          old.map((treatment) =>
-            treatment.id === id
-              ? {
-                  ...treatment,
-                  name: payload.name ?? treatment.name,
-                  defaultIntervalMonths:
-                    payload.defaultIntervalMonths !== undefined
-                      ? payload.defaultIntervalMonths
-                      : treatment.defaultIntervalMonths,
-                  price: payload.price !== undefined ? payload.price : treatment.price,
-                }
-              : treatment,
-          ),
-        ),
+        sortTreatments(old.map((treatment) => (treatment.id === id ? applyTreatmentUpdates(treatment, payload) : treatment))),
       );
       return { previousTreatments };
     },
     onError: (_error, _variables, context) => {
       queryClient.setQueryData(treatmentsQueryKey, context?.previousTreatments ?? []);
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      if (!variables) {
+        setModalOpen(false);
+        return;
+      }
+      const { id, payload } = variables;
       queryClient.setQueryData<Treatment[]>(treatmentsQueryKey, (old = []) =>
-        sortTreatments(old.map((treatment) => (treatment.id === data.id ? data : treatment))),
+        sortTreatments(
+          old.map((treatment) =>
+            treatment.id === (data?.id ?? id)
+              ? data ?? applyTreatmentUpdates(treatment, payload)
+              : treatment,
+          ),
+        ),
       );
       setModalOpen(false);
     },
