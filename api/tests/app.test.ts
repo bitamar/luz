@@ -14,6 +14,12 @@ vi.mock('../src/env.js', async () => {
   };
 });
 
+vi.mock('openid-client', () => ({
+  discovery: vi.fn().mockResolvedValue({}),
+  ClientSecretPost: (secret: string) => ({ secret }),
+  authorizationCodeGrant: vi.fn(),
+}));
+
 describe('app', () => {
   let app: FastifyInstance;
 

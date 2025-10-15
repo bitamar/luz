@@ -12,6 +12,12 @@ vi.mock('twilio', () => ({
   default: twilioMock,
 }));
 
+vi.mock('openid-client', () => ({
+  discovery: vi.fn().mockResolvedValue({}),
+  ClientSecretPost: (secret: string) => ({ secret }),
+  authorizationCodeGrant: vi.fn(),
+}));
+
 describe('routes/inbound', () => {
   let app: FastifyInstance;
   let buildServer: typeof import('../../src/app.js').buildServer;

@@ -20,7 +20,7 @@
 - [x] 90% coverage + show status on pr
 
 ### Frontend Critical
-- [ ] add state management library (TanStack Query) — see plan below
+- [x] add state management library (TanStack Query) — see plan below
 - [ ] centralized error handling and toast notifications - errors just throw
 - [ ] loading states coordination - currently each component manages its own
 - [ ] optimistic updates for better UX - currently wait for server on every action
