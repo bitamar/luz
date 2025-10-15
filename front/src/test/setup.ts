@@ -1,4 +1,9 @@
 import '@testing-library/jest-dom/vitest';
+import { vi } from 'vitest';
+
+if (!import.meta.env.VITE_API_BASE_URL) {
+  vi.stubEnv('VITE_API_BASE_URL', 'http://localhost');
+}
 
 if (!window.matchMedia) {
   window.matchMedia = (query: string) => ({
