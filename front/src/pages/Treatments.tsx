@@ -55,7 +55,7 @@ export function Treatments() {
 
   const applyTreatmentUpdates = (
     treatment: Treatment,
-    payload: UpdateTreatmentBody,
+    payload: UpdateTreatmentBody
   ): Treatment => ({
     ...treatment,
     name: payload.name ?? treatment.name,
@@ -103,7 +103,10 @@ export function Treatments() {
         price: payload.price ?? null,
       };
       queryClient.setQueryData<Treatment[]>(treatmentsQueryKey, (old = []) =>
-        sortTreatments([...old.filter((item) => item.id !== optimisticTreatment.id), optimisticTreatment]),
+        sortTreatments([
+          ...old.filter((item) => item.id !== optimisticTreatment.id),
+          optimisticTreatment,
+        ])
       );
       return { previousTreatments, optimisticId: optimisticTreatment.id };
     },
@@ -133,7 +136,11 @@ export function Treatments() {
       await queryClient.cancelQueries({ queryKey: treatmentsQueryKey });
       const previousTreatments = queryClient.getQueryData<Treatment[]>(treatmentsQueryKey) ?? [];
       queryClient.setQueryData<Treatment[]>(treatmentsQueryKey, (old = []) =>
-        sortTreatments(old.map((treatment) => (treatment.id === id ? applyTreatmentUpdates(treatment, payload) : treatment))),
+        sortTreatments(
+          old.map((treatment) =>
+            treatment.id === id ? applyTreatmentUpdates(treatment, payload) : treatment
+          )
+        )
       );
       return { previousTreatments };
     },
@@ -150,10 +157,10 @@ export function Treatments() {
         sortTreatments(
           old.map((treatment) =>
             treatment.id === (data?.id ?? id)
-              ? data ?? applyTreatmentUpdates(treatment, payload)
-              : treatment,
-          ),
-        ),
+              ? (data ?? applyTreatmentUpdates(treatment, payload))
+              : treatment
+          )
+        )
       );
       setModalOpen(false);
     },
@@ -175,7 +182,7 @@ export function Treatments() {
       await queryClient.cancelQueries({ queryKey: treatmentsQueryKey });
       const previousTreatments = queryClient.getQueryData<Treatment[]>(treatmentsQueryKey) ?? [];
       queryClient.setQueryData<Treatment[]>(treatmentsQueryKey, (old = []) =>
-        old.filter((treatment) => treatment.id !== id),
+        old.filter((treatment) => treatment.id !== id)
       );
       return { previousTreatments };
     },

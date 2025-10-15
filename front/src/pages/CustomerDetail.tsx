@@ -41,7 +41,9 @@ export function CustomerDetail() {
   const queryClient = useQueryClient();
   const customerId = id ?? '';
   const customersListKey = queryKeys.customers();
-  const customerQueryKey = customerId ? queryKeys.customer(customerId) : (['customer', ''] as const);
+  const customerQueryKey = customerId
+    ? queryKeys.customer(customerId)
+    : (['customer', ''] as const);
   const petsQueryKey = customerId ? queryKeys.pets(customerId) : (['pets', ''] as const);
 
   const customerQuery = useQuery({
@@ -105,8 +107,8 @@ export function CustomerDetail() {
           old.map((customer) =>
             customer.id === customerId
               ? { ...customer, petsCount: customer.petsCount + 1 }
-              : customer,
-          ),
+              : customer
+          )
         );
       }
       return {
@@ -154,7 +156,7 @@ export function CustomerDetail() {
       await queryClient.cancelQueries({ queryKey: customersListKey });
       const previousCustomers = queryClient.getQueryData<Customer[]>(customersListKey) ?? [];
       queryClient.setQueryData<Customer[]>(customersListKey, (old = []) =>
-        old.filter((customer) => customer.id !== customerId),
+        old.filter((customer) => customer.id !== customerId)
       );
       await queryClient.cancelQueries({ queryKey: customerQueryKey });
       await queryClient.cancelQueries({ queryKey: petsQueryKey });
@@ -194,7 +196,9 @@ export function CustomerDetail() {
       const previousPets = queryClient.getQueryData<Pet[]>(petsQueryKey) ?? [];
       const previousCustomer = queryClient.getQueryData<Customer | undefined>(customerQueryKey);
       const previousCustomersList = queryClient.getQueryData<Customer[]>(customersListKey) ?? [];
-      queryClient.setQueryData<Pet[]>(petsQueryKey, (old = []) => old.filter((pet) => pet.id !== pId));
+      queryClient.setQueryData<Pet[]>(petsQueryKey, (old = []) =>
+        old.filter((pet) => pet.id !== pId)
+      );
       if (previousCustomer) {
         queryClient.setQueryData<Customer>(customerQueryKey, {
           ...previousCustomer,
@@ -206,8 +210,8 @@ export function CustomerDetail() {
           old.map((customer) =>
             customer.id === cId
               ? { ...customer, petsCount: Math.max(customer.petsCount - 1, 0) }
-              : customer,
-          ),
+              : customer
+          )
         );
       }
       return { previousPets, previousCustomer, previousCustomersList };

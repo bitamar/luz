@@ -71,7 +71,10 @@ export function Customers() {
         petsCount: 0,
       };
       queryClient.setQueryData<Customer[]>(customersQueryKey, (old = []) =>
-        sortCustomers([...old.filter((customer) => customer.id !== optimisticCustomer.id), optimisticCustomer]),
+        sortCustomers([
+          ...old.filter((customer) => customer.id !== optimisticCustomer.id),
+          optimisticCustomer,
+        ])
       );
       return { previousCustomers, optimisticId: optimisticCustomer.id };
     },
@@ -100,7 +103,7 @@ export function Customers() {
       await queryClient.cancelQueries({ queryKey: customersQueryKey });
       const previousCustomers = queryClient.getQueryData<Customer[]>(customersQueryKey) ?? [];
       queryClient.setQueryData<Customer[]>(customersQueryKey, (old = []) =>
-        old.filter((customer) => customer.id !== customerId),
+        old.filter((customer) => customer.id !== customerId)
       );
       await queryClient.cancelQueries({ queryKey: queryKeys.customer(customerId) });
       await queryClient.cancelQueries({ queryKey: queryKeys.pets(customerId) });

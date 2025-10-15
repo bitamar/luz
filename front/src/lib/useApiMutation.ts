@@ -1,5 +1,13 @@
-import { useMutation, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
-import { extractErrorMessage, showErrorNotification, showSuccessNotification } from './notifications';
+import {
+  useMutation,
+  type UseMutationOptions,
+  type UseMutationResult,
+} from '@tanstack/react-query';
+import {
+  extractErrorMessage,
+  showErrorNotification,
+  showSuccessNotification,
+} from './notifications';
 
 interface SuccessToastConfig {
   message: string;
@@ -24,7 +32,7 @@ export type ApiMutationOptions<
 };
 
 export function useApiMutation<TData, TError = unknown, TVariables = void, TContext = unknown>(
-  options: ApiMutationOptions<TData, TError, TVariables, TContext>,
+  options: ApiMutationOptions<TData, TError, TVariables, TContext>
 ): UseMutationResult<TData, TError, TVariables, TContext> {
   const { successToast, errorToast, onSuccess, onError, ...rest } = options;
 

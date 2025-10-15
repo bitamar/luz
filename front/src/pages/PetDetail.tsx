@@ -28,7 +28,9 @@ export function PetDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const customersListKey = queryKeys.customers();
-  const customerQueryKey = customerId ? queryKeys.customer(customerId) : (['customer', ''] as const);
+  const customerQueryKey = customerId
+    ? queryKeys.customer(customerId)
+    : (['customer', ''] as const);
   const petsListKey = customerId ? queryKeys.pets(customerId) : (['pets', ''] as const);
 
   const petQueryKey = useMemo(() => {
@@ -65,7 +67,9 @@ export function PetDetail() {
       const previousCustomer = queryClient.getQueryData<Customer | undefined>(customerQueryKey);
       const previousCustomersList = queryClient.getQueryData<Customer[]>(customersListKey) ?? [];
       queryClient.setQueryData(petQueryKey, undefined);
-      queryClient.setQueryData<Pet[]>(petsListKey, (old = []) => old.filter((pet) => pet.id !== petId));
+      queryClient.setQueryData<Pet[]>(petsListKey, (old = []) =>
+        old.filter((pet) => pet.id !== petId)
+      );
       if (previousCustomer) {
         queryClient.setQueryData<Customer>(customerQueryKey, {
           ...previousCustomer,
@@ -77,8 +81,8 @@ export function PetDetail() {
           old.map((customer) =>
             customer.id === customerId
               ? { ...customer, petsCount: Math.max(customer.petsCount - 1, 0) }
-              : customer,
-          ),
+              : customer
+          )
         );
       }
       return { previousPet, previousPets, previousCustomer, previousCustomersList };
