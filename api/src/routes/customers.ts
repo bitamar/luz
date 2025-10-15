@@ -233,7 +233,7 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       const [row] = await db
         .update(customers)
         .set({ ...updates, updatedAt: new Date() })
-        .where(eq(customers.id, customer.id))
+        .where(and(eq(customers.id, customer.id), eq(customers.isDeleted, false)))
         .returning({
           id: customers.id,
           name: customers.name,
@@ -266,7 +266,7 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       const [row] = await db
         .update(customers)
         .set({ isDeleted: true, updatedAt: new Date() })
-        .where(eq(customers.id, customer.id))
+        .where(and(eq(customers.id, customer.id), eq(customers.isDeleted, false)))
         .returning({ id: customers.id });
 
       if (!row) throw notFound();

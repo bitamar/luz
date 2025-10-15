@@ -56,7 +56,7 @@ export function ensurePetOwnership(petParamKey: string): preHandlerHookHandler {
     const petId = getParam(req.params, petParamKey);
 
     const pet = await db.query.pets.findFirst({
-      where: and(eq(pets.id, petId), eq(pets.customerId, customer.id)),
+      where: and(eq(pets.id, petId), eq(pets.customerId, customer.id), eq(pets.isDeleted, false)),
     });
 
     if (!pet) throw notFound();
