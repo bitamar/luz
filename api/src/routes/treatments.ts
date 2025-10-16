@@ -108,7 +108,13 @@ const treatmentRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       const [row] = await db
         .update(treatments)
         .set({ ...updates, updatedAt: new Date() })
-        .where(eq(treatments.id, treatment.id))
+        .where(
+          and(
+            eq(treatments.id, treatment.id),
+            eq(treatments.userId, treatment.userId),
+            eq(treatments.isDeleted, false)
+          )
+        )
         .returning();
 
       if (!row) throw notFound();
@@ -134,7 +140,13 @@ const treatmentRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       const [row] = await db
         .update(treatments)
         .set({ isDeleted: true, updatedAt: new Date() })
-        .where(eq(treatments.id, treatment.id))
+        .where(
+          and(
+            eq(treatments.id, treatment.id),
+            eq(treatments.userId, treatment.userId),
+            eq(treatments.isDeleted, false)
+          )
+        )
         .returning({ id: treatments.id });
 
       if (!row) throw notFound();
