@@ -56,8 +56,8 @@
 
 ### Code Organization
 - [ ] separate validation logic from route handlers (create validation schemas)
-- [ ] create service layer - currently business logic in route handlers
-- [ ] create repository layer - currently direct DB access in routes
+- [x] create service layer - currently business logic in route handlers
+- [x] create repository layer - currently direct DB access in routes
 - [ ] shared TypeScript types between frontend/backend (monorepo with shared package)
 
 ## MVP / Core Features

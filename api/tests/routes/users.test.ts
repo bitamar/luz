@@ -7,6 +7,8 @@ import { injectAuthed } from '../utils/inject.js';
 import { db } from '../../src/db/client.js';
 import { users } from '../../src/db/schema.js';
 import * as sessionModule from '../../src/auth/session.js';
+import * as userService from '../../src/services/user-service.js';
+import { conflict } from '../../src/lib/app-error.js';
 
 vi.mock('openid-client', () => ({
   discovery: vi.fn().mockResolvedValue({}),
@@ -92,12 +94,9 @@ describe('routes/users', () => {
   it('returns conflict when phone number already exists', async () => {
     const { sessionId } = await createAuthedUser();
 
-    const returningMock = vi
-      .fn()
-      .mockRejectedValue(Object.assign(new Error('duplicate'), { code: '23505' }));
-    const whereMock = vi.fn().mockReturnValue({ returning: returningMock });
-    const setMock = vi.fn().mockReturnValue({ where: whereMock });
-    const updateSpy = vi.spyOn(db, 'update').mockReturnValue({ set: setMock } as never);
+    vi
+      .spyOn(userService, 'updateSettingsForUser')
+      .mockRejectedValue(conflict({ code: 'duplicate_phone' }));
 
     const res = await injectAuthed(app, sessionId, {
       headers: { accept: 'application/json', 'content-type': 'application/json' },
@@ -106,7 +105,7 @@ describe('routes/users', () => {
       payload: { phone: '050-1111111' },
     });
 
-    updateSpy.mockRestore();
+    vi.restoreAllMocks();
 
     expect(res.statusCode).toBe(409);
     expect(res.json()).toMatchObject({ error: 'duplicate_phone' });

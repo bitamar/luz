@@ -7,6 +7,7 @@ import { injectAuthed } from '../utils/inject.js';
 import { db } from '../../src/db/client.js';
 import { users } from '../../src/db/schema.js';
 import * as sessionModule from '../../src/auth/session.js';
+import * as treatmentService from '../../src/services/treatment-service.js';
 
 vi.mock('openid-client', () => ({
   discovery: vi.fn().mockResolvedValue({}),
@@ -114,10 +115,8 @@ describe('routes/treatments', () => {
   it('returns conflict when creating duplicate treatment name', async () => {
     const { sessionId } = await createAuthedUser();
 
-    const error = Object.assign(new Error('duplicate'), { code: '23505' });
-    const insertSpy = vi.spyOn(db, 'insert').mockImplementation(() => {
-      throw error;
-    });
+    const conflictError = Object.assign(new Error('duplicate'), { code: 'duplicate_name' });
+    vi.spyOn(treatmentService, 'createTreatmentForUser').mockRejectedValue(conflictError);
 
     const res = await injectAuthed(app, sessionId, {
       headers: { 'content-type': 'application/json' },
@@ -126,7 +125,7 @@ describe('routes/treatments', () => {
       payload: { name: 'Duplicate' },
     });
 
-    insertSpy.mockRestore();
+    vi.restoreAllMocks();
 
     expect(res.statusCode).toBe(409);
     expect(res.json()).toMatchObject({ error: 'duplicate_name' });

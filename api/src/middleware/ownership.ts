@@ -1,13 +1,17 @@
-import { and, eq } from 'drizzle-orm';
 import type { FastifyRequest, preHandlerHookHandler } from 'fastify';
-import { db } from '../db/client.js';
-import { customers, pets, treatments } from '../db/schema.js';
 import { ensureAuthed } from '../plugins/auth.js';
 import { notFound } from '../lib/app-error.js';
+import {
+  findCustomerByIdForUser,
+  type CustomerRecord,
+} from '../repositories/customer-repository.js';
+import { findPetByIdForCustomer, type PetRecord } from '../repositories/pet-repository.js';
+import {
+  findTreatmentByIdForUser,
+  type TreatmentRecord,
+} from '../repositories/treatment-repository.js';
 
-export type CustomerRecord = (typeof customers)['$inferSelect'];
-export type PetRecord = (typeof pets)['$inferSelect'];
-export type TreatmentRecord = (typeof treatments)['$inferSelect'];
+export type { CustomerRecord, PetRecord, TreatmentRecord };
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -30,13 +34,7 @@ export function ensureCustomerOwnership(paramKey: string): preHandlerHookHandler
     ensureAuthed(req);
     const customerId = getParam(req.params, paramKey);
 
-    const customer = await db.query.customers.findFirst({
-      where: and(
-        eq(customers.id, customerId),
-        eq(customers.userId, req.user.id),
-        eq(customers.isDeleted, false)
-      ),
-    });
+    const customer = await findCustomerByIdForUser(req.user.id, customerId);
 
     if (!customer) throw notFound();
 
@@ -55,9 +53,7 @@ export function ensurePetOwnership(petParamKey: string): preHandlerHookHandler {
     const customer = getOwnedCustomer(req);
     const petId = getParam(req.params, petParamKey);
 
-    const pet = await db.query.pets.findFirst({
-      where: and(eq(pets.id, petId), eq(pets.customerId, customer.id), eq(pets.isDeleted, false)),
-    });
+    const pet = await findPetByIdForCustomer(customer.id, petId);
 
     if (!pet) throw notFound();
 
@@ -76,13 +72,7 @@ export function ensureTreatmentOwnership(paramKey: string): preHandlerHookHandle
     ensureAuthed(req);
     const treatmentId = getParam(req.params, paramKey);
 
-    const treatment = await db.query.treatments.findFirst({
-      where: and(
-        eq(treatments.id, treatmentId),
-        eq(treatments.userId, req.user.id),
-        eq(treatments.isDeleted, false)
-      ),
-    });
+    const treatment = await findTreatmentByIdForUser(req.user.id, treatmentId);
 
     if (!treatment) throw notFound();
 
