@@ -50,8 +50,5 @@ export async function createPet(values: PetInsert) {
 }
 
 export async function softDeletePetById(petId: string) {
-  await db
-    .update(pets)
-    .set({ isDeleted: true, updatedAt: new Date() })
-    .where(eq(pets.id, petId));
+  await db.update(pets).set({ isDeleted: true, updatedAt: new Date() }).where(eq(pets.id, petId));
 }

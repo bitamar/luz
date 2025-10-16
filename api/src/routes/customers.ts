@@ -15,10 +15,7 @@ import {
   updateCustomerParamsSchema,
 } from '../schemas/customers.js';
 import { okResponseSchema } from '../schemas/common.js';
-import {
-  ensureCustomerOwnership,
-  ensurePetOwnership,
-} from '../middleware/ownership.js';
+import { ensureCustomerOwnership, ensurePetOwnership } from '../middleware/ownership.js';
 import {
   createCustomerForUser,
   createPetForCustomer,
@@ -124,7 +121,11 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/customers/:customerId/pets/:petId',
     {
-      preHandler: [app.authenticate, ensureCustomerOwnership('customerId'), ensurePetOwnership('petId')],
+      preHandler: [
+        app.authenticate,
+        ensureCustomerOwnership('customerId'),
+        ensurePetOwnership('petId'),
+      ],
       schema: {
         params: customerPetParamsSchema,
         response: {
@@ -161,7 +162,11 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
   app.delete(
     '/customers/:customerId/pets/:petId',
     {
-      preHandler: [app.authenticate, ensureCustomerOwnership('customerId'), ensurePetOwnership('petId')],
+      preHandler: [
+        app.authenticate,
+        ensureCustomerOwnership('customerId'),
+        ensurePetOwnership('petId'),
+      ],
       schema: {
         params: customerPetParamsSchema,
         response: {

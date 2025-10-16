@@ -23,16 +23,13 @@ export async function findCustomerByIdForUser(userId: string, customerId: string
 }
 
 export async function createCustomer(values: CustomerInsert) {
-  const rows = await db
-    .insert(customers)
-    .values(values)
-    .returning({
-      id: customers.id,
-      name: customers.name,
-      email: customers.email,
-      phone: customers.phone,
-      address: customers.address,
-    });
+  const rows = await db.insert(customers).values(values).returning({
+    id: customers.id,
+    name: customers.name,
+    email: customers.email,
+    phone: customers.phone,
+    address: customers.address,
+  });
   return rows[0] ?? null;
 }
 
@@ -44,7 +41,13 @@ export async function updateCustomerById(
   const rows = await db
     .update(customers)
     .set(updates)
-    .where(and(eq(customers.id, customerId), eq(customers.isDeleted, false), eq(customers.userId, userId)))
+    .where(
+      and(
+        eq(customers.id, customerId),
+        eq(customers.isDeleted, false),
+        eq(customers.userId, userId)
+      )
+    )
     .returning({
       id: customers.id,
       name: customers.name,
@@ -59,7 +62,13 @@ export async function softDeleteCustomerById(customerId: string, userId: string)
   const rows = await db
     .update(customers)
     .set({ isDeleted: true, updatedAt: new Date() })
-    .where(and(eq(customers.id, customerId), eq(customers.userId, userId), eq(customers.isDeleted, false)))
+    .where(
+      and(
+        eq(customers.id, customerId),
+        eq(customers.userId, userId),
+        eq(customers.isDeleted, false)
+      )
+    )
     .returning({ id: customers.id });
   return rows[0] ?? null;
 }

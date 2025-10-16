@@ -26,11 +26,8 @@ import {
   type CreatePetBody,
 } from '../schemas/customers.js';
 
-const customerDto = customerSchema;
-const petDto = petSchema;
-
-type CustomerDto = z.infer<typeof customerDto>;
-type PetDto = z.infer<typeof petDto>;
+type CustomerDto = z.infer<typeof customerSchema>;
+type PetDto = z.infer<typeof petSchema>;
 
 type CustomerRecord = Awaited<ReturnType<typeof findActiveCustomersByUserId>>[number];
 

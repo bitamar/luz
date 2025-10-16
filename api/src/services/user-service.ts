@@ -3,9 +3,7 @@ import { updateUserById, type UserRecord } from '../repositories/user-repository
 import { conflict, notFound } from '../lib/app-error.js';
 import { settingsResponseSchema, userSchema } from '../schemas/users.js';
 
-const userDto = userSchema;
-
-export type UserDto = z.infer<typeof userDto>;
+export type UserDto = z.infer<typeof userSchema>;
 export type SettingsResponse = z.infer<typeof settingsResponseSchema>;
 
 type UpdateSettingsInput = {
@@ -13,7 +11,9 @@ type UpdateSettingsInput = {
   phone?: string | null;
 };
 
-export function serializeUser(record: Pick<UserRecord, 'id' | 'email' | 'name' | 'avatarUrl' | 'phone'>): UserDto {
+export function serializeUser(
+  record: Pick<UserRecord, 'id' | 'email' | 'name' | 'avatarUrl' | 'phone'>
+): UserDto {
   return {
     id: record.id,
     email: record.email,
@@ -23,7 +23,9 @@ export function serializeUser(record: Pick<UserRecord, 'id' | 'email' | 'name' |
   };
 }
 
-export function getSettingsFromUser(record: Pick<UserRecord, 'id' | 'email' | 'name' | 'avatarUrl' | 'phone'>) {
+export function getSettingsFromUser(
+  record: Pick<UserRecord, 'id' | 'email' | 'name' | 'avatarUrl' | 'phone'>
+) {
   return {
     user: serializeUser(record),
   } satisfies SettingsResponse;

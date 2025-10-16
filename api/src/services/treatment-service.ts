@@ -15,14 +15,14 @@ type TreatmentDto = z.infer<typeof treatmentSchema>;
 
 type CreateTreatmentInput = {
   name: string;
-  defaultIntervalMonths?: number | null;
-  price?: number | null;
+  defaultIntervalMonths?: number | null | undefined;
+  price?: number | null | undefined;
 };
 
 type UpdateTreatmentInput = {
-  name?: string;
-  defaultIntervalMonths?: number | null;
-  price?: number | null;
+  name?: string | undefined;
+  defaultIntervalMonths?: number | null | undefined;
+  price?: number | null | undefined;
 };
 
 function serializeTreatment(record: TreatmentRecord): TreatmentDto {
@@ -33,19 +33,6 @@ function serializeTreatment(record: TreatmentRecord): TreatmentDto {
     defaultIntervalMonths: record.defaultIntervalMonths ?? null,
     price: record.price ?? null,
   };
-}
-
-function applyTreatmentInput(
-  target: Partial<TreatmentInsert>,
-  input: CreateTreatmentInput | UpdateTreatmentInput
-) {
-  if ('name' in input && input.name !== undefined) target.name = input.name;
-  if ('defaultIntervalMonths' in input && input.defaultIntervalMonths !== undefined) {
-    target.defaultIntervalMonths = input.defaultIntervalMonths ?? null;
-  }
-  if ('price' in input && input.price !== undefined) {
-    target.price = input.price ?? null;
-  }
 }
 
 export async function listTreatmentsForUser(userId: string) {
@@ -61,9 +48,12 @@ export async function getTreatmentForUser(userId: string, treatmentId: string) {
 
 export async function createTreatmentForUser(userId: string, input: CreateTreatmentInput) {
   try {
-    const values: Partial<TreatmentInsert> = { userId };
-    applyTreatmentInput(values, input);
-    const record = await createTreatment(values);
+    const record = await createTreatment({
+      userId,
+      name: input.name,
+      defaultIntervalMonths: input.defaultIntervalMonths ?? null,
+      price: input.price ?? null,
+    });
     if (!record) throw new Error('Failed to create treatment');
     return serializeTreatment(record);
   } catch (err: unknown) {
@@ -86,7 +76,13 @@ export async function updateTreatmentForUser(
   input: UpdateTreatmentInput
 ) {
   const updates: Partial<TreatmentInsert> = { updatedAt: new Date() };
-  applyTreatmentInput(updates, input);
+  if (input.name !== undefined) updates.name = input.name;
+  if (input.defaultIntervalMonths !== undefined) {
+    updates.defaultIntervalMonths = input.defaultIntervalMonths ?? null;
+  }
+  if (input.price !== undefined) {
+    updates.price = input.price ?? null;
+  }
 
   const record = await updateTreatmentById(treatmentId, userId, updates);
   if (!record) throw notFound();

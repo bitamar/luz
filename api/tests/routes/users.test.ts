@@ -94,9 +94,9 @@ describe('routes/users', () => {
   it('returns conflict when phone number already exists', async () => {
     const { sessionId } = await createAuthedUser();
 
-    vi
-      .spyOn(userService, 'updateSettingsForUser')
-      .mockRejectedValue(conflict({ code: 'duplicate_phone' }));
+    vi.spyOn(userService, 'updateSettingsForUser').mockRejectedValue(
+      conflict({ code: 'duplicate_phone' })
+    );
 
     const res = await injectAuthed(app, sessionId, {
       headers: { accept: 'application/json', 'content-type': 'application/json' },
