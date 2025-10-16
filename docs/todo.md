@@ -20,12 +20,12 @@
 - [x] 90% coverage + show status on pr
 
 ### Frontend Critical
-- [ ] add state management library (TanStack Query) — see plan below
-- [ ] centralized error handling and toast notifications - errors just throw
-- [ ] loading states coordination - currently each component manages its own
-- [ ] optimistic updates for better UX - currently wait for server on every action
-- [ ] proper error boundaries for React - currently errors crash the app
-- [ ] abort pending requests on navigation - currently requests keep running
+- [x] add state management library (TanStack Query) — see plan below
+- [x] centralized error handling and toast notifications - errors just throw
+- [x] loading states coordination - currently each component manages its own
+- [x] optimistic updates for better UX - currently wait for server on every action
+- [x] proper error boundaries for React - currently errors crash the app
+- [x] abort pending requests on navigation - currently requests keep running
 
 ### Frontend: TanStack Query Adoption (NOW)
 - [x] add `@tanstack/react-query` and `@tanstack/react-query-devtools` to `front`
@@ -80,7 +80,7 @@
 - [ ] slide animation between customers > customer > pets
 - [x] confirmation dialogs for destructive actions (delete customer, pet, visit)
 - [x] error states (empty states when no data, error messages)
-- [ ] toast notifications for success/error actions
+- [x] toast notifications for success/error actions
 
 ### Search & Filtering
 - [ ] search in customers view - by pet name, phone number etc
