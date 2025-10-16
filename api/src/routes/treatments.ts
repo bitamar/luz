@@ -15,6 +15,7 @@ import {
   updateTreatmentBodySchema,
   updateTreatmentParamsSchema,
 } from '../schemas/treatments.js';
+import { ensureTreatmentOwnership, getOwnedTreatment } from '../middleware/ownership.js';
 
 type TreatmentRow = (typeof treatments)['$inferSelect'];
 type TreatmentDto = z.infer<typeof treatmentSchema>;
@@ -87,7 +88,7 @@ const treatmentRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
   app.put(
     '/treatments/:id',
     {
-      preHandler: app.authenticate,
+      preHandler: [app.authenticate, ensureTreatmentOwnership('id')],
       schema: {
         params: updateTreatmentParamsSchema,
         body: updateTreatmentBodySchema,
@@ -95,9 +96,7 @@ const treatmentRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
-      ensureAuthed(req);
-      const userId = req.user.id;
-      const { id } = req.params;
+      const treatment = getOwnedTreatment(req);
       const { name, defaultIntervalMonths, price } = req.body;
 
       const updates: Partial<(typeof treatments)['$inferInsert']> = {};
@@ -110,7 +109,11 @@ const treatmentRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
         .update(treatments)
         .set({ ...updates, updatedAt: new Date() })
         .where(
-          and(eq(treatments.id, id), eq(treatments.userId, userId), eq(treatments.isDeleted, false))
+          and(
+            eq(treatments.id, treatment.id),
+            eq(treatments.userId, treatment.userId),
+            eq(treatments.isDeleted, false)
+          )
         )
         .returning();
 
@@ -123,7 +126,7 @@ const treatmentRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
   app.delete(
     '/treatments/:id',
     {
-      preHandler: app.authenticate,
+      preHandler: [app.authenticate, ensureTreatmentOwnership('id')],
       schema: {
         params: treatmentParamsSchema,
         response: {
@@ -132,15 +135,17 @@ const treatmentRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
-      ensureAuthed(req);
-      const userId = req.user.id;
-      const { id } = req.params;
+      const treatment = getOwnedTreatment(req);
 
       const [row] = await db
         .update(treatments)
         .set({ isDeleted: true, updatedAt: new Date() })
         .where(
-          and(eq(treatments.id, id), eq(treatments.userId, userId), eq(treatments.isDeleted, false))
+          and(
+            eq(treatments.id, treatment.id),
+            eq(treatments.userId, treatment.userId),
+            eq(treatments.isDeleted, false)
+          )
         )
         .returning({ id: treatments.id });
 
@@ -152,7 +157,7 @@ const treatmentRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/treatments/:id',
     {
-      preHandler: app.authenticate,
+      preHandler: [app.authenticate, ensureTreatmentOwnership('id')],
       schema: {
         params: treatmentParamsSchema,
         response: {
@@ -161,20 +166,7 @@ const treatmentRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
-      ensureAuthed(req);
-      const userId = req.user.id;
-      const { id } = req.params;
-
-      const treatment = await db.query.treatments.findFirst({
-        where: and(
-          eq(treatments.id, id),
-          eq(treatments.userId, userId),
-          eq(treatments.isDeleted, false)
-        ),
-      });
-
-      if (!treatment) throw notFound();
-
+      const treatment = getOwnedTreatment(req);
       return { treatment: serializeTreatment(treatment) };
     }
   );
