@@ -175,6 +175,45 @@ describe('CustomerDetail page', () => {
     expect(navigateMock).toHaveBeenCalledWith('/customers');
   });
 
+  it('navigates to customers list when breadcrumb link is clicked', async () => {
+    renderCustomerDetail();
+    await screen.findByRole('heading', { name: 'Dana Vet' });
+
+    const user = userEvent.setup();
+    const customersLink = screen.getAllByText('לקוחות')[0];
+    await user.click(customersLink);
+
+    expect(navigateMock).toHaveBeenCalledWith('/customers');
+  });
+
+  it('allows retrying data load after an error', async () => {
+    getCustomerMock.mockRejectedValueOnce(new Error('load failed'));
+    getCustomerPetsMock.mockRejectedValueOnce(new Error('pets failed'));
+    getCustomerMock.mockResolvedValue(baseCustomer);
+    getCustomerPetsMock.mockResolvedValue(basePets.map(enrichPet));
+
+    renderCustomerDetail();
+
+    const retryButton = await screen.findByRole('button', { name: 'נסה שוב' });
+    const user = userEvent.setup();
+    await user.click(retryButton);
+
+    await waitFor(() => expect(getCustomerMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(getCustomerPetsMock).toHaveBeenCalledTimes(2));
+  });
+
+  it('returns to customers list from not found state', async () => {
+    getCustomerMock.mockRejectedValueOnce(new HttpError(404, 'Not Found'));
+
+    renderCustomerDetail();
+
+    const backButton = await screen.findByRole('button', { name: 'חזרה לרשימת הלקוחות' });
+    const user = userEvent.setup();
+    await user.click(backButton);
+
+    expect(navigateMock).toHaveBeenCalledWith('/customers');
+  });
+
   it('shows empty state when customer has no pets', async () => {
     // Just use the normal baseCustomer - no need to add a pets property
     getCustomerMock.mockResolvedValueOnce(baseCustomer);
@@ -287,4 +326,5 @@ describe('CustomerDetail page', () => {
     // Verify the new pet appears in the UI
     await waitFor(() => expect(screen.getByText('New Pet')).toBeInTheDocument(), { timeout: 7000 });
   }, 10000); // Keep explicit timeout parameter
+
 });
