@@ -222,7 +222,7 @@ export function PetDetail() {
               style={{
                 position: 'absolute',
                 top: 0,
-                right: 0,
+                left: 0,
                 padding: '4px',
                 width: '24px',
                 height: '24px',
