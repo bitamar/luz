@@ -94,9 +94,22 @@ describe('Settings page', () => {
 
   it('displays error message when fetch fails', async () => {
     getSettingsMock.mockRejectedValueOnce(new Error('Network error'));
+    getSettingsMock.mockResolvedValueOnce({
+      user: {
+        id: 'u1',
+        email: 'user@example.com',
+        name: 'Recovered User',
+        avatarUrl: null,
+        phone: '050-9999999',
+      },
+    });
 
     renderWithProviders(<Settings />);
 
     await waitFor(() => expect(screen.getByText('Network error')).toBeInTheDocument());
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'נסה שוב' }));
+    await waitFor(() => expect(getSettingsMock).toHaveBeenCalledTimes(2));
   });
 });
