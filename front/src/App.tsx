@@ -13,6 +13,7 @@ import { Customers } from './pages/Customers';
 import { CustomerDetail } from './pages/CustomerDetail';
 import { PetDetail } from './pages/PetDetail';
 import { RouteErrorBoundary } from './components/RouteErrorBoundary';
+import { GlobalLoadingIndicator } from './components/GlobalLoadingIndicator';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, isHydrated } = useAuth();
@@ -70,6 +71,7 @@ function ProtectedLayout() {
 export default function AppRoutes() {
   return (
     <AuthProvider>
+      <GlobalLoadingIndicator />
       <Routes>
         <Route element={<PlainLayout />}>
           <Route path="/login" element={<Login />} />

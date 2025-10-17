@@ -129,6 +129,7 @@ describe('PetDetail page', () => {
 
   it('shows error state when loading the pet fails', async () => {
     getPetMock.mockRejectedValueOnce(new Error('Request failed: 500'));
+    getPetMock.mockResolvedValueOnce(mockPet);
     restoreConsoleError = suppressConsoleError(/Request failed|Failed to load/);
     renderPetDetail();
 
@@ -136,7 +137,18 @@ describe('PetDetail page', () => {
       expect(screen.getByText('לא ניתן להציג את חיית המחמד כעת')).toBeInTheDocument()
     );
     expect(screen.getByText('Request failed: 500')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /נסה שוב/ })).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    const retryButton = screen.getByRole('button', { name: /נסה שוב/ });
+    const backButton = screen.getByRole('button', { name: 'חזרה ללקוח' });
+
+    await user.click(backButton);
+    expect(navigateMock).toHaveBeenCalledWith('/customers/cust-1');
+    navigateMock.mockClear();
+
+    await user.click(retryButton);
+    await waitFor(() => expect(getPetMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getAllByText('Bolt').length).toBeGreaterThan(0));
   });
 
   it('shows not found state when pet does not exist', async () => {
@@ -146,5 +158,39 @@ describe('PetDetail page', () => {
 
     expect(await screen.findByText('חיית המחמד לא נמצאה')).toBeInTheDocument();
     expect(screen.getByText('ייתכן שהחיה נמחקה או שאינך מורשה לצפות בה.')).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'חזרה ללקוח' }));
+    expect(navigateMock).toHaveBeenCalledWith('/customers/cust-1');
+  });
+
+  it('allows closing the delete modal without deleting the pet', async () => {
+    const user = userEvent.setup();
+    renderPetDetail();
+
+    await waitFor(() => expect(getPetMock).toHaveBeenCalled());
+
+    await user.click(await screen.findByTestId('pet-actions-trigger'));
+    const firstDropdown = await screen.findByTestId('pet-actions-dropdown');
+    await user.click(within(firstDropdown).getByText('מחק חיית מחמד'));
+
+    const modal = await screen.findByRole('dialog', { name: 'מחיקת חיית מחמד' });
+    await user.click(within(modal).getByRole('button', { name: 'ביטול' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'מחיקת חיית מחמד' })).not.toBeInTheDocument()
+    );
+
+    await user.click(await screen.findByTestId('pet-actions-trigger'));
+    const secondDropdown = await screen.findByTestId('pet-actions-dropdown');
+    await user.click(within(secondDropdown).getByText('מחק חיית מחמד'));
+    await screen.findByRole('dialog', { name: 'מחיקת חיית מחמד' });
+
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.getByTestId('pet-actions-trigger')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'מחיקת חיית מחמד' })).not.toBeInTheDocument()
+    );
+
+    expect(deletePetMock).not.toHaveBeenCalled();
   });
 });

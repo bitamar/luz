@@ -10,6 +10,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { BrowserRouter } from 'react-router-dom';
 import { queryClient } from './lib/queryClient';
 import App from './App';
+import { AppErrorBoundary } from './components/AppErrorBoundary';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -18,7 +19,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <MantineProvider defaultColorScheme="dark">
           <Notifications position="top-right" />
           <BrowserRouter>
-            <App />
+            <AppErrorBoundary>
+              <App />
+            </AppErrorBoundary>
           </BrowserRouter>
         </MantineProvider>
       </DirectionProvider>
