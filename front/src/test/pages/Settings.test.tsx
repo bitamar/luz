@@ -1,9 +1,21 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, waitFor, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+const mantineMocks = vi.hoisted(() => ({
+  useMantineColorSchemeMock: vi.fn(),
+}));
+
+vi.mock('@mantine/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@mantine/core')>();
+  return {
+    ...actual,
+    useMantineColorScheme: mantineMocks.useMantineColorSchemeMock,
+  };
+});
+
 import { Settings } from '../../pages/Settings';
 import * as authApi from '../../auth/api';
 import { renderWithProviders } from '../utils/renderWithProviders';
-import userEvent from '@testing-library/user-event';
 
 vi.mock('../../auth/api');
 
@@ -22,6 +34,14 @@ describe('Settings page', () => {
         phone: '050-9999999',
       },
     });
+    mantineMocks.useMantineColorSchemeMock.mockReturnValue({
+      colorScheme: 'light',
+      setColorScheme: vi.fn(),
+    });
+  });
+
+  afterEach(() => {
+    mantineMocks.useMantineColorSchemeMock.mockReset();
   });
 
   it('renders user settings form with fetched data', async () => {
@@ -56,11 +76,40 @@ describe('Settings page', () => {
     });
   });
 
+  it('toggles color scheme between light and dark', async () => {
+    const setColorScheme = vi.fn();
+    mantineMocks.useMantineColorSchemeMock.mockReturnValue({
+      colorScheme: 'light',
+      setColorScheme,
+    });
+
+    renderWithProviders(<Settings />);
+
+    const themeToggle = await screen.findByRole('switch');
+    const user = userEvent.setup();
+    await user.click(themeToggle);
+
+    expect(setColorScheme).toHaveBeenCalledWith('dark');
+  });
+
   it('displays error message when fetch fails', async () => {
     getSettingsMock.mockRejectedValueOnce(new Error('Network error'));
+    getSettingsMock.mockResolvedValueOnce({
+      user: {
+        id: 'u1',
+        email: 'user@example.com',
+        name: 'Recovered User',
+        avatarUrl: null,
+        phone: '050-9999999',
+      },
+    });
 
     renderWithProviders(<Settings />);
 
     await waitFor(() => expect(screen.getByText('Network error')).toBeInTheDocument());
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'נסה שוב' }));
+    await waitFor(() => expect(getSettingsMock).toHaveBeenCalledTimes(2));
   });
 });

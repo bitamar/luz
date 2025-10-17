@@ -15,21 +15,23 @@ import {
   Title,
 } from '@mantine/core';
 import { IconDots, IconX } from '@tabler/icons-react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getPet, deletePet, getCustomer } from '../api/customers';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getPet, deletePet, getCustomer, type Customer, type Pet } from '../api/customers';
 import { StatusCard } from '../components/StatusCard';
 import { queryKeys } from '../lib/queryKeys';
-import {
-  extractErrorMessage,
-  showErrorNotification,
-  showSuccessNotification,
-} from '../lib/notifications';
+import { extractErrorMessage } from '../lib/notifications';
 import { HttpError } from '../lib/http';
+import { useApiMutation } from '../lib/useApiMutation';
 
 export function PetDetail() {
   const { customerId, petId } = useParams<{ customerId: string; petId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const customersListKey = queryKeys.customers();
+  const customerQueryKey = customerId
+    ? queryKeys.customer(customerId)
+    : (['customer', ''] as const);
+  const petsListKey = customerId ? queryKeys.pets(customerId) : (['pets', ''] as const);
 
   const petQueryKey = useMemo(() => {
     if (!customerId || !petId) return ['pet', ''];
@@ -43,27 +45,70 @@ export function PetDetail() {
   });
 
   const customerQuery = useQuery({
-    queryKey: customerId ? queryKeys.customer(customerId) : ['customer', ''],
+    queryKey: customerQueryKey,
     queryFn: ({ signal }: { signal: AbortSignal }) => getCustomer(customerId!, { signal }),
     enabled: Boolean(customerId),
   });
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
-  const deletePetMutation = useMutation({
+  const deletePetMutation = useApiMutation({
     mutationFn: () => deletePet(customerId!, petId!),
+    successToast: { message: 'חיית המחמד נמחקה' },
+    errorToast: { fallbackMessage: 'מחיקת חיית המחמד נכשלה' },
+    onMutate: async () => {
+      if (!customerId || !petId) return;
+      await queryClient.cancelQueries({ queryKey: petsListKey });
+      await queryClient.cancelQueries({ queryKey: petQueryKey });
+      await queryClient.cancelQueries({ queryKey: customerQueryKey });
+      await queryClient.cancelQueries({ queryKey: customersListKey });
+      const previousPet = queryClient.getQueryData(petQueryKey);
+      const previousPets = queryClient.getQueryData<Pet[]>(petsListKey) ?? [];
+      const previousCustomer = queryClient.getQueryData<Customer | undefined>(customerQueryKey);
+      const previousCustomersList = queryClient.getQueryData<Customer[]>(customersListKey) ?? [];
+      queryClient.setQueryData(petQueryKey, undefined);
+      queryClient.setQueryData<Pet[]>(petsListKey, (old = []) =>
+        old.filter((pet) => pet.id !== petId)
+      );
+      if (previousCustomer) {
+        queryClient.setQueryData<Customer>(customerQueryKey, {
+          ...previousCustomer,
+          petsCount: Math.max(previousCustomer.petsCount - 1, 0),
+        });
+      }
+      if (previousCustomersList.length > 0) {
+        queryClient.setQueryData<Customer[]>(customersListKey, (old = []) =>
+          old.map((customer) =>
+            customer.id === customerId
+              ? { ...customer, petsCount: Math.max(customer.petsCount - 1, 0) }
+              : customer
+          )
+        );
+      }
+      return { previousPet, previousPets, previousCustomer, previousCustomersList };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousPet !== undefined) {
+        queryClient.setQueryData(petQueryKey, context.previousPet);
+      }
+      queryClient.setQueryData(petsListKey, context?.previousPets ?? []);
+      if (context?.previousCustomer) {
+        queryClient.setQueryData(customerQueryKey, context.previousCustomer);
+      }
+      if (context?.previousCustomersList) {
+        queryClient.setQueryData(customersListKey, context.previousCustomersList);
+      }
+    },
     onSuccess: () => {
-      showSuccessNotification('חיית המחמד נמחקה');
-      void queryClient.invalidateQueries({ queryKey: queryKeys.pets(customerId!) });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.customer(customerId!) });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.customers() });
+      setDeleteModalOpen(false);
       navigate(`/customers/${customerId}`);
     },
-    onError: (err: unknown) => {
-      showErrorNotification(extractErrorMessage(err, 'מחיקת חיית המחמד נכשלה'));
-    },
     onSettled: () => {
-      setDeleteModalOpen(false);
+      if (!customerId || !petId) return;
+      void queryClient.invalidateQueries({ queryKey: petsListKey });
+      void queryClient.invalidateQueries({ queryKey: petQueryKey });
+      void queryClient.invalidateQueries({ queryKey: customerQueryKey });
+      void queryClient.invalidateQueries({ queryKey: customersListKey });
     },
   });
 
@@ -177,7 +222,7 @@ export function PetDetail() {
               style={{
                 position: 'absolute',
                 top: 0,
-                right: 0,
+                left: 0,
                 padding: '4px',
                 width: '24px',
                 height: '24px',

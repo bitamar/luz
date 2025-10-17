@@ -9,16 +9,13 @@ import {
   useMantineColorScheme,
 } from '@mantine/core';
 import { IconMoon, IconSun } from '@tabler/icons-react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSettings, updateSettings } from '../auth/api';
 import { StatusCard } from '../components/StatusCard';
 import { queryKeys } from '../lib/queryKeys';
 import type { SettingsResponse } from '@contracts/users';
-import {
-  extractErrorMessage,
-  showErrorNotification,
-  showSuccessNotification,
-} from '../lib/notifications';
+import { extractErrorMessage } from '../lib/notifications';
+import { useApiMutation } from '../lib/useApiMutation';
 
 export function Settings() {
   const { colorScheme, setColorScheme } = useMantineColorScheme();
@@ -38,15 +35,13 @@ export function Settings() {
     }
   }, [settingsQuery.data]);
 
-  const updateSettingsMutation = useMutation({
+  const updateSettingsMutation = useApiMutation({
     mutationFn: updateSettings,
+    successToast: { message: 'ההגדרות נשמרו בהצלחה' },
+    errorToast: { fallbackMessage: 'שמירת ההגדרות נכשלה' },
     onSuccess: (data: SettingsResponse) => {
-      showSuccessNotification('ההגדרות נשמרו בהצלחה');
       queryClient.setQueryData(queryKeys.settings(), data);
       void queryClient.invalidateQueries({ queryKey: queryKeys.me() });
-    },
-    onError: (err: unknown) => {
-      showErrorNotification(extractErrorMessage(err, 'שמירת ההגדרות נכשלה'));
     },
   });
 
