@@ -17,7 +17,7 @@
 - [x] global error handler in Fastify (currently errors bubble up inconsistently) _(done: registered error plugin in `app.ts`)_
 - [x] don't pass internal error messages outside on prod
 - [x] fix pets summary on the customers ep - now the customers list always shows 0 pets it should have just a count for now
-- [ ] 90% coverage + show status on pr
+- [x] 90% coverage + show status on pr
 
 ### Frontend Critical
 - [x] add state management library (TanStack Query) — see plan below

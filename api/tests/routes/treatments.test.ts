@@ -1,13 +1,14 @@
 import { beforeAll, afterAll, beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
+import * as sessionModule from '../../src/auth/session.js';
+import * as treatmentService from '../../src/services/treatment-service.js';
 import { buildServer } from '../../src/app.js';
 import { resetDb } from '../utils/db.js';
 import { injectAuthed } from '../utils/inject.js';
 import { db } from '../../src/db/client.js';
 import { users } from '../../src/db/schema.js';
-import * as sessionModule from '../../src/auth/session.js';
-import * as treatmentService from '../../src/services/treatment-service.js';
+import { conflict } from '../../src/lib/app-error.js';
 
 vi.mock('openid-client', () => ({
   discovery: vi.fn().mockResolvedValue({}),
@@ -130,7 +131,7 @@ describe('routes/treatments', () => {
   it('returns conflict when creating duplicate treatment name', async () => {
     const { sessionId } = await createAuthedUser();
 
-    const conflictError = Object.assign(new Error('duplicate'), { code: 'duplicate_name' });
+    const conflictError = conflict({ code: 'duplicate_name' });
     vi.spyOn(treatmentService, 'createTreatmentForUser').mockRejectedValue(conflictError);
 
     const res = await injectAuthed(app, sessionId, {
