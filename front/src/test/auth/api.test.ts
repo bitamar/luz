@@ -51,7 +51,8 @@ describe('auth api', () => {
   });
 
   it('getGoogleLoginUrl builds URL from API base', () => {
-    expect(getGoogleLoginUrl()).toBe('http://localhost:3000/auth/google');
+    const expectedUrl = `${import.meta.env.VITE_API_BASE_URL}/auth/google`;
+    expect(getGoogleLoginUrl()).toBe(expectedUrl);
   });
 
   it('getSettings returns user settings', async () => {

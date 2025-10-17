@@ -32,7 +32,9 @@ describe('fetchJson', () => {
       headers: { 'X-Test': 'yes' },
     });
 
-    expect(fetchMock).toHaveBeenCalledWith('http://localhost:3000/items', {
+    const expectedUrl = `${import.meta.env.VITE_API_BASE_URL}/items`;
+
+    expect(fetchMock).toHaveBeenCalledWith(expectedUrl, {
       credentials: 'include',
       headers: {
         'X-Test': 'yes',
