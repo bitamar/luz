@@ -1,11 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  getGoogleLoginUrl,
-  getMe,
-  getSettings,
-  logout,
-  updateSettings,
-} from '../../auth/api';
+import { getGoogleLoginUrl, getMe, getSettings, logout, updateSettings } from '../../auth/api';
 import { fetchJson } from '../../lib/http';
 
 vi.mock('../../lib/http', () => ({
@@ -78,7 +72,9 @@ describe('auth api', () => {
     const result = await updateSettings(payload);
 
     expect(fetchJsonMock).toHaveBeenCalled();
-    const [, init] = fetchJsonMock.mock.calls[0];
+    const call = fetchJsonMock.mock.calls[0];
+    if (!call) throw new Error('Expected fetchJson to be called with arguments');
+    const [, init] = call;
     expect(init?.method).toBe('PUT');
     expect(JSON.parse((init?.body as string) ?? '')).toEqual(payload);
     expect(result).toEqual(updated);

@@ -87,6 +87,17 @@ describe('customers api', () => {
     expect(result).toEqual(customer);
   });
 
+  it('getCustomer forwards signal when provided', async () => {
+    const controller = new AbortController();
+    fetchJsonMock.mockResolvedValueOnce({ customer });
+
+    await getCustomer(customer.id, { signal: controller.signal });
+
+    expect(fetchJsonMock).toHaveBeenCalledWith(`/customers/${customer.id}`, {
+      signal: controller.signal,
+    });
+  });
+
   it('getPet fetches specific pet', async () => {
     fetchJsonMock.mockResolvedValueOnce({ pet });
 
@@ -97,6 +108,17 @@ describe('customers api', () => {
       undefined
     );
     expect(result).toEqual(pet);
+  });
+
+  it('getPet forwards signal when provided', async () => {
+    const controller = new AbortController();
+    fetchJsonMock.mockResolvedValueOnce({ pet });
+
+    await getPet(customer.id, pet.id, { signal: controller.signal });
+
+    expect(fetchJsonMock).toHaveBeenCalledWith(`/customers/${customer.id}/pets/${pet.id}`, {
+      signal: controller.signal,
+    });
   });
 
   it('addPetToCustomer sends payload and returns created pet', async () => {

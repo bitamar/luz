@@ -36,6 +36,15 @@ describe('treatments api', () => {
     expect(result).toEqual([treatment]);
   });
 
+  it('listTreatments works without options', async () => {
+    fetchJsonMock.mockResolvedValueOnce({ treatments: [treatment] });
+
+    const result = await listTreatments();
+
+    expect(fetchJsonMock).toHaveBeenCalledWith('/treatments', undefined);
+    expect(result).toEqual([treatment]);
+  });
+
   it('createTreatment sends payload and returns created treatment', async () => {
     const payload = { name: treatment.name, defaultIntervalMonths: 12, price: 200 };
     fetchJsonMock.mockResolvedValueOnce({ treatment });

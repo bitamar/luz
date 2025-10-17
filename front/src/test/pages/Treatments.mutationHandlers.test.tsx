@@ -33,7 +33,9 @@ const queryClientMock = {
     const cacheKey = JSON.stringify(key);
     const previous = queryDataStore.get(cacheKey);
     const value =
-      typeof updater === 'function' ? (updater as (current: unknown) => unknown)(previous) : updater;
+      typeof updater === 'function'
+        ? (updater as (current: unknown) => unknown)(previous)
+        : updater;
     queryDataStore.set(cacheKey, value);
     return value;
   }),
@@ -89,9 +91,8 @@ describe('Treatments mutation handlers', () => {
 
     vi.spyOn(apiMutationModule, 'useApiMutation').mockImplementation((options) => {
       capturedMutations.push(options);
-      return { mutateAsync: vi.fn(), isPending: false } as ReturnType<
-        typeof apiMutationModule.useApiMutation
-      >;
+      const mutationResult = { mutateAsync: vi.fn(), isPending: false } as const;
+      return mutationResult as unknown as ReturnType<typeof apiMutationModule.useApiMutation>;
     });
   });
 
@@ -116,7 +117,7 @@ describe('Treatments mutation handlers', () => {
     const context = { previousTreatments: baseTreatments };
     const initialCalls = queryClientMock.setQueryData.mock.calls.length;
 
-    createOptions.onError(new Error('create failed'), undefined, context);
+    createOptions.onError(new Error('create failed'), undefined, context, undefined as never);
 
     expect(queryClientMock.setQueryData.mock.calls.length).toBe(initialCalls + 1);
     expect(queryClientMock.setQueryData).toHaveBeenCalledWith(
@@ -133,7 +134,7 @@ describe('Treatments mutation handlers', () => {
     const context = { previousTreatments: baseTreatments };
     const initialCalls = queryClientMock.setQueryData.mock.calls.length;
 
-    updateOptions.onError(new Error('update failed'), undefined, context);
+    updateOptions.onError(new Error('update failed'), undefined, context, undefined as never);
 
     expect(queryClientMock.setQueryData.mock.calls.length).toBe(initialCalls + 1);
     expect(queryClientMock.setQueryData).toHaveBeenCalledWith(
@@ -150,7 +151,7 @@ describe('Treatments mutation handlers', () => {
     const context = { previousTreatments: baseTreatments };
     const initialCalls = queryClientMock.setQueryData.mock.calls.length;
 
-    deleteOptions.onError(new Error('delete failed'), undefined, context);
+    deleteOptions.onError(new Error('delete failed'), undefined, context, undefined as never);
 
     expect(queryClientMock.setQueryData.mock.calls.length).toBe(initialCalls + 1);
     expect(queryClientMock.setQueryData).toHaveBeenCalledWith(

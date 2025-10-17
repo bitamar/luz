@@ -51,11 +51,13 @@ describe('fetchJson', () => {
       json: vi.fn().mockResolvedValueOnce(errorBody),
     });
 
-    await expect(fetchJson('/missing')).rejects.toMatchObject<HttpError>({
+    const expectedError: Partial<HttpError> = {
       status: 404,
       message: 'Not Found',
       body: errorBody,
-    });
+    };
+
+    await expect(fetchJson('/missing')).rejects.toMatchObject(expectedError);
   });
 
   it('throws HttpError with fallback message when body not json', async () => {
@@ -65,10 +67,12 @@ describe('fetchJson', () => {
       json: vi.fn().mockRejectedValueOnce(new Error('bad json')),
     });
 
-    await expect(fetchJson('/broken')).rejects.toMatchObject<HttpError>({
+    const expectedError: Partial<HttpError> = {
       status: 500,
       message: 'Request failed: 500',
       body: undefined,
-    });
+    };
+
+    await expect(fetchJson('/broken')).rejects.toMatchObject(expectedError);
   });
 });

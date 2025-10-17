@@ -148,6 +148,7 @@ describe('PetDetail page', () => {
 
     await user.click(retryButton);
     await waitFor(() => expect(getPetMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getAllByText('Bolt').length).toBeGreaterThan(0));
   });
 
   it('shows not found state when pet does not exist', async () => {
@@ -185,6 +186,7 @@ describe('PetDetail page', () => {
     await screen.findByRole('dialog', { name: 'מחיקת חיית מחמד' });
 
     await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.getByTestId('pet-actions-trigger')).toBeInTheDocument());
     await waitFor(() =>
       expect(screen.queryByRole('dialog', { name: 'מחיקת חיית מחמד' })).not.toBeInTheDocument()
     );

@@ -50,4 +50,31 @@ describe('Header', () => {
     fireEvent.click(burgerButton);
     expect(setOpened).toHaveBeenCalledWith(expect.any(Function));
   });
+
+  it('falls back to user email when name is missing', () => {
+    useAuthMock.mockReturnValue({
+      user: {
+        id: '2',
+        name: null,
+        email: 'fallback@example.com',
+        avatarUrl: null,
+        phone: null,
+      },
+      logout: vi.fn(),
+      loginWithGoogle: vi.fn(),
+      isHydrated: true,
+    } as ReturnType<typeof useAuth>);
+
+    renderWithProviders(
+      <AuthProvider>
+        <AppShell header={{ height: 64 }}>
+          <AppShell.Header>
+            <Header opened={false} setOpened={vi.fn()} />
+          </AppShell.Header>
+        </AppShell>
+      </AuthProvider>
+    );
+
+    expect(screen.getByText('fallback@example.com')).toBeInTheDocument();
+  });
 });

@@ -52,7 +52,9 @@ const queryClientMock = {
     const cacheKey = JSON.stringify(key);
     const previous = queryDataStore.get(cacheKey);
     const value =
-      typeof updater === 'function' ? (updater as (current: unknown) => unknown)(previous) : updater;
+      typeof updater === 'function'
+        ? (updater as (current: unknown) => unknown)(previous)
+        : updater;
     queryDataStore.set(cacheKey, value);
     return value;
   }),
@@ -113,9 +115,8 @@ describe('CustomerDetail mutation handlers', () => {
 
     vi.spyOn(apiMutationModule, 'useApiMutation').mockImplementation((options) => {
       capturedMutations.push(options);
-      return { mutateAsync: vi.fn(), isPending: false } as ReturnType<
-        typeof apiMutationModule.useApiMutation
-      >;
+      const mutationResult = { mutateAsync: vi.fn(), isPending: false } as const;
+      return mutationResult as unknown as ReturnType<typeof apiMutationModule.useApiMutation>;
     });
   });
 
@@ -143,7 +144,7 @@ describe('CustomerDetail mutation handlers', () => {
       previousCustomersList: [{ ...baseCustomer, petsCount: 5 }],
     };
 
-    addPetOptions.onError(new Error('failed'), undefined, context);
+    addPetOptions.onError(new Error('failed'), undefined, context, undefined as never);
 
     expect(queryClientMock.setQueryData).toHaveBeenCalledWith(
       queryKeys.pets('cust-1'),
@@ -170,7 +171,12 @@ describe('CustomerDetail mutation handlers', () => {
       previousPets: basePets,
     };
 
-    deleteCustomerOptions.onError(new Error('delete failed'), undefined, context);
+    deleteCustomerOptions.onError(
+      new Error('delete failed'),
+      undefined,
+      context,
+      undefined as never
+    );
 
     expect(queryClientMock.setQueryData).toHaveBeenCalledWith(
       queryKeys.customers(),
@@ -198,7 +204,12 @@ describe('CustomerDetail mutation handlers', () => {
       previousCustomersList: [{ ...baseCustomer, petsCount: 4 }],
     };
 
-    deletePetOptions.onError(new Error('pet delete failed'), undefined, context);
+    deletePetOptions.onError(
+      new Error('pet delete failed'),
+      undefined,
+      context,
+      undefined as never
+    );
 
     expect(queryClientMock.setQueryData).toHaveBeenCalledWith(
       queryKeys.pets('cust-1'),

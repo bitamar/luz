@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { act, screen } from '@testing-library/react';
 import { GlobalLoadingIndicator } from '../../components/GlobalLoadingIndicator';
 import { renderWithProviders } from '../utils/renderWithProviders';
@@ -17,7 +17,7 @@ const useIsFetchingMock = vi.mocked(useIsFetching);
 const useIsMutatingMock = vi.mocked(useIsMutating);
 
 describe('GlobalLoadingIndicator', () => {
-  let timeoutSpy: ReturnType<typeof vi.spyOn>;
+  let timeoutSpy: MockInstance<typeof global.setTimeout>;
 
   beforeEach(() => {
     vi.useFakeTimers();

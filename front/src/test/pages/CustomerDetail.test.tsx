@@ -180,7 +180,7 @@ describe('CustomerDetail page', () => {
     await screen.findByRole('heading', { name: 'Dana Vet' });
 
     const user = userEvent.setup();
-    const customersLink = screen.getAllByText('לקוחות')[0];
+    const customersLink = screen.getAllByText('לקוחות')[0]!;
     await user.click(customersLink);
 
     expect(navigateMock).toHaveBeenCalledWith('/customers');
@@ -326,5 +326,4 @@ describe('CustomerDetail page', () => {
     // Verify the new pet appears in the UI
     await waitFor(() => expect(screen.getByText('New Pet')).toBeInTheDocument(), { timeout: 7000 });
   }, 10000); // Keep explicit timeout parameter
-
 });

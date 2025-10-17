@@ -40,7 +40,9 @@ const queryClientMock = {
     const cacheKey = JSON.stringify(key);
     const previous = queryDataStore.get(cacheKey);
     const value =
-      typeof updater === 'function' ? (updater as (current: unknown) => unknown)(previous) : updater;
+      typeof updater === 'function'
+        ? (updater as (current: unknown) => unknown)(previous)
+        : updater;
     queryDataStore.set(cacheKey, value);
     return value;
   }),
@@ -103,9 +105,8 @@ describe('PetDetail mutation handlers', () => {
 
     vi.spyOn(apiMutationModule, 'useApiMutation').mockImplementation((options) => {
       capturedMutations.push(options);
-      return { mutateAsync: vi.fn(), isPending: false } as ReturnType<
-        typeof apiMutationModule.useApiMutation
-      >;
+      const mutationResult = { mutateAsync: vi.fn(), isPending: false } as const;
+      return mutationResult as unknown as ReturnType<typeof apiMutationModule.useApiMutation>;
     });
   });
 
@@ -136,7 +137,7 @@ describe('PetDetail mutation handlers', () => {
 
     const initialCalls = queryClientMock.setQueryData.mock.calls.length;
 
-    deletePetOptions.onError(new Error('failure'), undefined, context);
+    deletePetOptions.onError(new Error('failure'), undefined, context, undefined as never);
 
     expect(queryClientMock.setQueryData.mock.calls.length).toBe(initialCalls + 4);
     expect(queryClientMock.setQueryData).toHaveBeenCalledWith(
