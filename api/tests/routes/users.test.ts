@@ -1,5 +1,5 @@
 import { beforeAll, afterAll, beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import crypto from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../../src/app.js';
 import { resetDb } from '../utils/db.js';
@@ -20,13 +20,13 @@ async function createAuthedUser(overrides: Partial<typeof users.$inferInsert> = 
   const [user] = await db
     .insert(users)
     .values({
-      email: overrides.email ?? `user-${crypto.randomUUID()}@example.com`,
+      email: overrides.email ?? `user-${randomUUID()}@example.com`,
       name: overrides.name ?? 'Settings Tester',
       phone: overrides.phone ?? null,
     })
     .returning();
 
-  const sessionId = `session-${crypto.randomUUID()}`;
+  const sessionId = `session-${randomUUID()}`;
   const now = new Date();
   vi.spyOn(sessionModule, 'getSession').mockResolvedValue({
     id: sessionId,

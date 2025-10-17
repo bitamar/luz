@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it } from 'vitest';
-import crypto from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { resetDb } from '../utils/db.js';
 import { db } from '../../src/db/client.js';
 import { users } from '../../src/db/schema.js';
@@ -14,7 +14,7 @@ import {
 async function createUser() {
   const [user] = await db
     .insert(users)
-    .values({ email: `service-${crypto.randomUUID()}@example.com`, name: 'Service Tester' })
+    .values({ email: `service-${randomUUID()}@example.com`, name: 'Service Tester' })
     .returning();
   return user;
 }
@@ -62,7 +62,7 @@ describe('treatment-service', () => {
 
   it('throws not found when accessing missing treatment', async () => {
     const user = await createUser();
-    await expect(getTreatmentForUser(user.id, crypto.randomUUID())).rejects.toHaveProperty(
+    await expect(getTreatmentForUser(user.id, randomUUID())).rejects.toHaveProperty(
       'statusCode',
       404
     );

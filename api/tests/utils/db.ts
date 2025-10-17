@@ -1,4 +1,4 @@
-import crypto from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { URL } from 'node:url';
 import pg from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -78,7 +78,7 @@ export async function createTestUserWithSession() {
     const [user] = await tx
       .insert(users)
       .values({
-        email: `tester-${crypto.randomUUID()}@example.com`,
+        email: `tester-${randomUUID()}@example.com`,
         name: 'Test User',
       })
       .returning();
@@ -87,7 +87,7 @@ export async function createTestUserWithSession() {
     const [session] = await tx
       .insert(sessions)
       .values({
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         userId: user.id,
         createdAt: now,
         lastAccessedAt: now,

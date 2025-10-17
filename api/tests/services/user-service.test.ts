@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it } from 'vitest';
-import crypto from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { resetDb } from '../utils/db.js';
 import { db } from '../../src/db/client.js';
 import { users } from '../../src/db/schema.js';
@@ -9,7 +9,7 @@ async function createUser(overrides: Partial<typeof users.$inferInsert> = {}) {
   const [user] = await db
     .insert(users)
     .values({
-      email: overrides.email ?? `user-service-${crypto.randomUUID()}@example.com`,
+      email: overrides.email ?? `user-service-${randomUUID()}@example.com`,
       name: overrides.name ?? 'Initial Name',
       phone: overrides.phone ?? null,
     })

@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it } from 'vitest';
-import crypto from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { resetDb } from '../utils/db.js';
 import { db } from '../../src/db/client.js';
 import { users } from '../../src/db/schema.js';
@@ -18,7 +18,7 @@ import {
 async function createUser() {
   const [user] = await db
     .insert(users)
-    .values({ email: `customer-${crypto.randomUUID()}@example.com`, name: 'Customer Tester' })
+    .values({ email: `customer-${randomUUID()}@example.com`, name: 'Customer Tester' })
     .returning();
   return user;
 }
@@ -83,7 +83,7 @@ describe('customer-service', () => {
     const user = await createUser();
     const customer = await createCustomerForUser(user.id, { name: 'Missing', email: null });
 
-    await expect(getPetForCustomer(customer.id, crypto.randomUUID())).rejects.toHaveProperty(
+    await expect(getPetForCustomer(customer.id, randomUUID())).rejects.toHaveProperty(
       'statusCode',
       404
     );

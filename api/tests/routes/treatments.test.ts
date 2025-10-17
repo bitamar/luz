@@ -1,5 +1,5 @@
 import { beforeAll, afterAll, beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import crypto from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../../src/app.js';
 import { resetDb } from '../utils/db.js';
@@ -30,10 +30,10 @@ function ensureSessionMock() {
 async function createAuthedUser() {
   const [user] = await db
     .insert(users)
-    .values({ email: `treat-${crypto.randomUUID()}@example.com`, name: 'Treat Tester' })
+    .values({ email: `treat-${randomUUID()}@example.com`, name: 'Treat Tester' })
     .returning();
 
-  const sessionId = `session-${crypto.randomUUID()}`;
+  const sessionId = `session-${randomUUID()}`;
   const now = new Date();
   ensureSessionMock();
   const session: TestSession = {
@@ -115,7 +115,7 @@ describe('routes/treatments', () => {
 
   it('returns 404 when updating non-existent treatment', async () => {
     const { sessionId } = await createAuthedUser();
-    const missingId = crypto.randomUUID();
+    const missingId = randomUUID();
 
     const res = await injectAuthed(app, sessionId, {
       method: 'PUT',
