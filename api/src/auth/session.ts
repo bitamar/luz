@@ -1,4 +1,4 @@
-import crypto from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type { DbUser, SessionData } from './types.js';
 import { db } from '../db/client.js';
 import { eq } from 'drizzle-orm';
@@ -6,7 +6,7 @@ import { sessions as sessionsTable } from '../db/schema.js';
 import { SESSION_TTL } from './constants.js';
 
 export async function createSession(user: DbUser): Promise<SessionData> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 1000 * SESSION_TTL);
   await db

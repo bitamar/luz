@@ -1,5 +1,5 @@
 import { beforeAll, afterAll, beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import crypto from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../../src/app.js';
 import { resetDb, seedCustomer, seedPet } from '../utils/db.js';
@@ -48,12 +48,12 @@ describe('routes/customers', () => {
     const [user] = await db
       .insert(users)
       .values({
-        email: `test-${crypto.randomUUID()}@example.com`,
+        email: `test-${randomUUID()}@example.com`,
         name: 'Test User',
       })
       .returning();
 
-    const sessionId = `session-${crypto.randomUUID()}`;
+    const sessionId = `session-${randomUUID()}`;
     const now = new Date();
     vi.spyOn(sessionModule, 'getSession').mockResolvedValue({
       id: sessionId,

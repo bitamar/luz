@@ -1,7 +1,7 @@
 ## Architecture Improvements (DO NOW)
 
 ### devex
-- [ ] Webstorm complaints: TS1192: Module "node:crypto" has no default export.
+- [x] Webstorm complaints: TS1192: Module "node:crypto" has no default export.
 - [ ] fix all the places with one letter local vars. prefer destructure or full names
 - [ ] a lot of deprecated zod methods, fix them
 - [ ] can we remove all the typeof whatever === 'string' checks and rely on zod?
@@ -17,7 +17,7 @@
 - [x] global error handler in Fastify (currently errors bubble up inconsistently) _(done: registered error plugin in `app.ts`)_
 - [x] don't pass internal error messages outside on prod
 - [x] fix pets summary on the customers ep - now the customers list always shows 0 pets it should have just a count for now
-- [ ] 90% coverage + show status on pr
+- [x] 90% coverage + show status on pr
 
 ### Frontend Critical
 - [x] add state management library (TanStack Query) — see plan below
@@ -56,8 +56,8 @@
 
 ### Code Organization
 - [ ] separate validation logic from route handlers (create validation schemas)
-- [ ] create service layer - currently business logic in route handlers
-- [ ] create repository layer - currently direct DB access in routes
+- [x] create service layer - currently business logic in route handlers
+- [x] create repository layer - currently direct DB access in routes
 - [ ] shared TypeScript types between frontend/backend (monorepo with shared package)
 
 ## MVP / Core Features

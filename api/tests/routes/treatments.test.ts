@@ -1,12 +1,14 @@
 import { beforeAll, afterAll, beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import crypto from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
+import * as sessionModule from '../../src/auth/session.js';
+import * as treatmentService from '../../src/services/treatment-service.js';
 import { buildServer } from '../../src/app.js';
 import { resetDb } from '../utils/db.js';
 import { injectAuthed } from '../utils/inject.js';
 import { db } from '../../src/db/client.js';
 import { users } from '../../src/db/schema.js';
-import * as sessionModule from '../../src/auth/session.js';
+import { conflict } from '../../src/lib/app-error.js';
 
 vi.mock('openid-client', () => ({
   discovery: vi.fn().mockResolvedValue({}),
@@ -14,20 +16,34 @@ vi.mock('openid-client', () => ({
   authorizationCodeGrant: vi.fn(),
 }));
 
+type TestSession = NonNullable<Awaited<ReturnType<typeof sessionModule.getSession>>>;
+
+const sessionStore = new Map<string, TestSession>();
+
+function ensureSessionMock() {
+  if (!vi.isMockFunction(sessionModule.getSession)) {
+    vi.spyOn(sessionModule, 'getSession').mockImplementation(async (sessionId: string) => {
+      return sessionStore.get(sessionId);
+    });
+  }
+}
+
 async function createAuthedUser() {
   const [user] = await db
     .insert(users)
-    .values({ email: `treat-${crypto.randomUUID()}@example.com`, name: 'Treat Tester' })
+    .values({ email: `treat-${randomUUID()}@example.com`, name: 'Treat Tester' })
     .returning();
 
-  const sessionId = `session-${crypto.randomUUID()}`;
+  const sessionId = `session-${randomUUID()}`;
   const now = new Date();
-  vi.spyOn(sessionModule, 'getSession').mockResolvedValue({
+  ensureSessionMock();
+  const session: TestSession = {
     id: sessionId,
     user,
     createdAt: now,
     lastAccessedAt: now,
-  });
+  };
+  sessionStore.set(sessionId, session);
 
   return { user, sessionId };
 }
@@ -49,6 +65,7 @@ describe('routes/treatments', () => {
 
   afterEach(async () => {
     vi.restoreAllMocks();
+    sessionStore.clear();
     await resetDb();
   });
 
@@ -99,7 +116,7 @@ describe('routes/treatments', () => {
 
   it('returns 404 when updating non-existent treatment', async () => {
     const { sessionId } = await createAuthedUser();
-    const missingId = crypto.randomUUID();
+    const missingId = randomUUID();
 
     const res = await injectAuthed(app, sessionId, {
       method: 'PUT',
@@ -114,10 +131,8 @@ describe('routes/treatments', () => {
   it('returns conflict when creating duplicate treatment name', async () => {
     const { sessionId } = await createAuthedUser();
 
-    const error = Object.assign(new Error('duplicate'), { code: '23505' });
-    const insertSpy = vi.spyOn(db, 'insert').mockImplementation(() => {
-      throw error;
-    });
+    const conflictError = conflict({ code: 'duplicate_name' });
+    vi.spyOn(treatmentService, 'createTreatmentForUser').mockRejectedValue(conflictError);
 
     const res = await injectAuthed(app, sessionId, {
       headers: { 'content-type': 'application/json' },
@@ -126,9 +141,33 @@ describe('routes/treatments', () => {
       payload: { name: 'Duplicate' },
     });
 
-    insertSpy.mockRestore();
+    vi.restoreAllMocks();
 
     expect(res.statusCode).toBe(409);
     expect(res.json()).toMatchObject({ error: 'duplicate_name' });
+  });
+
+  it('allows different users to create treatments with the same name', async () => {
+    const first = await createAuthedUser();
+    const second = await createAuthedUser();
+
+    const createFirst = await injectAuthed(app, first.sessionId, {
+      method: 'POST',
+      url: '/treatments',
+      payload: { name: 'Shared Name', price: 50 },
+    });
+    expect(createFirst.statusCode).toBe(201);
+    const firstBody = createFirst.json() as { treatment: { id: string; userId: string } };
+    expect(firstBody.treatment.userId).toBe(first.user.id);
+
+    const createSecond = await injectAuthed(app, second.sessionId, {
+      method: 'POST',
+      url: '/treatments',
+      payload: { name: 'Shared Name', price: 60 },
+    });
+    expect(createSecond.statusCode).toBe(201);
+    const secondBody = createSecond.json() as { treatment: { id: string; userId: string } };
+    expect(secondBody.treatment.userId).toBe(second.user.id);
+    expect(secondBody.treatment.id).not.toBe(firstBody.treatment.id);
   });
 });
