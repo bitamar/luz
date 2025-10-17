@@ -15,6 +15,18 @@ vi.mock('openid-client', () => ({
   authorizationCodeGrant: vi.fn(),
 }));
 
+type TestSession = NonNullable<Awaited<ReturnType<typeof sessionModule.getSession>>>;
+
+const sessionStore = new Map<string, TestSession>();
+
+function ensureSessionMock() {
+  if (!vi.isMockFunction(sessionModule.getSession)) {
+    vi.spyOn(sessionModule, 'getSession').mockImplementation(async (sessionId: string) => {
+      return sessionStore.get(sessionId);
+    });
+  }
+}
+
 async function createAuthedUser() {
   const [user] = await db
     .insert(users)
@@ -23,12 +35,14 @@ async function createAuthedUser() {
 
   const sessionId = `session-${crypto.randomUUID()}`;
   const now = new Date();
-  vi.spyOn(sessionModule, 'getSession').mockResolvedValue({
+  ensureSessionMock();
+  const session: TestSession = {
     id: sessionId,
     user,
     createdAt: now,
     lastAccessedAt: now,
-  });
+  };
+  sessionStore.set(sessionId, session);
 
   return { user, sessionId };
 }
@@ -50,6 +64,7 @@ describe('routes/treatments', () => {
 
   afterEach(async () => {
     vi.restoreAllMocks();
+    sessionStore.clear();
     await resetDb();
   });
 
@@ -129,5 +144,29 @@ describe('routes/treatments', () => {
 
     expect(res.statusCode).toBe(409);
     expect(res.json()).toMatchObject({ error: 'duplicate_name' });
+  });
+
+  it('allows different users to create treatments with the same name', async () => {
+    const first = await createAuthedUser();
+    const second = await createAuthedUser();
+
+    const createFirst = await injectAuthed(app, first.sessionId, {
+      method: 'POST',
+      url: '/treatments',
+      payload: { name: 'Shared Name', price: 50 },
+    });
+    expect(createFirst.statusCode).toBe(201);
+    const firstBody = createFirst.json() as { treatment: { id: string; userId: string } };
+    expect(firstBody.treatment.userId).toBe(first.user.id);
+
+    const createSecond = await injectAuthed(app, second.sessionId, {
+      method: 'POST',
+      url: '/treatments',
+      payload: { name: 'Shared Name', price: 60 },
+    });
+    expect(createSecond.statusCode).toBe(201);
+    const secondBody = createSecond.json() as { treatment: { id: string; userId: string } };
+    expect(secondBody.treatment.userId).toBe(second.user.id);
+    expect(secondBody.treatment.id).not.toBe(firstBody.treatment.id);
   });
 });
