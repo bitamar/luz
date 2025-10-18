@@ -91,8 +91,8 @@
 - [ ] filter/sort visits (by date, status, customer)
 
 ### Data Management
-- [ ] edit customer details
-- [ ] edit pet details
+- [x] edit customer details
+- [x] edit pet details
 - [ ] edit/cancel visits
 - [ ] edit/update treatment records
 

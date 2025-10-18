@@ -110,6 +110,27 @@ export const customerPetsResponseSchema = z.object({
   pets: z.array(petSchema),
 });
 
+export const updatePetBodySchema = z
+  .object({
+    name: nonEmptyString.optional(),
+    type: petTypeSchema.optional(),
+    gender: petGenderSchema.optional(),
+    dateOfBirth: optionalNullableDateInput,
+    breed: optionalNullableString,
+    isSterilized: optionalNullableBoolean,
+    isCastrated: optionalNullableBoolean,
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    if (!Object.values(data).some((value) => value !== undefined)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'At least one field must be provided',
+        path: [],
+      });
+    }
+  });
+
 export type Customer = z.infer<typeof customerSchema>;
 export type CustomersListResponse = z.infer<typeof customersListResponseSchema>;
 export type CustomerResponse = z.infer<typeof customerResponseSchema>;
@@ -124,3 +145,4 @@ export type CreatePetBody = z.infer<typeof createPetBodySchema>;
 export type CustomerPetsParams = z.infer<typeof customerPetsParamsSchema>;
 export type CustomerPetParams = z.infer<typeof customerPetParamsSchema>;
 export type CustomerPetsResponse = z.infer<typeof customerPetsResponseSchema>;
+export type UpdatePetBody = z.infer<typeof updatePetBodySchema>;
