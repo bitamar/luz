@@ -18,7 +18,7 @@
 - [x] don't pass internal error messages outside on prod
 - [x] fix pets summary on the customers ep - now the customers list always shows 0 pets it should have just a count for now
 - [x] 90% coverage + show status on pr
-- [ ] simplify allowed origins logic - each env should only support its own frontend (localhost, pr env, prod)
+- [x] simplify allowed origins logic - each env should only support its own frontend (localhost, pr env, prod)
 
 ### Frontend Critical
 - [x] add state management library (TanStack Query) — see plan below
