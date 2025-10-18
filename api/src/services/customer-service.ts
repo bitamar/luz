@@ -151,7 +151,11 @@ export async function createPetForCustomer(customerId: string, input: CreatePetB
   return serializePet(record);
 }
 
-export async function updatePetForCustomer(customerId: string, petId: string, input: UpdatePetBody) {
+export async function updatePetForCustomer(
+  customerId: string,
+  petId: string,
+  input: UpdatePetBody
+) {
   const record = await findPetByIdForCustomer(customerId, petId);
   if (!record) throw notFound();
 
@@ -163,7 +167,8 @@ export async function updatePetForCustomer(customerId: string, petId: string, in
   if (input.isSterilized !== undefined) updates.isSterilized = input.isSterilized ?? null;
   if (input.isCastrated !== undefined) updates.isCastrated = input.isCastrated ?? null;
   if (input.dateOfBirth !== undefined) {
-    updates.dateOfBirth = typeof input.dateOfBirth === 'string' ? new Date(input.dateOfBirth) : null;
+    updates.dateOfBirth =
+      typeof input.dateOfBirth === 'string' ? new Date(input.dateOfBirth) : null;
   }
 
   const updated = await updatePetById(petId, updates);

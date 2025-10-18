@@ -179,7 +179,10 @@ export function CustomerDetail() {
       const previousCustomer = queryClient.getQueryData<Customer>(customerQueryKey);
       const previousCustomers = queryClient.getQueryData<Customer[]>(customersListKey) ?? [];
       if (previousCustomer) {
-        queryClient.setQueryData<Customer>(customerQueryKey, applyCustomerUpdates(previousCustomer, payload));
+        queryClient.setQueryData<Customer>(
+          customerQueryKey,
+          applyCustomerUpdates(previousCustomer, payload)
+        );
       }
       if (previousCustomers.length > 0) {
         queryClient.setQueryData<Customer[]>(customersListKey, (old = []) =>
@@ -197,7 +200,10 @@ export function CustomerDetail() {
       }
     },
     onSuccess: (data, _variables, context) => {
-      queryClient.setQueryData<Customer | undefined>(customerQueryKey, data ?? context?.previousCustomer);
+      queryClient.setQueryData<Customer | undefined>(
+        customerQueryKey,
+        data ?? context?.previousCustomer
+      );
       if (context?.previousCustomers) {
         queryClient.setQueryData<Customer[]>(customersListKey, (old = []) =>
           old.map((item) => (item.id === (data?.id ?? customerId) ? (data ?? item) : item))
@@ -239,9 +245,7 @@ export function CustomerDetail() {
       const { petId, payload } = variables;
       queryClient.setQueryData<Pet[]>(petsQueryKey, (old = []) =>
         old.map((pet) =>
-          pet.id === (data?.id ?? petId)
-            ? data ?? applyPetUpdates(pet, payload)
-            : pet
+          pet.id === (data?.id ?? petId) ? (data ?? applyPetUpdates(pet, payload)) : pet
         )
       );
       closePetForm();

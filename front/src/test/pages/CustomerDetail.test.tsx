@@ -93,9 +93,7 @@ describe('CustomerDetail page', () => {
     await waitFor(() => expect(getCustomerMock).toHaveBeenCalled());
 
     const user = userEvent.setup();
-    const customerInfoCard = (await screen.findByText('פרטי לקוח')).closest(
-      '.customer-info-card'
-    );
+    const customerInfoCard = (await screen.findByText('פרטי לקוח')).closest('.customer-info-card');
     if (!customerInfoCard) throw new Error('Customer info card not found');
     const editButton = within(customerInfoCard).getByRole('button', { name: 'ערוך' });
     await user.click(editButton);

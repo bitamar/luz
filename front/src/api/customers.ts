@@ -56,7 +56,10 @@ export async function createCustomer(input: CreateCustomerBody): Promise<Custome
   return result.customer;
 }
 
-export async function updateCustomer(customerId: string, input: UpdateCustomerBody): Promise<Customer> {
+export async function updateCustomer(
+  customerId: string,
+  input: UpdateCustomerBody
+): Promise<Customer> {
   const params = updateCustomerParamsSchema.parse({ id: customerId });
   const payload = updateCustomerBodySchema.parse(input);
   const json = await fetchJson<unknown>(`/customers/${params.id}`, {
@@ -111,7 +114,7 @@ export async function addPetToCustomer(customerId: string, input: CreatePetBody)
 export async function updatePet(
   customerId: string,
   petId: string,
-  input: UpdatePetBody,
+  input: UpdatePetBody
 ): Promise<Pet> {
   const params = customerPetParamsSchema.parse({ customerId, petId });
   const payload = updatePetBodySchema.parse(input);
