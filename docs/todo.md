@@ -5,6 +5,7 @@
 - [ ] fix all the places with one letter local vars. prefer destructure or full names
 - [ ] a lot of deprecated zod methods, fix them
 - [ ] can we remove all the typeof whatever === 'string' checks and rely on zod?
+- [x] fix browser build typing leak in GlobalLoadingIndicator
 
 ### Backend Critical
 - [x] remove duplicate name constraint on treatment
@@ -14,10 +15,10 @@
 - [x] move sessions from in-memory to database - will lose all sessions on restart _(done: sessions persisted via Postgres with expiry upkeep)_
 - [x] API request/response schemas shared with frontend (tRPC or shared types) _(done: shared Zod schemas + frontend runtime validation)_
 - [x] structured logging with context (request IDs, user IDs) _(done: request logger now includes request/user/session IDs with lifecycle hooks)_
-- [x] global error handler in Fastify (currently errors bubble up inconsistently) _(done: registered error plugin in `app.ts`)_
 - [x] don't pass internal error messages outside on prod
 - [x] fix pets summary on the customers ep - now the customers list always shows 0 pets it should have just a count for now
 - [x] 90% coverage + show status on pr
+- [ ] simplify allowed origins logic - each env should only support its own frontend (localhost, pr env, prod)
 
 ### Frontend Critical
 - [x] add state management library (TanStack Query) — see plan below
@@ -45,20 +46,21 @@
 ### DevOps / Infrastructure (DO NOW)
 - [x] support PR environments - OAuth redirects to prod instead of staying on PR env (e.g., front-kalimere-pr-1.up.railway.app/login redirects to prod)
 - [x] run all tests on prs 
+- [ ] switch API tests to pg-mem (or similar) for local runs
 
 ### Security & Data Integrity (DO NOW)
 - [x] add rate limiting middleware (fastify-rate-limit)
-- [ ] validate user ownership in middleware - currently each route does it manually
+- [x] validate user ownership in middleware - currently each route does it manually
 - [x] add indexes on foreign keys (petId, customerId, userId) - currently slow queries
 - [ ] add database constraints for data integrity (CHECK constraints)
 - [ ] sanitize user inputs (prevent XSS, SQL injection via ORM)
 - [ ] add CSRF protection for state-changing operations
 
 ### Code Organization
-- [ ] separate validation logic from route handlers (create validation schemas)
+- [x] separate validation logic from route handlers (create validation schemas)
 - [x] create service layer - currently business logic in route handlers
 - [x] create repository layer - currently direct DB access in routes
-- [ ] shared TypeScript types between frontend/backend (monorepo with shared package)
+- [ ] fix type sharing between frontend/backend (dedicated shared package)
 
 ## MVP / Core Features
 - [ ] pets view
@@ -140,16 +142,12 @@
 
 ### Technical Improvements
 - [ ] error logging/monitoring (Sentry or similar)
-- [ ] API rate limiting
 - [ ] database backup automation
 - [ ] mobile responsiveness improvements
 - [ ] accessibility improvements (keyboard nav, ARIA labels)
 - [ ] performance optimization (lazy loading, caching)
 
-## Future / Nice to Have
-- [ ] bulk operations (import customers, bulk delete)
-- [ ] mobile app (iOS/Android)
+## Future 
 - [ ] multi-user/clinic support
 - [ ] inventory management for medications
 - [ ] integrated SMS/email client
-- [ ] client portal (customers can view their pet's records)

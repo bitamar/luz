@@ -11,7 +11,7 @@ export function GlobalLoadingIndicator() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout | undefined;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     if (busy) {
       setVisible(true);
     } else {
