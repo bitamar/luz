@@ -23,6 +23,7 @@ import {
 } from '../api/treatments';
 import { StatusCard } from '../components/StatusCard';
 import { EntityCard } from '../components/EntityCard';
+import { EntityFormModal } from '../components/EntityFormModal';
 import { queryKeys } from '../lib/queryKeys';
 import { extractErrorMessage } from '../lib/notifications';
 import { useApiMutation } from '../lib/useApiMutation';
@@ -291,43 +292,37 @@ export function Treatments() {
         </SimpleGrid>
       )}
 
-      <Modal
+      <EntityFormModal
         opened={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editId ? 'עריכת טיפול' : 'טיפול חדש'}
+        mode={editId ? 'edit' : 'create'}
+        onSubmit={onSubmit}
+        submitLoading={mutationInFlight}
+        submitDisabled={!name}
       >
-        <Stack>
-          <TextInput
-            label="שם"
-            value={name}
-            onChange={({ currentTarget }) => setName(currentTarget.value)}
-            required
-          />
-          <NumberInput
-            label="מרווח ברירת מחדל (חודשים)"
-            value={defaultIntervalMonths}
-            onChange={(val) => setDefaultIntervalMonths(typeof val === 'number' ? val : '')}
-            min={0}
-            clampBehavior="strict"
-          />
-          <NumberInput
-            label="מחיר"
-            value={price}
-            onChange={(val) => setPrice(typeof val === 'number' ? val : '')}
-            min={0}
-            clampBehavior="strict"
-            leftSection={<Text size="sm">₪</Text>}
-          />
-          <Group justify="right" mt="sm">
-            <Button variant="default" onClick={() => setModalOpen(false)}>
-              ביטול
-            </Button>
-            <Button onClick={onSubmit} loading={mutationInFlight} disabled={!name}>
-              {editId ? 'שמור' : 'הוסף'}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+        <TextInput
+          label="שם"
+          value={name}
+          onChange={({ currentTarget }) => setName(currentTarget.value)}
+          required
+        />
+        <NumberInput
+          label="מרווח ברירת מחדל (חודשים)"
+          value={defaultIntervalMonths}
+          onChange={(val) => setDefaultIntervalMonths(typeof val === 'number' ? val : '')}
+          min={0}
+          clampBehavior="strict"
+        />
+        <NumberInput
+          label="מחיר"
+          value={price}
+          onChange={(val) => setPrice(typeof val === 'number' ? val : '')}
+          min={0}
+          clampBehavior="strict"
+          leftSection={<Text size="sm">₪</Text>}
+        />
+      </EntityFormModal>
 
       <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="מחיקת טיפול">
         <Stack>

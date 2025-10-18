@@ -13,6 +13,7 @@ import {
   createPet,
   findActivePetsByCustomerId,
   findPetByIdForCustomer,
+  updatePetById,
   softDeletePetById,
   type PetInsert,
   type PetRecord,
@@ -24,6 +25,7 @@ import {
   type CreateCustomerBody,
   type UpdateCustomerBody,
   type CreatePetBody,
+  type UpdatePetBody,
 } from '@kalimere/types/customers';
 
 type CustomerDto = z.infer<typeof customerSchema>;
@@ -147,6 +149,26 @@ export async function createPetForCustomer(customerId: string, input: CreatePetB
   const record = await createPet(values as PetInsert);
   if (!record) throw new Error('Failed to create pet');
   return serializePet(record);
+}
+
+export async function updatePetForCustomer(customerId: string, petId: string, input: UpdatePetBody) {
+  const record = await findPetByIdForCustomer(customerId, petId);
+  if (!record) throw notFound();
+
+  const updates: Partial<PetInsert> = { updatedAt: new Date() };
+  if (input.name !== undefined) updates.name = input.name;
+  if (input.type !== undefined) updates.type = input.type;
+  if (input.gender !== undefined) updates.gender = input.gender;
+  if (input.breed !== undefined) updates.breed = input.breed ?? null;
+  if (input.isSterilized !== undefined) updates.isSterilized = input.isSterilized ?? null;
+  if (input.isCastrated !== undefined) updates.isCastrated = input.isCastrated ?? null;
+  if (input.dateOfBirth !== undefined) {
+    updates.dateOfBirth = typeof input.dateOfBirth === 'string' ? new Date(input.dateOfBirth) : null;
+  }
+
+  const updated = await updatePetById(petId, updates);
+  if (!updated) throw new Error('Failed to update pet');
+  return serializePet(updated);
 }
 
 export async function deletePetForCustomer(customerId: string, petId: string) {
