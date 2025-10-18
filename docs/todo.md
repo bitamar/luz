@@ -2,7 +2,7 @@
 
 ### devex
 - [x] Webstorm complaints: TS1192: Module "node:crypto" has no default export.
-- [ ] fix all the places with one letter local vars. prefer destructure or full names
+- [x] fix all the places with one letter local vars. prefer destructure or full names
 - [ ] a lot of deprecated zod methods, fix them
 - [x] can we remove all the typeof whatever === 'string' checks and rely on zod?
 - [x] fix browser build typing leak in GlobalLoadingIndicator

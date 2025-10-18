@@ -51,7 +51,7 @@ export async function buildServer(options: FastifyServerOptions = {}) {
       if (!origin) return cb(null, false);
       const parsed = parseOriginHeader(origin);
       if (!parsed) return cb(null, false);
-      return cb(null, isHostAllowed(parsed.host, env.ALLOWED_APP_ORIGINS));
+      return cb(null, isHostAllowed(parsed.host, env.APP_ORIGIN_HOST));
     },
     credentials: true,
     methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
