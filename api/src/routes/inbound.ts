@@ -1,8 +1,8 @@
 import twilio from 'twilio';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { env } from '../env.js';
-import { okResponseSchema } from '../schemas/common.js';
-import { inboundBodySchema } from '../schemas/inbound.js';
+import { okResponseSchema } from '@kalimere/types/common';
+import { inboundBodySchema } from '@kalimere/types/inbound';
 
 const inboundRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
   app.post(

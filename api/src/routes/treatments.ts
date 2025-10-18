@@ -8,7 +8,7 @@ import {
   treatmentsListResponseSchema,
   updateTreatmentBodySchema,
   updateTreatmentParamsSchema,
-} from '../schemas/treatments.js';
+} from '@kalimere/types/treatments';
 import { ensureTreatmentOwnership } from '../middleware/ownership.js';
 import {
   createTreatmentForUser,

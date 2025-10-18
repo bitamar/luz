@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { updateUserById, type UserRecord } from '../repositories/user-repository.js';
 import { conflict, isErrorWithCode, notFound } from '../lib/app-error.js';
-import { settingsResponseSchema, userSchema } from '../schemas/users.js';
+import { settingsResponseSchema, userSchema } from '@kalimere/types/users';
 
 export type UserDto = z.infer<typeof userSchema>;
 export type SettingsResponse = z.infer<typeof settingsResponseSchema>;

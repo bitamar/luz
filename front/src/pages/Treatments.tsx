@@ -26,7 +26,7 @@ import { EntityCard } from '../components/EntityCard';
 import { queryKeys } from '../lib/queryKeys';
 import { extractErrorMessage } from '../lib/notifications';
 import { useApiMutation } from '../lib/useApiMutation';
-import type { SettingsResponse } from '@contracts/users';
+import type { SettingsResponse } from '@kalimere/types/users';
 
 const sortTreatments = (rows: Treatment[]) =>
   [...rows].sort((a, b) => a.name.localeCompare(b.name, 'he-IL'));

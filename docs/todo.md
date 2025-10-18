@@ -60,7 +60,7 @@
 - [x] separate validation logic from route handlers (create validation schemas)
 - [x] create service layer - currently business logic in route handlers
 - [x] create repository layer - currently direct DB access in routes
-- [ ] fix type sharing between frontend/backend (dedicated shared package)
+- [x] fix type sharing between frontend/backend (dedicated `@kalimere/types` package)
 
 ## MVP / Core Features
 - [ ] pets view

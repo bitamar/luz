@@ -6,8 +6,8 @@ import {
   customerResponseSchema,
   customersListResponseSchema,
   petResponseSchema,
-} from '@contracts/customers';
-import type { CreateCustomerBody, CreatePetBody, Customer, Pet } from '@contracts/customers';
+} from '@kalimere/types/customers';
+import type { CreateCustomerBody, CreatePetBody, Customer, Pet } from '@kalimere/types/customers';
 
 export type {
   CreateCustomerBody,
@@ -18,7 +18,7 @@ export type {
   CustomersListResponse,
   Pet,
   PetResponse,
-} from '@contracts/customers';
+} from '@kalimere/types/customers';
 
 export type PetSummary = Pick<Pet, 'id' | 'name' | 'type'>;
 

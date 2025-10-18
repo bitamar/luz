@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { User as AuthUser } from '@contracts/users';
+import type { User as AuthUser } from '@kalimere/types/users';
 import { getMe, logout as apiLogout, getGoogleLoginUrl } from './api';
 import { queryKeys } from '../lib/queryKeys';
 

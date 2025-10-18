@@ -13,7 +13,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSettings, updateSettings } from '../auth/api';
 import { StatusCard } from '../components/StatusCard';
 import { queryKeys } from '../lib/queryKeys';
-import type { SettingsResponse } from '@contracts/users';
+import type { SettingsResponse } from '@kalimere/types/users';
 import { extractErrorMessage } from '../lib/notifications';
 import { useApiMutation } from '../lib/useApiMutation';
 

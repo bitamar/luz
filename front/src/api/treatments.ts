@@ -4,8 +4,12 @@ import {
   treatmentResponseSchema,
   treatmentsListResponseSchema,
   updateTreatmentBodySchema,
-} from '@contracts/treatments';
-import type { CreateTreatmentBody, Treatment, UpdateTreatmentBody } from '@contracts/treatments';
+} from '@kalimere/types/treatments';
+import type {
+  CreateTreatmentBody,
+  Treatment,
+  UpdateTreatmentBody,
+} from '@kalimere/types/treatments';
 
 export type {
   CreateTreatmentBody,
@@ -13,7 +17,7 @@ export type {
   TreatmentResponse,
   TreatmentsListResponse,
   UpdateTreatmentBody,
-} from '@contracts/treatments';
+} from '@kalimere/types/treatments';
 
 type RequestOptions = {
   signal?: AbortSignal;
