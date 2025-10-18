@@ -23,8 +23,8 @@ export async function authRoutes(app: FastifyInstance) {
     const candidate = typeof origin === 'string' && origin.length > 0 ? origin : referer;
     if (typeof candidate === 'string' && candidate.length > 0) {
       const parsed = parseOriginHeader(candidate);
-      if (parsed && isHostAllowed(parsed.host, env.ALLOWED_APP_ORIGINS)) {
-        appOrigin = parsed.origin;
+      if (parsed && isHostAllowed(parsed.host, env.APP_ORIGIN_HOST)) {
+        appOrigin = env.APP_ORIGIN;
       }
     }
     if (!appOrigin)
@@ -74,10 +74,10 @@ export async function authRoutes(app: FastifyInstance) {
 
     // On success, redirect back to the SPA (dashboard)
     const parsedOrigin = parseOriginHeader(result.data.appOrigin);
-    if (!parsedOrigin || !isHostAllowed(parsedOrigin.host, env.ALLOWED_APP_ORIGINS)) {
+    if (!parsedOrigin || !isHostAllowed(parsedOrigin.host, env.APP_ORIGIN_HOST)) {
       throw badRequest({ code: 'invalid_origin', message: 'Origin is missing or not allowed' });
     }
-    return reply.redirect(`${parsedOrigin.origin}/`);
+    return reply.redirect(`${env.APP_ORIGIN}/`);
   });
 
   // Return current user from session

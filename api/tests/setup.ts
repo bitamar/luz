@@ -3,7 +3,6 @@ import { afterAll } from 'vitest';
 
 // Set consistent defaults for test env. Individual tests can override via module mocks when needed.
 process.env.APP_ORIGIN = 'http://localhost:5173';
-process.env.ALLOWED_APP_ORIGINS = 'localhost:5173';
 process.env.JWT_SECRET = 'x'.repeat(32);
 process.env.DATABASE_URL = 'postgres://user:pass@localhost:5432/db';
 process.env.GOOGLE_CLIENT_ID = 'client-id';

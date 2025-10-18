@@ -107,10 +107,7 @@ Backend (`api/.env`):
 ```
 URL=http://localhost:3000
 APP_ORIGIN=http://localhost:5173
-# Allow multiple frontends (prod + PR envs). Comma-separated host list; one '*' wildcard for digits.
-# Examples:
-#   front-kalimere.up.railway.app,front-kalimere-pr-*.up.railway.app,localhost:5173
-ALLOWED_APP_ORIGINS=localhost:5173
+# Backend automatically derives the allowed frontend origin from APP_ORIGIN.
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 JWT_SECRET=change_me_32_chars_min

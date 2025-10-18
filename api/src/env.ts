@@ -4,7 +4,6 @@ import { z } from 'zod';
 const Env = z.object({
   PORT: z.coerce.number().default(3000),
   APP_ORIGIN: z.string().url(),
-  ALLOWED_APP_ORIGINS: z.string().min(1),
   JWT_SECRET: z.string().min(32),
   DATABASE_URL: z.string().url(),
   TEST_DATABASE_URL: z.string().url().optional(),
@@ -25,9 +24,11 @@ const Env = z.object({
 });
 
 const parsed = Env.parse(process.env);
+const appOriginUrl = new URL(parsed.APP_ORIGIN);
 
 export const env = {
   ...parsed,
-  ALLOWED_APP_ORIGINS: parsed.ALLOWED_APP_ORIGINS.split(','),
+  APP_ORIGIN: appOriginUrl.origin,
+  APP_ORIGIN_HOST: appOriginUrl.host,
   OAUTH_REDIRECT_URI: `${parsed.URL}/auth/google/callback`,
 };
