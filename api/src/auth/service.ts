@@ -36,21 +36,21 @@ export async function finishGoogleAuth(
   input: { requestUrl: string; query: unknown; rawCookie: string | undefined }
 ): Promise<Result<{ user: DbUser; appOrigin: string }, AuthError>> {
   // validate query
-  const q = validateCallbackQuery(input.query);
-  if (!q.ok) return { ok: false, error: q.error };
+  const query = validateCallbackQuery(input.query);
+  if (!query.ok) return { ok: false, error: query.error };
 
   // parse cookie
   const parsedCookie = parseOidcCookie(input.rawCookie);
   if (!parsedCookie.ok) return { ok: false, error: parsedCookie.error };
 
   // verify state
-  const match = verifyStateMatch(parsedCookie.data.state, q.data.state);
+  const match = verifyStateMatch(parsedCookie.data.state, query.data.state);
   if (!match.ok) return { ok: false, error: match.error };
 
   // exchange code -> tokens and claims
   const verificationUrl = buildCallbackVerificationUrl(deps.redirectUri, input.requestUrl);
   const exchanged = await exchangeAuthorizationCode(deps.config, verificationUrl, {
-    expectedState: q.data.state,
+    expectedState: query.data.state,
     expectedNonce: parsedCookie.data.nonce,
     redirectUri: deps.redirectUri,
   });

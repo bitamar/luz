@@ -24,10 +24,10 @@ describe('oidc helpers', () => {
       { state: 's', nonce: 'n' },
       { redirectUri: 'https://app/cb' }
     );
-    const u = new URL(url.href);
-    expect(u.searchParams.get('state')).toBe('s');
-    expect(u.searchParams.get('nonce')).toBe('n');
-    expect(u.searchParams.get('redirect_uri')).toBe('https://app/cb');
-    expect(u.searchParams.get('scope')).toContain('openid');
+    const { searchParams } = new URL(url.href);
+    expect(searchParams.get('state')).toBe('s');
+    expect(searchParams.get('nonce')).toBe('n');
+    expect(searchParams.get('redirect_uri')).toBe('https://app/cb');
+    expect(searchParams.get('scope')).toContain('openid');
   });
 });
