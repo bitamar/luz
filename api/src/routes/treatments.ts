@@ -17,7 +17,7 @@ import {
   listTreatmentsForUser,
   updateTreatmentForUser,
 } from '../services/treatment-service.js';
-import { AppError, conflict } from '../lib/app-error.js';
+import { AppError, conflict, isErrorWithCode } from '../lib/app-error.js';
 
 const treatmentRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
   app.get(
@@ -108,6 +108,5 @@ export const treatmentRoutes = treatmentRoutesPlugin;
 function isDuplicateTreatmentNameError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   if (error instanceof AppError) return false;
-  const code = (error as { code?: unknown }).code;
-  return typeof code === 'string' && code === 'duplicate_name';
+  return isErrorWithCode(error, 'duplicate_name');
 }

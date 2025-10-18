@@ -34,6 +34,16 @@ export function isFastifyError(error: unknown): error is FastifyError {
   return 'statusCode' in error;
 }
 
+export function extractErrorCode(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object') return undefined;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === 'string' ? code : undefined;
+}
+
+export function isErrorWithCode(error: unknown, code: string): boolean {
+  return extractErrorCode(error) === code;
+}
+
 export function normalizeError(error: unknown): AppError {
   if (error instanceof AppError) return error;
 
@@ -54,11 +64,7 @@ export function normalizeError(error: unknown): AppError {
     const strippedAdditional = stripKnownExtras(additional);
     const expose = shouldExpose(statusCode);
 
-    const messageSource =
-      typeof error.message === 'string' && error.message.trim().length > 0
-        ? error.message
-        : undefined;
-    const message = expose ? (messageSource ?? code) : 'Internal Server Error';
+    const message = expose ? (error.message ?? code) : 'Internal Server Error';
 
     const details = mergeDetails(validation, strippedAdditional);
 

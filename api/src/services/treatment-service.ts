@@ -8,7 +8,7 @@ import {
   type TreatmentInsert,
   type TreatmentRecord,
 } from '../repositories/treatment-repository.js';
-import { conflict, notFound } from '../lib/app-error.js';
+import { conflict, isErrorWithCode, notFound } from '../lib/app-error.js';
 import { treatmentSchema } from '../schemas/treatments.js';
 
 type TreatmentDto = z.infer<typeof treatmentSchema>;
@@ -57,13 +57,7 @@ export async function createTreatmentForUser(userId: string, input: CreateTreatm
     if (!record) throw new Error('Failed to create treatment');
     return serializeTreatment(record);
   } catch (err: unknown) {
-    if (
-      err &&
-      typeof err === 'object' &&
-      'code' in err &&
-      typeof (err as { code?: unknown }).code === 'string' &&
-      (err as { code: string }).code === '23505'
-    ) {
+    if (isErrorWithCode(err, '23505')) {
       throw conflict({ code: 'duplicate_name' });
     }
     throw err;

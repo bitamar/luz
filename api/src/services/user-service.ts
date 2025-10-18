@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { updateUserById, type UserRecord } from '../repositories/user-repository.js';
-import { conflict, notFound } from '../lib/app-error.js';
+import { conflict, isErrorWithCode, notFound } from '../lib/app-error.js';
 import { settingsResponseSchema, userSchema } from '../schemas/users.js';
 
 export type UserDto = z.infer<typeof userSchema>;
@@ -43,13 +43,7 @@ export async function updateSettingsForUser(userId: string, input: UpdateSetting
 
     return getSettingsFromUser(record);
   } catch (err: unknown) {
-    if (
-      err &&
-      typeof err === 'object' &&
-      'code' in err &&
-      typeof (err as { code?: unknown }).code === 'string' &&
-      (err as { code: string }).code === '23505'
-    ) {
+    if (isErrorWithCode(err, '23505')) {
       throw conflict({ code: 'duplicate_phone' });
     }
     throw err;
