@@ -8,6 +8,8 @@ import {
   getCustomerPets,
   getPet,
   listCustomers,
+  updateCustomer,
+  updatePet,
 } from '../../api/customers';
 import { fetchJson } from '../../lib/http';
 
@@ -140,6 +142,34 @@ describe('customers api', () => {
       body: JSON.stringify(payload),
     });
     expect(result).toEqual(pet);
+  });
+
+  it('updateCustomer validates payload and returns updated customer', async () => {
+    const payload = { name: 'Updated', email: null };
+    const updated = { ...customer, ...payload };
+    fetchJsonMock.mockResolvedValueOnce({ customer: updated });
+
+    const result = await updateCustomer(customer.id, payload);
+
+    expect(fetchJsonMock).toHaveBeenCalledWith(`/customers/${customer.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    expect(result).toEqual(updated);
+  });
+
+  it('updatePet validates payload and returns updated pet', async () => {
+    const payload = { name: 'Rex Updated', breed: 'Mix' };
+    const updated = { ...pet, ...payload };
+    fetchJsonMock.mockResolvedValueOnce({ pet: updated });
+
+    const result = await updatePet(customer.id, pet.id, payload);
+
+    expect(fetchJsonMock).toHaveBeenCalledWith(`/customers/${customer.id}/pets/${pet.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    expect(result).toEqual(updated);
   });
 
   it('deleteCustomer sends delete request', async () => {

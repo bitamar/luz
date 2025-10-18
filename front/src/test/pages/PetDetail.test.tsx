@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Routes, Route } from 'react-router-dom';
@@ -42,8 +42,17 @@ const mockCustomer: customersApi.Customer = {
 };
 
 describe('PetDetail page', () => {
+  beforeAll(() => {
+    Object.defineProperty(window.HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    });
+  });
+
   const getPetMock = vi.mocked(customersApi.getPet);
   const getCustomerMock = vi.mocked(customersApi.getCustomer);
+  const updatePetMock = vi.mocked(customersApi.updatePet);
   const deletePetMock = vi.mocked(customersApi.deletePet);
   let restoreConsoleError: (() => void) | null = null;
 
@@ -52,6 +61,7 @@ describe('PetDetail page', () => {
     navigateMock.mockReset();
     getPetMock.mockResolvedValue(mockPet);
     getCustomerMock.mockResolvedValue(mockCustomer);
+    updatePetMock.mockResolvedValue(mockPet);
     deletePetMock.mockResolvedValue();
     restoreConsoleError?.();
     restoreConsoleError = null;
@@ -125,6 +135,55 @@ describe('PetDetail page', () => {
     expect(deleteCustomerId).toBe('cust-1');
     expect(deletePetId).toBe('pet-1');
     expect(navigateMock).toHaveBeenCalledWith('/customers/cust-1');
+  });
+
+  it('allows editing the pet details', async () => {
+    updatePetMock.mockResolvedValueOnce({
+      ...mockPet,
+      name: 'Luna',
+      type: 'cat',
+      gender: 'female',
+      breed: 'Siamese',
+    });
+
+    const user = userEvent.setup();
+    renderPetDetail();
+
+    await waitFor(() => expect(getPetMock).toHaveBeenCalled());
+
+    await user.click(await screen.findByTestId('pet-actions-trigger'));
+    const dropdown = await screen.findByTestId('pet-actions-dropdown');
+    await user.click(within(dropdown).getByText('ערוך חיית מחמד'));
+
+    const modal = await screen.findByRole('dialog', { name: 'ערוך חיית מחמד' });
+    const nameInput = (await within(modal).findByLabelText(/שם/)) as HTMLInputElement;
+    const typeControl = await within(modal).findByLabelText(/סוג/);
+    const genderControl = await within(modal).findByLabelText(/מין/);
+    const breedInput = (await within(modal).findByLabelText(/גזע/)) as HTMLInputElement;
+
+    await user.clear(nameInput);
+    await user.type(nameInput, '  Luna  ');
+    await user.click(typeControl);
+    await user.click(await screen.findByRole('option', { name: 'חתול', hidden: true }));
+    await user.click(genderControl);
+    await user.click(await screen.findByRole('option', { name: 'נקבה', hidden: true }));
+    await user.clear(breedInput);
+    await user.type(breedInput, '  Siamese  ');
+
+    await user.click(within(modal).getByRole('button', { name: 'עדכן' }));
+
+    await waitFor(() =>
+      expect(updatePetMock).toHaveBeenCalledWith('cust-1', 'pet-1', {
+        name: 'Luna',
+        type: 'cat',
+        gender: 'female',
+        breed: 'Siamese',
+      })
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'ערוך חיית מחמד' })).not.toBeInTheDocument()
+    );
   });
 
   it('shows error state when loading the pet fails', async () => {

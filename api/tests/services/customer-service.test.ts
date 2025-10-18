@@ -13,6 +13,7 @@ import {
   listCustomersForUser,
   listPetsForCustomer,
   updateCustomerForUser,
+  updatePetForCustomer,
 } from '../../src/services/customer-service.js';
 
 async function createUser() {
@@ -55,6 +56,19 @@ describe('customer-service', () => {
       gender: 'female',
     });
     expect(pet).toMatchObject({ customerId: customer.id, name: 'Luna', type: 'cat' });
+
+    const updatedPet = await updatePetForCustomer(customer.id, pet.id, {
+      name: 'Luna Updated',
+      breed: 'Mixed',
+    });
+    expect(updatedPet).toMatchObject({
+      id: pet.id,
+      name: 'Luna Updated',
+      breed: 'Mixed',
+    });
+
+    const clearedBreedPet = await updatePetForCustomer(customer.id, pet.id, { breed: null });
+    expect(clearedBreedPet).toMatchObject({ id: pet.id, breed: null });
 
     const customerWithPet = await getCustomerForUser(user.id, customer.id);
     expect(customerWithPet.petsCount).toBe(1);

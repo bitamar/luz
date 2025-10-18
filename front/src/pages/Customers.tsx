@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Badge,
   Button,
@@ -13,7 +13,13 @@ import {
 } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { listCustomers, createCustomer, deleteCustomer, type Customer } from '../api/customers';
+import {
+  listCustomers,
+  createCustomer,
+  deleteCustomer,
+  updateCustomer,
+  type Customer,
+} from '../api/customers';
 import { StatusCard } from '../components/StatusCard';
 import { EntityCard } from '../components/EntityCard';
 import { formatPetsCount } from '../utils/formatPetsCount';
@@ -46,6 +52,12 @@ export function Customers() {
   const [newCustomerEmail, setNewCustomerEmail] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [editCustomerName, setEditCustomerName] = useState('');
+  const [editCustomerEmail, setEditCustomerEmail] = useState('');
+  const [editCustomerPhone, setEditCustomerPhone] = useState('');
+  const [editCustomerAddress, setEditCustomerAddress] = useState('');
 
   function openCreateCustomer() {
     setNewCustomerName('');
@@ -150,6 +162,85 @@ export function Customers() {
     setDeleteModalOpen(true);
   }
 
+  const openEditCustomer = useCallback((customer: Customer) => {
+    setEditingCustomer(customer);
+    setEditCustomerName(customer.name);
+    setEditCustomerEmail(customer.email ?? '');
+    setEditCustomerPhone(customer.phone ?? '');
+    setEditCustomerAddress(customer.address ?? '');
+    setEditModalOpen(true);
+  }, []);
+
+  const updateCustomerMutation = useApiMutation({
+    mutationFn: ({ customerId, payload }: { customerId: string; payload: Parameters<typeof updateCustomer>[1] }) =>
+      updateCustomer(customerId, payload),
+    successToast: { message: 'פרטי הלקוח עודכנו' },
+    errorToast: { fallbackMessage: 'עדכון הלקוח נכשל' },
+    onMutate: async ({ customerId, payload }) => {
+      await queryClient.cancelQueries({ queryKey: customersQueryKey });
+      await queryClient.cancelQueries({ queryKey: queryKeys.customer(customerId) });
+      const previousCustomers = queryClient.getQueryData<Customer[]>(customersQueryKey) ?? [];
+      const customerQueryKey = queryKeys.customer(customerId);
+      const previousCustomer = queryClient.getQueryData<Customer | undefined>(customerQueryKey);
+
+      const applyUpdate = (current: Customer | undefined) => {
+        if (!current) return current;
+        return {
+          ...current,
+          name: payload.name ?? current.name,
+          email: payload.email !== undefined ? payload.email : current.email,
+          phone: payload.phone !== undefined ? payload.phone : current.phone,
+          address: payload.address !== undefined ? payload.address : current.address,
+        };
+      };
+
+      queryClient.setQueryData<Customer[]>(customersQueryKey, (old = []) =>
+        sortCustomers(
+          old.map((customer) => (customer.id === customerId ? (applyUpdate(customer) as Customer) : customer))
+        )
+      );
+
+      if (previousCustomer) {
+        queryClient.setQueryData<Customer | undefined>(customerQueryKey, applyUpdate(previousCustomer));
+      }
+
+      return { previousCustomers, previousCustomer };
+    },
+    onError: (_error, { customerId }, context) => {
+      queryClient.setQueryData(customersQueryKey, context?.previousCustomers ?? []);
+      if (context?.previousCustomer) {
+        queryClient.setQueryData(queryKeys.customer(customerId), context.previousCustomer);
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData<Customer[]>(customersQueryKey, (old = []) =>
+        sortCustomers(old.map((customer) => (customer.id === data.id ? data : customer)))
+      );
+      queryClient.setQueryData(queryKeys.customer(data.id), data);
+      setEditModalOpen(false);
+      setEditingCustomer(null);
+    },
+    onSettled: (_data, _error, { customerId }) => {
+      void queryClient.invalidateQueries({ queryKey: customersQueryKey });
+      if (customerId) {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.customer(customerId) });
+      }
+    },
+  });
+
+  async function onUpdateCustomer() {
+    if (!editingCustomer) return;
+    const trimmedName = editCustomerName.trim();
+    if (!trimmedName) return;
+    const payload = {
+      name: trimmedName,
+      email: editCustomerEmail.trim() ? editCustomerEmail.trim() : null,
+      phone: editCustomerPhone.trim() ? editCustomerPhone.trim() : null,
+      address: editCustomerAddress.trim() ? editCustomerAddress.trim() : null,
+    } satisfies Parameters<typeof updateCustomer>[1];
+    await updateCustomerMutation.mutateAsync({ customerId: editingCustomer.id, payload });
+  }
+
   async function onDeleteCustomer() {
     if (!customerToDelete) return;
     await deleteCustomerMutation.mutateAsync(customerToDelete.id);
@@ -196,6 +287,7 @@ export function Customers() {
               label: 'מחק לקוח',
               onClick: () => openDeleteModal(customer),
             }}
+            editAction={() => openEditCustomer(customer)}
             onClick={() => navigate(`/customers/${id}`)}
             className="customer-card"
           >
@@ -203,13 +295,14 @@ export function Customers() {
           </EntityCard>
         );
       }),
-    [customers, navigate]
+    [customers, navigate, openEditCustomer]
   );
 
   const loading = isPending;
   const queryError = isError ? extractErrorMessage(error, 'אירעה שגיאה בטעינת הלקוחות') : null;
   const isEmpty = !loading && !queryError && customers.length === 0;
   const isCreating = createCustomerMutation.isPending;
+  const isUpdating = updateCustomerMutation.isPending;
 
   return (
     <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
@@ -272,6 +365,49 @@ export function Customers() {
             </Button>
             <Button onClick={onCreateCustomer} disabled={!newCustomerName} loading={isCreating}>
               הוסף
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setEditingCustomer(null);
+        }}
+        title="ערוך לקוח"
+      >
+        <Stack>
+          <TextInput
+            label="שם"
+            value={editCustomerName}
+            onChange={({ currentTarget }) => setEditCustomerName(currentTarget.value)}
+            required
+          />
+          <TextInput
+            label="אימייל"
+            type="email"
+            value={editCustomerEmail}
+            onChange={({ currentTarget }) => setEditCustomerEmail(currentTarget.value)}
+          />
+          <TextInput
+            label="טלפון"
+            type="tel"
+            value={editCustomerPhone}
+            onChange={({ currentTarget }) => setEditCustomerPhone(currentTarget.value)}
+          />
+          <TextInput
+            label="כתובת"
+            value={editCustomerAddress}
+            onChange={({ currentTarget }) => setEditCustomerAddress(currentTarget.value)}
+          />
+          <Group justify="right" mt="sm">
+            <Button variant="default" onClick={() => setEditModalOpen(false)}>
+              ביטול
+            </Button>
+            <Button onClick={onUpdateCustomer} disabled={!editCustomerName.trim()} loading={isUpdating}>
+              עדכן
             </Button>
           </Group>
         </Stack>

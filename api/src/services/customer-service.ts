@@ -14,6 +14,7 @@ import {
   findActivePetsByCustomerId,
   findPetByIdForCustomer,
   softDeletePetById,
+  updatePetById,
   type PetInsert,
   type PetRecord,
 } from '../repositories/pet-repository.js';
@@ -24,6 +25,7 @@ import {
   type CreateCustomerBody,
   type UpdateCustomerBody,
   type CreatePetBody,
+  type UpdatePetBody,
 } from '../schemas/customers.js';
 
 type CustomerDto = z.infer<typeof customerSchema>;
@@ -146,6 +148,29 @@ export async function createPetForCustomer(customerId: string, input: CreatePetB
 
   const record = await createPet(values as PetInsert);
   if (!record) throw new Error('Failed to create pet');
+  return serializePet(record);
+}
+
+export async function updatePetForCustomer(customerId: string, petId: string, input: UpdatePetBody) {
+  const updates: Partial<PetInsert> = { updatedAt: new Date() };
+
+  if (input.name !== undefined) updates.name = input.name;
+  if (input.type !== undefined) updates.type = input.type;
+  if (input.gender !== undefined) updates.gender = input.gender;
+  if (input.breed !== undefined) updates.breed = input.breed ?? null;
+  if (input.isSterilized !== undefined) updates.isSterilized = input.isSterilized ?? null;
+  if (input.isCastrated !== undefined) updates.isCastrated = input.isCastrated ?? null;
+
+  if (input.dateOfBirth !== undefined) {
+    if (typeof input.dateOfBirth === 'string' && input.dateOfBirth.trim().length > 0) {
+      updates.dateOfBirth = new Date(input.dateOfBirth);
+    } else {
+      updates.dateOfBirth = null;
+    }
+  }
+
+  const record = await updatePetById(petId, customerId, updates);
+  if (!record) throw notFound();
   return serializePet(record);
 }
 

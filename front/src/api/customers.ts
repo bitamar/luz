@@ -6,8 +6,17 @@ import {
   customerResponseSchema,
   customersListResponseSchema,
   petResponseSchema,
+  updateCustomerBodySchema,
+  updatePetBodySchema,
 } from '@contracts/customers';
-import type { CreateCustomerBody, CreatePetBody, Customer, Pet } from '@contracts/customers';
+import type {
+  CreateCustomerBody,
+  CreatePetBody,
+  Customer,
+  Pet,
+  UpdateCustomerBody,
+  UpdatePetBody,
+} from '@contracts/customers';
 
 export type {
   CreateCustomerBody,
@@ -37,6 +46,16 @@ export async function createCustomer(input: CreateCustomerBody): Promise<Custome
   const payload = createCustomerBodySchema.parse(input);
   const json = await fetchJson<unknown>('/customers', {
     method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  const result = customerResponseSchema.parse(json);
+  return result.customer;
+}
+
+export async function updateCustomer(id: string, input: UpdateCustomerBody): Promise<Customer> {
+  const payload = updateCustomerBodySchema.parse(input);
+  const json = await fetchJson<unknown>(`/customers/${id}`, {
+    method: 'PUT',
     body: JSON.stringify(payload),
   });
   const result = customerResponseSchema.parse(json);
@@ -78,6 +97,20 @@ export async function addPetToCustomer(customerId: string, input: CreatePetBody)
   const payload = createPetBodySchema.parse(input);
   const json = await fetchJson<unknown>(`/customers/${customerId}/pets`, {
     method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  const result = petResponseSchema.parse(json);
+  return result.pet;
+}
+
+export async function updatePet(
+  customerId: string,
+  petId: string,
+  input: UpdatePetBody
+): Promise<Pet> {
+  const payload = updatePetBodySchema.parse(input);
+  const json = await fetchJson<unknown>(`/customers/${customerId}/pets/${petId}`, {
+    method: 'PUT',
     body: JSON.stringify(payload),
   });
   const result = petResponseSchema.parse(json);

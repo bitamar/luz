@@ -11,6 +11,7 @@ import {
   customersListResponseSchema,
   deleteCustomerParamsSchema,
   petResponseSchema,
+  updatePetBodySchema,
   updateCustomerBodySchema,
   updateCustomerParamsSchema,
 } from '../schemas/customers.js';
@@ -25,6 +26,7 @@ import {
   getPetForCustomer,
   listCustomersForUser,
   listPetsForCustomer,
+  updatePetForCustomer,
   updateCustomerForUser,
 } from '../services/customer-service.js';
 
@@ -156,6 +158,29 @@ const customerRoutesPlugin: FastifyPluginAsyncZod = async (app) => {
       const customerId = req.params.id;
       const pet = await createPetForCustomer(customerId, req.body);
       return reply.code(201).send({ pet });
+    }
+  );
+
+  app.put(
+    '/customers/:customerId/pets/:petId',
+    {
+      preHandler: [
+        app.authenticate,
+        ensureCustomerOwnership('customerId'),
+        ensurePetOwnership('petId'),
+      ],
+      schema: {
+        params: customerPetParamsSchema,
+        body: updatePetBodySchema,
+        response: {
+          200: petResponseSchema,
+        },
+      },
+    },
+    async (req) => {
+      const customerId = req.params.customerId;
+      const pet = await updatePetForCustomer(customerId, req.params.petId, req.body);
+      return { pet };
     }
   );
 

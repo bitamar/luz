@@ -114,6 +114,26 @@ describe('routes/customers', () => {
     ]);
   });
 
+  it('updates a pet for the customer', async () => {
+    const { user, sessionId } = await createAuthedUser();
+    const customer = await seedCustomer(user.id, { name: 'Owner' });
+    const pet = await seedPet(customer.id, { name: 'Buddy', type: 'dog' });
+
+    const response = await injectAuthed(app, sessionId, {
+      method: 'PUT',
+      url: `/customers/${customer.id}/pets/${pet.id}`,
+      payload: { name: 'Buddy Updated', breed: 'Mix' },
+    });
+
+    const result = getJson<PetResponse>(response);
+    expect(result.statusCode).toBe(200);
+    expect(result.body.pet).toMatchObject({
+      id: pet.id,
+      name: 'Buddy Updated',
+      breed: 'Mix',
+    });
+  });
+
   it('returns full customer payload after creation', async () => {
     const { sessionId } = await createAuthedUser();
     const response = await injectAuthed(app, sessionId, {

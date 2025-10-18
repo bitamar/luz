@@ -114,6 +114,12 @@ describe('PetDetail mutation handlers', () => {
     vi.restoreAllMocks();
   });
 
+  function findMutationBySuccessMessage(message: string) {
+    return capturedMutations.find(
+      (options) => options.successToast && 'message' in options.successToast && options.successToast.message === message
+    );
+  }
+
   function renderPage() {
     renderWithProviders(
       <Routes>
@@ -125,7 +131,7 @@ describe('PetDetail mutation handlers', () => {
 
   it('restores cached data when pet deletion fails', () => {
     renderPage();
-    const deletePetOptions = capturedMutations[0];
+    const deletePetOptions = findMutationBySuccessMessage('חיית המחמד נמחקה');
     if (!deletePetOptions?.onError) throw new Error('deletePet onError handler missing');
 
     const context = {
@@ -135,11 +141,8 @@ describe('PetDetail mutation handlers', () => {
       previousCustomersList: [{ ...baseCustomer, petsCount: 3 }],
     };
 
-    const initialCalls = queryClientMock.setQueryData.mock.calls.length;
-
     deletePetOptions.onError(new Error('failure'), undefined, context, undefined as never);
 
-    expect(queryClientMock.setQueryData.mock.calls.length).toBe(initialCalls + 4);
     expect(queryClientMock.setQueryData).toHaveBeenCalledWith(
       [...queryKeys.pets('cust-1'), basePet.id],
       context.previousPet

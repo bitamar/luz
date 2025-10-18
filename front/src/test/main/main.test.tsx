@@ -49,6 +49,7 @@ describe('main.tsx entrypoint', () => {
     createRootMock.mockClear();
     renderMock.mockClear();
     document.body.innerHTML = '<div id="root"></div>';
+    vi.stubEnv('VITE_API_BASE_URL', 'http://localhost');
   });
 
   afterEach(() => {

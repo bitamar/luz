@@ -10,13 +10,15 @@ import {
   Group,
   Menu,
   Modal,
+  Select,
   Stack,
   Text,
+  TextInput,
   Title,
 } from '@mantine/core';
-import { IconDots, IconX } from '@tabler/icons-react';
+import { IconDots, IconPencil, IconX } from '@tabler/icons-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getPet, deletePet, getCustomer, type Customer, type Pet } from '../api/customers';
+import { getPet, deletePet, getCustomer, updatePet, type Customer, type Pet } from '../api/customers';
 import { StatusCard } from '../components/StatusCard';
 import { queryKeys } from '../lib/queryKeys';
 import { extractErrorMessage } from '../lib/notifications';
@@ -51,6 +53,68 @@ export function PetDetail() {
   });
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editPetName, setEditPetName] = useState('');
+  const [editPetType, setEditPetType] = useState<'dog' | 'cat' | ''>('');
+  const [editPetGender, setEditPetGender] = useState<'male' | 'female' | ''>('');
+  const [editPetBreed, setEditPetBreed] = useState('');
+
+  const updatePetMutation = useApiMutation({
+    mutationFn: (payload: Parameters<typeof updatePet>[2]) => {
+      if (!customerId || !petId) throw new Error('Missing pet identifiers');
+      return updatePet(customerId, petId, payload);
+    },
+    successToast: { message: 'פרטי חיית המחמד עודכנו' },
+    errorToast: { fallbackMessage: 'עדכון חיית המחמד נכשל' },
+    onMutate: async (payload) => {
+      if (!customerId || !petId) return;
+      await queryClient.cancelQueries({ queryKey: petQueryKey });
+      await queryClient.cancelQueries({ queryKey: petsListKey });
+      const previousPet = queryClient.getQueryData<Pet | undefined>(petQueryKey);
+      const previousPetsList = queryClient.getQueryData<Pet[]>(petsListKey) ?? [];
+
+      const applyUpdate = (current: Pet | undefined) => {
+        if (!current) return current;
+        return {
+          ...current,
+          name: payload.name ?? current.name,
+          type: payload.type ?? current.type,
+          gender: payload.gender ?? current.gender,
+          breed: payload.breed !== undefined ? payload.breed : current.breed,
+        };
+      };
+
+      if (previousPet) {
+        queryClient.setQueryData(petQueryKey, applyUpdate(previousPet));
+      }
+
+      if (previousPetsList.length > 0) {
+        queryClient.setQueryData<Pet[]>(petsListKey, (old = []) =>
+          old.map((pet) => (pet.id === petId ? (applyUpdate(pet) as Pet) : pet))
+        );
+      }
+
+      return { previousPet, previousPetsList };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousPet !== undefined) {
+        queryClient.setQueryData(petQueryKey, context.previousPet);
+      }
+      queryClient.setQueryData(petsListKey, context?.previousPetsList ?? []);
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(petQueryKey, data);
+      queryClient.setQueryData<Pet[]>(petsListKey, (old = []) =>
+        old.map((pet) => (pet.id === data.id ? data : pet))
+      );
+      setEditModalOpen(false);
+    },
+    onSettled: () => {
+      if (!customerId || !petId) return;
+      void queryClient.invalidateQueries({ queryKey: petQueryKey });
+      void queryClient.invalidateQueries({ queryKey: petsListKey });
+    },
+  });
 
   const deletePetMutation = useApiMutation({
     mutationFn: () => deletePet(customerId!, petId!),
@@ -118,6 +182,29 @@ export function PetDetail() {
 
   const pet = petQuery.data;
   const customer = customerQuery.data;
+  const isUpdating = updatePetMutation.isPending;
+
+  function openEditModal() {
+    if (!pet) return;
+    setEditPetName(pet.name);
+    setEditPetType(pet.type);
+    setEditPetGender(pet.gender);
+    setEditPetBreed(pet.breed ?? '');
+    setEditModalOpen(true);
+  }
+
+  async function onUpdatePetDetails() {
+    if (!customerId || !petId) return;
+    const trimmedName = editPetName.trim();
+    if (!trimmedName || !editPetType || !editPetGender) return;
+    const payload = {
+      name: trimmedName,
+      type: editPetType as 'dog' | 'cat',
+      gender: editPetGender as 'male' | 'female',
+      breed: editPetBreed.trim() ? editPetBreed.trim() : null,
+    } satisfies Parameters<typeof updatePet>[2];
+    await updatePetMutation.mutateAsync(payload);
+  }
 
   const breadcrumbItems = useMemo(() => {
     const items = [{ title: 'לקוחות', href: '/customers' }];
@@ -231,11 +318,20 @@ export function PetDetail() {
               <IconDots size={14} />
             </Button>
           </Menu.Target>
-          <Menu.Dropdown data-testid="pet-actions-dropdown">
-            <Menu.Item
-              color="red"
-              leftSection={<IconX size={16} />}
-              onClick={(e) => {
+        <Menu.Dropdown data-testid="pet-actions-dropdown">
+          <Menu.Item
+            leftSection={<IconPencil size={16} />}
+            onClick={(e) => {
+              e.stopPropagation();
+              openEditModal();
+            }}
+          >
+            ערוך חיית מחמד
+          </Menu.Item>
+          <Menu.Item
+            color="red"
+            leftSection={<IconX size={16} />}
+            onClick={(e) => {
                 e.stopPropagation();
                 setDeleteModalOpen(true);
               }}
@@ -272,6 +368,54 @@ export function PetDetail() {
           </Stack>
         </Stack>
       </Card>
+
+      <Modal opened={editModalOpen} onClose={() => setEditModalOpen(false)} title="ערוך חיית מחמד">
+        <Stack>
+          <TextInput
+            label="שם"
+            value={editPetName}
+            onChange={({ currentTarget }) => setEditPetName(currentTarget.value)}
+            required
+          />
+          <Select
+            label="סוג"
+            data={[
+              { value: 'dog', label: 'כלב' },
+              { value: 'cat', label: 'חתול' },
+            ]}
+            value={editPetType}
+            onChange={(val) => setEditPetType((val as 'dog' | 'cat') ?? '')}
+            required
+          />
+          <Select
+            label="מין"
+            data={[
+              { value: 'male', label: 'זכר' },
+              { value: 'female', label: 'נקבה' },
+            ]}
+            value={editPetGender}
+            onChange={(val) => setEditPetGender((val as 'male' | 'female') ?? '')}
+            required
+          />
+          <TextInput
+            label="גזע"
+            value={editPetBreed}
+            onChange={({ currentTarget }) => setEditPetBreed(currentTarget.value)}
+          />
+          <Group justify="right" mt="sm">
+            <Button variant="default" onClick={() => setEditModalOpen(false)}>
+              ביטול
+            </Button>
+            <Button
+              onClick={onUpdatePetDetails}
+              disabled={!editPetName.trim() || !editPetType || !editPetGender}
+              loading={isUpdating}
+            >
+              עדכן
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       <Modal
         opened={deleteModalOpen}

@@ -40,12 +40,14 @@ vi.mock('react-router-dom', async (importOriginal) => {
 describe('Customers page', () => {
   const listCustomersMock = vi.mocked(customersApi.listCustomers);
   const createCustomerMock = vi.mocked(customersApi.createCustomer);
+  const updateCustomerMock = vi.mocked(customersApi.updateCustomer);
   const deleteCustomerMock = vi.mocked(customersApi.deleteCustomer);
   let restoreConsoleError: (() => void) | null = null;
 
   beforeEach(() => {
     vi.clearAllMocks();
     listCustomersMock.mockResolvedValue(mockCustomers);
+    updateCustomerMock.mockResolvedValue(mockCustomers[0]);
     restoreConsoleError?.();
     restoreConsoleError = null;
   });
@@ -109,6 +111,58 @@ describe('Customers page', () => {
     expect(listCustomersMock).toHaveBeenCalledTimes(2);
   });
 
+  it('allows editing a customer from the list', async () => {
+    updateCustomerMock.mockResolvedValueOnce({
+      ...mockCustomers[0],
+      name: 'Alice Updated',
+      email: 'alice.updated@example.com',
+      phone: null,
+      address: 'Haifa',
+    });
+
+    renderWithProviders(<Customers />);
+
+    await waitFor(() => expect(listCustomersMock).toHaveBeenCalled());
+
+    const user = userEvent.setup();
+    const aliceCard = (await screen.findByText('Alice')).closest(
+      '.customer-card'
+    ) as HTMLElement | null;
+    expect(aliceCard).toBeTruthy();
+    if (!aliceCard) return;
+
+    await user.click(within(aliceCard).getByRole('button', { name: 'ערוך' }));
+
+    const modal = await screen.findByRole('dialog', { name: 'ערוך לקוח' });
+    const nameInput = (await within(modal).findByLabelText(/שם/)) as HTMLInputElement;
+    const emailInput = (await within(modal).findByLabelText(/אימייל/)) as HTMLInputElement;
+    const phoneInput = (await within(modal).findByLabelText(/טלפון/)) as HTMLInputElement;
+    const addressInput = (await within(modal).findByLabelText(/כתובת/)) as HTMLInputElement;
+
+    await user.clear(nameInput);
+    await user.type(nameInput, '  Alice Updated  ');
+    await user.clear(emailInput);
+    await user.type(emailInput, 'alice.updated@example.com  ');
+    await user.clear(phoneInput);
+    await user.clear(addressInput);
+    await user.type(addressInput, '  Haifa  ');
+
+    await user.click(within(modal).getByRole('button', { name: 'עדכן' }));
+
+    await waitFor(() =>
+      expect(updateCustomerMock).toHaveBeenCalledWith('cust-1', {
+        name: 'Alice Updated',
+        email: 'alice.updated@example.com',
+        phone: null,
+        address: 'Haifa',
+      })
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'ערוך לקוח' })).not.toBeInTheDocument()
+    );
+  });
+
   it('allows deleting a customer', async () => {
     renderWithProviders(<Customers />);
 
@@ -120,7 +174,9 @@ describe('Customers page', () => {
     ) as HTMLElement | null;
     if (!firstCard) throw new Error('Customer card not found');
 
-    await user.click(within(firstCard).getByRole('button', { hidden: true }));
+    await user.click(
+      within(firstCard).getByRole('button', { name: 'פתח תפריט פעולות', hidden: true })
+    );
     await user.click(await screen.findByRole('menuitem', { name: 'מחק לקוח' }));
     await user.click(await screen.findByRole('button', { name: 'מחק' }));
 

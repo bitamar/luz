@@ -49,6 +49,19 @@ export async function createPet(values: PetInsert) {
   return rows[0] ?? null;
 }
 
+export async function updatePetById(
+  petId: string,
+  customerId: string,
+  updates: Partial<PetInsert>
+) {
+  const rows = await db
+    .update(pets)
+    .set(updates)
+    .where(and(eq(pets.id, petId), eq(pets.customerId, customerId), eq(pets.isDeleted, false)))
+    .returning();
+  return rows[0] ?? null;
+}
+
 export async function softDeletePetById(petId: string) {
   await db.update(pets).set({ isDeleted: true, updatedAt: new Date() }).where(eq(pets.id, petId));
 }
