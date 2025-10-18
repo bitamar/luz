@@ -14,7 +14,6 @@ import {
   Stack,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core';
 import { IconDots, IconX } from '@tabler/icons-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -34,6 +33,7 @@ import { queryKeys } from '../lib/queryKeys';
 import { extractErrorMessage } from '../lib/notifications';
 import { HttpError } from '../lib/http';
 import { useApiMutation } from '../lib/useApiMutation';
+import { PageTitle } from '../components/PageTitle';
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -393,7 +393,7 @@ export function CustomerDetail() {
           </Menu.Dropdown>
         </Menu>
 
-        <Title order={2}>{customer.name}</Title>
+        <PageTitle order={2}>{customer.name}</PageTitle>
       </Group>
 
       <EntityCard
@@ -441,7 +441,7 @@ export function CustomerDetail() {
       </EntityCard>
 
       <Group justify="space-between" mb="md">
-        <Title order={3}>חיות מחמד</Title>
+        <PageTitle order={3}>חיות מחמד</PageTitle>
         <Button onClick={openAddPet} disabled={addPetMutation.isPending}>
           + הוסף חיה
         </Button>

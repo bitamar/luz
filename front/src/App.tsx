@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import 'dayjs/locale/he';
-import { AppShell, Center, Loader } from '@mantine/core';
+import { AppShell, Center, Loader, useMantineColorScheme, useMantineTheme } from '@mantine/core';
 import Header from './Header';
 import Navbar from './Navbar';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
@@ -39,6 +39,9 @@ function PlainLayout() {
 function ProtectedLayout() {
   const [opened, setOpened] = useState(false);
   const location = useLocation();
+  const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
+  const lightAppBackground = theme.other['lightAppBackground'];
 
   useEffect(() => {
     // Close mobile navbar when navigating to a new route
@@ -59,7 +62,14 @@ function ProtectedLayout() {
         <Navbar />
       </AppShell.Navbar>
 
-      <AppShell.Main style={{ paddingTop: 'var(--app-shell-header-height, 0px)' }}>
+      <AppShell.Main
+        style={{
+          paddingTop: 'var(--app-shell-header-height, 0px)',
+          ...(colorScheme === 'light'
+            ? { backgroundColor: lightAppBackground, color: '#3d3d3d' }
+            : {}),
+        }}
+      >
         <RouteErrorBoundary>
           <Outlet />
         </RouteErrorBoundary>

@@ -9,12 +9,12 @@ import {
   Stack,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { listCustomers, createCustomer, deleteCustomer, type Customer } from '../api/customers';
 import { StatusCard } from '../components/StatusCard';
+import { PageTitle } from '../components/PageTitle';
 import { EntityCard } from '../components/EntityCard';
 import { formatPetsCount } from '../utils/formatPetsCount';
 import { extractErrorMessage } from '../lib/notifications';
@@ -214,7 +214,7 @@ export function Customers() {
   return (
     <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
       <Group justify="space-between" mb="md">
-        <Title order={2}>לקוחות</Title>
+        <PageTitle order={2}>לקוחות</PageTitle>
         <Button onClick={openCreateCustomer} disabled={loading}>
           לקוח חדש
         </Button>

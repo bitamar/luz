@@ -12,7 +12,6 @@ import {
   Modal,
   Stack,
   Text,
-  Title,
 } from '@mantine/core';
 import { IconDots, IconX } from '@tabler/icons-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -22,6 +21,7 @@ import { queryKeys } from '../lib/queryKeys';
 import { extractErrorMessage } from '../lib/notifications';
 import { HttpError } from '../lib/http';
 import { useApiMutation } from '../lib/useApiMutation';
+import { PageTitle } from '../components/PageTitle';
 
 export function PetDetail() {
   const { customerId, petId } = useParams<{ customerId: string; petId: string }>();
@@ -245,7 +245,7 @@ export function PetDetail() {
           </Menu.Dropdown>
         </Menu>
 
-        <Title order={2}>{pet.name}</Title>
+        <PageTitle order={2}>{pet.name}</PageTitle>
         <Badge variant="light" size="lg" color={pet.type === 'dog' ? 'teal' : 'grape'}>
           {typeLabel}
         </Badge>
