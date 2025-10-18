@@ -1,13 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  Button,
-  Group,
-  Stack,
-  Switch,
-  TextInput,
-  Title,
-  useMantineColorScheme,
-} from '@mantine/core';
+import { Button, Group, Stack, Switch, TextInput, useMantineColorScheme } from '@mantine/core';
 import { IconMoon, IconSun } from '@tabler/icons-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSettings, updateSettings } from '../auth/api';
@@ -16,6 +8,7 @@ import { queryKeys } from '../lib/queryKeys';
 import type { SettingsResponse } from '@kalimere/types/users';
 import { extractErrorMessage } from '../lib/notifications';
 import { useApiMutation } from '../lib/useApiMutation';
+import { PageTitle } from '../components/PageTitle';
 
 export function Settings() {
   const { colorScheme, setColorScheme } = useMantineColorScheme();
@@ -79,7 +72,7 @@ export function Settings() {
   return (
     <form onSubmit={onSubmit}>
       <Stack gap="md">
-        <Title order={3}>הגדרות משתמש</Title>
+        <PageTitle order={3}>הגדרות משתמש</PageTitle>
         <Switch
           checked={colorScheme === 'dark'}
           onChange={({ currentTarget }) => setColorScheme(currentTarget.checked ? 'dark' : 'light')}
