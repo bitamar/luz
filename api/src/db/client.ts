@@ -6,12 +6,11 @@ import { env } from '../env.js';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
-import { newDb } from 'pg-mem';
 import * as schema from './schema.js';
 
 const isTest = process.env['NODE_ENV'] === 'test';
 
-function createPgMemPool(): pg.Pool {
+function createPgMemPool(newDb: typeof import('pg-mem').newDb): pg.Pool {
   const mem = newDb({ autoCreateForeignKeyIndices: true });
 
   mem.public.registerFunction({
@@ -42,9 +41,14 @@ function createPgMemPool(): pg.Pool {
   return new Pool() as unknown as pg.Pool;
 }
 
-const pool: pg.Pool = isTest
-  ? createPgMemPool()
-  : new pg.Pool({ connectionString: env.DATABASE_URL });
+let pool: pg.Pool;
+
+if (isTest) {
+  const { newDb } = await import('pg-mem');
+  pool = createPgMemPool(newDb);
+} else {
+  pool = new pg.Pool({ connectionString: env.DATABASE_URL });
+}
 
 let poolClosing = false;
 let poolEnded = false;
