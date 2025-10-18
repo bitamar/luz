@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Routes, Route } from 'react-router-dom';
@@ -6,6 +6,7 @@ import { CustomerDetail } from '../../pages/CustomerDetail';
 import * as customersApi from '../../api/customers';
 import { renderWithProviders } from '../utils/renderWithProviders';
 import { suppressConsoleError } from '../utils/suppressConsoleError';
+import { setupScrollIntoViewMock } from '../utils/mockScrollIntoView';
 import { HttpError } from '../../lib/http';
 
 const navigateMock = vi.fn();
@@ -45,14 +46,6 @@ const baseCustomer: customersApi.Customer = {
 };
 
 describe('CustomerDetail page', () => {
-  beforeAll(() => {
-    Object.defineProperty(window.HTMLElement.prototype, 'scrollIntoView', {
-      configurable: true,
-      writable: true,
-      value: vi.fn(),
-    });
-  });
-
   const getCustomerMock = vi.mocked(customersApi.getCustomer);
   const addPetMock = vi.mocked(customersApi.addPetToCustomer);
   const updateCustomerMock = vi.mocked(customersApi.updateCustomer);
@@ -61,8 +54,11 @@ describe('CustomerDetail page', () => {
   const deletePetMock = vi.mocked(customersApi.deletePet);
   const getCustomerPetsMock = vi.mocked(customersApi.getCustomerPets);
   let restoreConsoleError: (() => void) | null = null;
+  let restoreScrollIntoView: (() => void) | null = null;
 
   beforeEach(() => {
+    restoreScrollIntoView?.();
+    restoreScrollIntoView = setupScrollIntoViewMock();
     vi.clearAllMocks();
     navigateMock.mockReset();
     getCustomerMock.mockResolvedValue(baseCustomer);
@@ -88,6 +84,8 @@ describe('CustomerDetail page', () => {
   });
 
   afterEach(() => {
+    restoreScrollIntoView?.();
+    restoreScrollIntoView = null;
     restoreConsoleError?.();
     restoreConsoleError = null;
   });
