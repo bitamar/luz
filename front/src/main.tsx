@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { DirectionProvider, MantineProvider, type MantineThemeOverride } from '@mantine/core';
+import { DirectionProvider, MantineProvider } from '@mantine/core';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import '@mantine/notifications/styles.css';
@@ -11,35 +11,30 @@ import { BrowserRouter } from 'react-router-dom';
 import { queryClient } from './lib/queryClient';
 import App from './App';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
+import { lightModeCssVariablesResolver, mantineThemeOverride } from './theme';
 
-const mantineThemeOverride: MantineThemeOverride = {
-  other: { lightAppBackground: '#f0fafa' },
-};
+const container = document.getElementById('root');
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <DirectionProvider>
-        <MantineProvider
-          defaultColorScheme="dark"
-          theme={mantineThemeOverride}
-          cssVariablesResolver={() => ({
-            variables: {},
-            light: {
-              '--mantine-color-text': '#3d3d3d',
-            },
-            dark: {},
-          })}
-        >
-          <Notifications position="top-right" />
-          <BrowserRouter>
-            <AppErrorBoundary>
-              <App />
-            </AppErrorBoundary>
-          </BrowserRouter>
-        </MantineProvider>
-      </DirectionProvider>
-      {import.meta.env.DEV ? <ReactQueryDevtools /> : null}
-    </QueryClientProvider>
-  </React.StrictMode>
-);
+if (container) {
+  ReactDOM.createRoot(container).render(
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <DirectionProvider>
+          <MantineProvider
+            defaultColorScheme="dark"
+            theme={mantineThemeOverride}
+            cssVariablesResolver={lightModeCssVariablesResolver}
+          >
+            <Notifications position="top-right" />
+            <BrowserRouter>
+              <AppErrorBoundary>
+                <App />
+              </AppErrorBoundary>
+            </BrowserRouter>
+          </MantineProvider>
+        </DirectionProvider>
+        {import.meta.env.DEV ? <ReactQueryDevtools /> : null}
+      </QueryClientProvider>
+    </React.StrictMode>
+  );
+}
