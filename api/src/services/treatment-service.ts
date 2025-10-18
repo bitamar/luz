@@ -9,7 +9,7 @@ import {
   type TreatmentRecord,
 } from '../repositories/treatment-repository.js';
 import { conflict, isErrorWithCode, notFound } from '../lib/app-error.js';
-import { treatmentSchema } from '../schemas/treatments.js';
+import { treatmentSchema } from '@kalimere/types/treatments';
 
 type TreatmentDto = z.infer<typeof treatmentSchema>;
 

@@ -24,7 +24,7 @@ import {
   type CreateCustomerBody,
   type UpdateCustomerBody,
   type CreatePetBody,
-} from '../schemas/customers.js';
+} from '@kalimere/types/customers';
 
 type CustomerDto = z.infer<typeof customerSchema>;
 type PetDto = z.infer<typeof petSchema>;

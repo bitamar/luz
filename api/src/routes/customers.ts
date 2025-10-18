@@ -13,8 +13,8 @@ import {
   petResponseSchema,
   updateCustomerBodySchema,
   updateCustomerParamsSchema,
-} from '../schemas/customers.js';
-import { okResponseSchema } from '../schemas/common.js';
+} from '@kalimere/types/customers';
+import { okResponseSchema } from '@kalimere/types/common';
 import { ensureCustomerOwnership, ensurePetOwnership } from '../middleware/ownership.js';
 import {
   createCustomerForUser,

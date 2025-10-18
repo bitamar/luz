@@ -1,6 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { ensureAuthed } from '../plugins/auth.js';
-import { settingsResponseSchema, updateSettingsBodySchema } from '../schemas/users.js';
+import { settingsResponseSchema, updateSettingsBodySchema } from '@kalimere/types/users';
 import { getSettingsFromUser, updateSettingsForUser } from '../services/user-service.js';
 
 const userRoutesPlugin: FastifyPluginAsyncZod = async (app) => {

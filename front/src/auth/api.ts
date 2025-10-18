@@ -1,7 +1,7 @@
 import { fetchJson } from '../lib/http';
 import { API_BASE_URL } from '../config';
-import { settingsResponseSchema, updateSettingsBodySchema } from '@contracts/users';
-import type { SettingsResponse, UpdateSettingsBody } from '@contracts/users';
+import { settingsResponseSchema, updateSettingsBodySchema } from '@kalimere/types/users';
+import type { SettingsResponse, UpdateSettingsBody } from '@kalimere/types/users';
 
 type RequestOptions = {
   signal?: AbortSignal;
