@@ -10,7 +10,6 @@ import {
   Stack,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -27,6 +26,7 @@ import { queryKeys } from '../lib/queryKeys';
 import { extractErrorMessage } from '../lib/notifications';
 import { useApiMutation } from '../lib/useApiMutation';
 import type { SettingsResponse } from '@kalimere/types/users';
+import { PageTitle } from '../components/PageTitle';
 
 const sortTreatments = (rows: Treatment[]) =>
   [...rows].sort((a, b) => a.name.localeCompare(b.name, 'he-IL'));
@@ -264,7 +264,7 @@ export function Treatments() {
   return (
     <Container size="lg" mt="xl">
       <Group justify="space-between" mb="md">
-        <Title order={2}>סוגי טיפולים</Title>
+        <PageTitle order={2}>סוגי טיפולים</PageTitle>
         <Button onClick={openCreate} disabled={loading}>
           טיפול חדש
         </Button>
