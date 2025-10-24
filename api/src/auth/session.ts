@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { DbUser, SessionData } from './types.js';
 import { db } from '../db/client.js';
 import { eq } from 'drizzle-orm';
-import { sessions as sessionsTable } from '../db/schema.js';
+import { sessions as sessionsTable, users as usersTable } from '../db/schema.js';
 import { SESSION_TTL } from './constants.js';
 
 export async function createSession(user: DbUser): Promise<SessionData> {
@@ -19,21 +19,28 @@ export async function createSession(user: DbUser): Promise<SessionData> {
 export async function getSession(sessionId: string | undefined): Promise<SessionData | undefined> {
   if (!sessionId) return undefined;
 
-  const row = await db.query.sessions.findFirst({
-    where: eq(sessionsTable.id, sessionId),
-    with: { user: true },
-  });
-  if (!row || !row.user) return undefined;
+  const [session] = await db
+    .select()
+    .from(sessionsTable)
+    .where(eq(sessionsTable.id, sessionId))
+    .limit(1);
+  if (!session) return undefined;
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, session.userId))
+    .limit(1);
+  if (!user) return undefined;
   const now = new Date();
-  if (row.expiresAt <= now) {
+  if (session.expiresAt <= now) {
     // Expired: delete and return undefined
     await db.delete(sessionsTable).where(eq(sessionsTable.id, sessionId));
     return undefined;
   }
   const data: SessionData = {
-    id: row.id,
-    user: row.user,
-    createdAt: row.createdAt,
+    id: session.id,
+    user,
+    createdAt: session.createdAt,
     lastAccessedAt: now,
   };
   // Rolling update

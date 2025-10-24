@@ -6,7 +6,6 @@ const Env = z.object({
   APP_ORIGIN: z.string().url(),
   JWT_SECRET: z.string().min(32),
   DATABASE_URL: z.string().url(),
-  TEST_DATABASE_URL: z.string().url().optional(),
   GOOGLE_CLIENT_ID: z.string(),
   GOOGLE_CLIENT_SECRET: z.string(),
   TWILIO_SID: z.string(),
