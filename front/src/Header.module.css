@@ -17,6 +17,11 @@
 .brandPawIcon[data-loading='true'] {
   animation: paw-spin 1.1s ease-in-out infinite;
   filter: drop-shadow(0 0 0.6rem currentColor);
+  color: var(--mantine-color-orange-6);
+}
+
+[data-mantine-color-scheme='dark'] .brandPawIcon[data-loading='true'] {
+  color: var(--mantine-color-orange-4);
 }
 
 @keyframes paw-spin {
