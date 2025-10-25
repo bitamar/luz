@@ -9,7 +9,6 @@ import {
   Group,
   Menu,
   Modal,
-  Select,
   SimpleGrid,
   Stack,
   Text,
@@ -24,7 +23,6 @@ import {
   getCustomer,
   getCustomerPets,
   updateCustomer,
-  updatePet,
   type Customer,
   type Pet,
   type UpdateCustomerBody,
@@ -33,13 +31,33 @@ import {
 import { StatusCard } from '../components/StatusCard';
 import { EntityCard } from '../components/EntityCard';
 import { EntityFormModal } from '../components/EntityFormModal';
+import {
+  PetFormModal,
+  type PetFormModalInitialValues,
+  type PetFormSubmitValues,
+} from '../components/PetFormModal';
 import { PageTitle } from '../components/PageTitle';
 import { formatPetsCount } from '../utils/formatPetsCount';
 import { queryKeys } from '../lib/queryKeys';
 import { extractErrorMessage } from '../lib/notifications';
 import { HttpError } from '../lib/http';
 import { useApiMutation } from '../lib/useApiMutation';
-import { applyCustomerUpdates, applyPetUpdates } from '../utils/entityUpdates';
+import { applyCustomerUpdates } from '../utils/entityUpdates';
+import { usePetUpdateMutation } from '../hooks/usePetUpdateMutation';
+
+type PetFormState = {
+  opened: boolean;
+  mode: 'create' | 'edit';
+  editingPetId: string | null;
+  initialValues: PetFormModalInitialValues | null;
+};
+
+const initialPetFormState: PetFormState = {
+  opened: false,
+  mode: 'create',
+  editingPetId: null,
+  initialValues: null,
+};
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -70,12 +88,7 @@ export function CustomerDetail() {
   const [customerFormPhone, setCustomerFormPhone] = useState('');
   const [customerFormAddress, setCustomerFormAddress] = useState('');
 
-  const [petFormOpen, setPetFormOpen] = useState(false);
-  const [editingPetId, setEditingPetId] = useState<string | null>(null);
-  const [petName, setPetName] = useState('');
-  const [petType, setPetType] = useState<'dog' | 'cat' | ''>('');
-  const [petGender, setPetGender] = useState<'male' | 'female' | ''>('');
-  const [petBreed, setPetBreed] = useState('');
+  const [petFormState, setPetFormState] = useState<PetFormState>(initialPetFormState);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [petDeleteModalOpen, setPetDeleteModalOpen] = useState(false);
@@ -214,41 +227,10 @@ export function CustomerDetail() {
     },
   });
 
-  const updatePetMutation = useApiMutation({
-    mutationFn: ({ petId, payload }: { petId: string; payload: UpdatePetBody }) => {
-      if (!customerId) {
-        throw new Error('Missing customer id');
-      }
-      return updatePet(customerId, petId, payload);
-    },
-    successToast: { message: 'חיית המחמד עודכנה בהצלחה' },
-    errorToast: { fallbackMessage: 'עדכון חיית המחמד נכשל' },
-    onMutate: async ({ petId, payload }) => {
-      await queryClient.cancelQueries({ queryKey: petsQueryKey });
-      const previousPets = queryClient.getQueryData<Pet[]>(petsQueryKey) ?? [];
-      queryClient.setQueryData<Pet[]>(petsQueryKey, (old = []) =>
-        old.map((pet) => (pet.id === petId ? applyPetUpdates(pet, payload) : pet))
-      );
-      return { previousPets };
-    },
-    onError: (_error, _variables, context) => {
-      queryClient.setQueryData(petsQueryKey, context?.previousPets ?? []);
-    },
-    onSuccess: (data, variables) => {
-      if (!variables) {
-        closePetForm();
-        return;
-      }
-      const { petId, payload } = variables;
-      queryClient.setQueryData<Pet[]>(petsQueryKey, (old = []) =>
-        old.map((pet) =>
-          pet.id === (data?.id ?? petId) ? (data ?? applyPetUpdates(pet, payload)) : pet
-        )
-      );
+  const updatePetMutation = usePetUpdateMutation({
+    customerId,
+    onSuccess: () => {
       closePetForm();
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: petsQueryKey });
     },
   });
 
@@ -427,32 +409,31 @@ export function CustomerDetail() {
     return null;
   }
 
-  function resetPetForm() {
-    setPetName('');
-    setPetType('');
-    setPetGender('');
-    setPetBreed('');
-  }
-
   function closePetForm() {
-    setPetFormOpen(false);
-    setEditingPetId(null);
-    resetPetForm();
+    setPetFormState(initialPetFormState);
   }
 
   function openAddPet() {
-    setEditingPetId(null);
-    resetPetForm();
-    setPetFormOpen(true);
+    setPetFormState({
+      opened: true,
+      mode: 'create',
+      editingPetId: null,
+      initialValues: null,
+    });
   }
 
   function openEditPet(pet: Pet) {
-    setEditingPetId(pet.id);
-    setPetName(pet.name);
-    setPetType(pet.type);
-    setPetGender(pet.gender);
-    setPetBreed(pet.breed ?? '');
-    setPetFormOpen(true);
+    setPetFormState({
+      opened: true,
+      mode: 'edit',
+      editingPetId: pet.id,
+      initialValues: {
+        name: pet.name,
+        type: pet.type,
+        gender: pet.gender,
+        breed: pet.breed ?? '',
+      },
+    });
   }
 
   function openDeleteModal() {
@@ -492,26 +473,24 @@ export function CustomerDetail() {
     await updateCustomerMutation.mutateAsync(payload);
   }
 
-  async function onSubmitPet() {
-    const trimmedName = petName.trim();
-    if (!trimmedName || !petType || !petGender) return;
-    const trimmedBreed = petBreed.trim();
-    const breedValue = trimmedBreed === '' ? null : trimmedBreed;
-
-    if (editingPetId) {
+  async function onSubmitPet(values: PetFormSubmitValues) {
+    if (petFormState.mode === 'edit' && petFormState.editingPetId) {
       const updatePayload: UpdatePetBody = {
-        name: trimmedName,
-        type: petType,
-        gender: petGender,
-        breed: breedValue,
+        name: values.name,
+        type: values.type,
+        gender: values.gender,
+        breed: values.breed,
       };
-      await updatePetMutation.mutateAsync({ petId: editingPetId, payload: updatePayload });
+      await updatePetMutation.mutateAsync({
+        petId: petFormState.editingPetId,
+        payload: updatePayload,
+      });
     } else {
       await addPetMutation.mutateAsync({
-        name: trimmedName,
-        type: petType,
-        gender: petGender,
-        breed: breedValue,
+        name: values.name,
+        type: values.type,
+        gender: values.gender,
+        breed: values.breed,
       });
     }
   }
@@ -683,49 +662,14 @@ export function CustomerDetail() {
         />
       </EntityFormModal>
 
-      <EntityFormModal
-        opened={petFormOpen}
+      <PetFormModal
+        opened={petFormState.opened}
         onClose={closePetForm}
-        title={editingPetId ? 'עריכת חיית מחמד' : 'הוסף חיה חדשה'}
-        mode={editingPetId ? 'edit' : 'create'}
-        onSubmit={onSubmitPet}
-        submitDisabled={!petName.trim() || !petType || !petGender}
+        mode={petFormState.mode}
         submitLoading={petMutationInFlight}
-      >
-        <TextInput
-          label="שם"
-          value={petName}
-          onChange={({ currentTarget }) => setPetName(currentTarget.value)}
-          required
-        />
-        <Select
-          label="סוג"
-          placeholder="בחר סוג"
-          data={[
-            { value: 'dog', label: 'כלב' },
-            { value: 'cat', label: 'חתול' },
-          ]}
-          value={petType}
-          onChange={(val) => setPetType((val as 'dog' | 'cat') ?? '')}
-          required
-        />
-        <Select
-          label="מין"
-          placeholder="בחר מין"
-          data={[
-            { value: 'male', label: 'זכר' },
-            { value: 'female', label: 'נקבה' },
-          ]}
-          value={petGender}
-          onChange={(val) => setPetGender((val as 'male' | 'female') ?? '')}
-          required
-        />
-        <TextInput
-          label="גזע"
-          value={petBreed}
-          onChange={({ currentTarget }) => setPetBreed(currentTarget.value)}
-        />
-      </EntityFormModal>
+        initialValues={petFormState.initialValues}
+        onSubmit={onSubmitPet}
+      />
 
       <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="מחיקת לקוח">
         <Stack>

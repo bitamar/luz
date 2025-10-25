@@ -53,6 +53,7 @@ vi.mock('../../api/customers', () => ({
   getPet: vi.fn(),
   deletePet: vi.fn(),
   getCustomer: vi.fn(),
+  updatePet: vi.fn(),
 }));
 
 vi.mock('@tanstack/react-query', async (importOriginal) => {
