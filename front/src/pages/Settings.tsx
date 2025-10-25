@@ -86,7 +86,9 @@ export function Settings() {
           <Stack gap="md">
             <Switch
               checked={colorScheme === 'dark'}
-              onChange={({ currentTarget }) => setColorScheme(currentTarget.checked ? 'dark' : 'light')}
+              onChange={({ currentTarget }) =>
+                setColorScheme(currentTarget.checked ? 'dark' : 'light')
+              }
               onLabel={<IconMoon size={14} />}
               offLabel={<IconSun size={14} />}
             />
@@ -103,7 +105,11 @@ export function Settings() {
               onChange={({ currentTarget }) => setPhone(currentTarget.value)}
             />
             <Group justify="flex-end">
-              <Button type="submit" loading={updateSettingsMutation.isPending} disabled={!phone.trim()}>
+              <Button
+                type="submit"
+                loading={updateSettingsMutation.isPending}
+                disabled={!phone.trim()}
+              >
                 שמירה
               </Button>
             </Group>
