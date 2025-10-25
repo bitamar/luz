@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { Button, Group, Modal, Stack } from '@mantine/core';
+import type { FormEvent } from 'react';
 
 type EntityFormModalProps = {
   opened: boolean;
@@ -28,24 +29,27 @@ export function EntityFormModal({
 }: EntityFormModalProps) {
   const resolvedSubmitLabel = submitLabel ?? (mode === 'edit' ? 'שמור' : 'הוסף');
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void onSubmit();
+  };
+
   return (
     <Modal opened={opened} onClose={onClose} title={title}>
-      <Stack>
-        {children}
+      <form onSubmit={handleSubmit}>
+        <Stack>
+          {children}
 
-        <Group justify="right" mt="sm">
-          <Button variant="default" onClick={onClose}>
-            {cancelLabel}
-          </Button>
-          <Button
-            onClick={() => void onSubmit()}
-            loading={submitLoading ?? false}
-            disabled={submitDisabled ?? false}
-          >
-            {resolvedSubmitLabel}
-          </Button>
-        </Group>
-      </Stack>
+          <Group justify="right" mt="sm">
+            <Button variant="default" type="button" onClick={onClose}>
+              {cancelLabel}
+            </Button>
+            <Button type="submit" loading={submitLoading ?? false} disabled={submitDisabled ?? false}>
+              {resolvedSubmitLabel}
+            </Button>
+          </Group>
+        </Stack>
+      </form>
     </Modal>
   );
 }
