@@ -1,7 +1,9 @@
-import { AppShell, Avatar, Burger, Button, Divider, Group, Menu, Title } from '@mantine/core';
+import { AppShell, Avatar, Burger, Button, Divider, Group, Menu, Title, useMantineTheme } from '@mantine/core';
 import { IconChevronDown, IconLogout, IconPawFilled, IconSettings } from '@tabler/icons-react';
 import { useAuth } from './auth/AuthContext';
 import { Link } from 'react-router-dom';
+import { useGlobalLoading } from './components/GlobalLoadingIndicator';
+import classes from './Header.module.css';
 
 export default function Header({
   opened,
@@ -11,6 +13,9 @@ export default function Header({
   setOpened: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const { logout, user } = useAuth();
+  const theme = useMantineTheme();
+  const isLoading = useGlobalLoading();
+  const accentColor = theme.colors.orange[theme.colorScheme === 'dark' ? 4 : 6];
 
   return (
     <AppShell.Header>
@@ -23,8 +28,22 @@ export default function Header({
             size="sm"
           />
 
-          <Title order={6}>
-            <IconPawFilled /> kalimere::vet
+          <Title order={6} className={classes.branding}>
+            <span
+              role="status"
+              aria-live="polite"
+              aria-label={isLoading ? 'Loading data' : 'Ready'}
+              className={classes.brandPaw}
+            >
+              <IconPawFilled
+                aria-hidden
+                size={22}
+                className={classes.brandPawIcon}
+                data-loading={isLoading ? 'true' : undefined}
+                style={{ color: isLoading ? accentColor : undefined }}
+              />
+            </span>
+            kalimere::vet
           </Title>
         </Group>
 
