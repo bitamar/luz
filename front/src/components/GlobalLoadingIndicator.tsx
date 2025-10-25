@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react';
-import { Group, Loader, Paper, Portal, Text, Transition } from '@mantine/core';
+import { createContext, type ReactNode, useContext, useEffect, useState } from 'react';
 import { useIsFetching, useIsMutating } from '@tanstack/react-query';
 
 const HIDE_DELAY_MS = 300;
 
-export function GlobalLoadingIndicator() {
+const GlobalLoadingContext = createContext(false);
+
+export function useGlobalLoading() {
+  return useContext(GlobalLoadingContext);
+}
+
+export function GlobalLoadingIndicator({ children }: { children?: ReactNode }) {
   const isFetching = useIsFetching();
   const isMutating = useIsMutating();
   const busy = isFetching + isMutating > 0;
@@ -17,36 +22,13 @@ export function GlobalLoadingIndicator() {
     } else {
       timeout = setTimeout(() => setVisible(false), HIDE_DELAY_MS);
     }
+
     return () => {
-      if (timeout) clearTimeout(timeout);
+      if (timeout) {
+        clearTimeout(timeout);
+      }
     };
   }, [busy]);
 
-  return (
-    <Portal>
-      <Transition mounted={visible} transition="slide-down" duration={150} timingFunction="ease">
-        {(styles) => (
-          <Paper
-            shadow="lg"
-            radius="xl"
-            withBorder
-            style={{
-              position: 'fixed',
-              top: 16,
-              right: 16,
-              zIndex: 2000,
-              ...styles,
-            }}
-          >
-            <Group gap="xs" p="sm">
-              <Loader size="xs" />
-              <Text size="sm" c="dimmed">
-                טוען נתונים...
-              </Text>
-            </Group>
-          </Paper>
-        )}
-      </Transition>
-    </Portal>
-  );
+  return <GlobalLoadingContext.Provider value={visible}>{children}</GlobalLoadingContext.Provider>;
 }

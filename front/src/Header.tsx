@@ -2,6 +2,8 @@ import { AppShell, Avatar, Burger, Button, Divider, Group, Menu, Title } from '@
 import { IconChevronDown, IconLogout, IconPawFilled, IconSettings } from '@tabler/icons-react';
 import { useAuth } from './auth/AuthContext';
 import { Link } from 'react-router-dom';
+import { useGlobalLoading } from './components/GlobalLoadingIndicator';
+import classes from './Header.module.css';
 
 export default function Header({
   opened,
@@ -11,6 +13,7 @@ export default function Header({
   setOpened: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const { logout, user } = useAuth();
+  const isLoading = useGlobalLoading();
 
   return (
     <AppShell.Header>
@@ -23,8 +26,21 @@ export default function Header({
             size="sm"
           />
 
-          <Title order={6}>
-            <IconPawFilled /> kalimere::vet
+          <Title order={6} className={classes['branding'] ?? ''}>
+            <span
+              role="status"
+              aria-live="polite"
+              aria-label={isLoading ? 'Loading data' : 'Ready'}
+              className={classes['brandPaw'] ?? ''}
+            >
+              <IconPawFilled
+                aria-hidden
+                size={22}
+                className={classes['brandPawIcon'] ?? ''}
+                data-loading={isLoading ? 'true' : undefined}
+              />
+            </span>
+            kalimere::vet
           </Title>
         </Group>
 

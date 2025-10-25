@@ -81,29 +81,30 @@ function ProtectedLayout() {
 export default function AppRoutes() {
   return (
     <AuthProvider>
-      <GlobalLoadingIndicator />
-      <Routes>
-        <Route element={<PlainLayout />}>
-          <Route path="/login" element={<Login />} />
-        </Route>
+      <GlobalLoadingIndicator>
+        <Routes>
+          <Route element={<PlainLayout />}>
+            <Route path="/login" element={<Login />} />
+          </Route>
 
-        <Route
-          element={
-            <ProtectedRoute>
-              <ProtectedLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/treatments" element={<Treatments />} />
-          <Route path="/customers" element={<Customers />} />
-          <Route path="/customers/:id" element={<CustomerDetail />} />
-          <Route path="/customers/:customerId/pets/:petId" element={<PetDetail />} />
-          <Route path="/settings" element={<Settings />} />
-        </Route>
+          <Route
+            element={
+              <ProtectedRoute>
+                <ProtectedLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/treatments" element={<Treatments />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/customers/:id" element={<CustomerDetail />} />
+            <Route path="/customers/:customerId/pets/:petId" element={<PetDetail />} />
+            <Route path="/settings" element={<Settings />} />
+          </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </GlobalLoadingIndicator>
     </AuthProvider>
   );
 }

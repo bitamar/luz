@@ -1,0 +1,44 @@
+.branding {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+}
+
+.brandPaw {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brandPawIcon {
+  transition:
+    color 150ms ease,
+    filter 150ms ease;
+}
+
+.brandPawIcon[data-loading='true'] {
+  animation: paw-pulse 1.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 0.75rem currentColor);
+  color: var(--mantine-color-blue-4);
+}
+
+[data-mantine-color-scheme='dark'] .brandPawIcon[data-loading='true'] {
+  color: var(--mantine-color-blue-2);
+}
+
+@keyframes paw-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+}
