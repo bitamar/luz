@@ -13,15 +13,28 @@ import {
   Stack,
   Text,
 } from '@mantine/core';
-import { IconDots, IconX } from '@tabler/icons-react';
+import { IconDots, IconPencil, IconX } from '@tabler/icons-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getPet, deletePet, getCustomer, type Customer, type Pet } from '../api/customers';
+import {
+  getPet,
+  deletePet,
+  getCustomer,
+  type Customer,
+  type Pet,
+  type UpdatePetBody,
+} from '../api/customers';
 import { StatusCard } from '../components/StatusCard';
 import { queryKeys } from '../lib/queryKeys';
 import { extractErrorMessage } from '../lib/notifications';
 import { HttpError } from '../lib/http';
 import { useApiMutation } from '../lib/useApiMutation';
 import { PageTitle } from '../components/PageTitle';
+import {
+  PetFormModal,
+  type PetFormModalInitialValues,
+  type PetFormSubmitValues,
+} from '../components/PetFormModal';
+import { usePetUpdateMutation } from '../hooks/usePetUpdateMutation';
 
 export function PetDetail() {
   const { customerId, petId } = useParams<{ customerId: string; petId: string }>();
@@ -51,6 +64,14 @@ export function PetDetail() {
   });
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [petFormOpen, setPetFormOpen] = useState(false);
+  const [petFormInitialValues, setPetFormInitialValues] =
+    useState<PetFormModalInitialValues | null>(null);
+
+  function closePetForm() {
+    setPetFormOpen(false);
+    setPetFormInitialValues(null);
+  }
 
   const deletePetMutation = useApiMutation({
     mutationFn: () => deletePet(customerId!, petId!),
@@ -111,6 +132,27 @@ export function PetDetail() {
       void queryClient.invalidateQueries({ queryKey: customersListKey });
     },
   });
+
+  const updatePetMutation = usePetUpdateMutation({
+    customerId,
+    petDetailQueryKey: petQueryKey,
+    onSuccess: () => {
+      closePetForm();
+    },
+  });
+
+  const petMutationInFlight = updatePetMutation.isPending;
+
+  async function onSubmitPet(values: PetFormSubmitValues) {
+    if (!petId) return;
+    const payload: UpdatePetBody = {
+      name: values.name,
+      type: values.type,
+      gender: values.gender,
+      breed: values.breed,
+    };
+    await updatePetMutation.mutateAsync({ petId, payload });
+  }
 
   const loading = petQuery.isPending || customerQuery.isPending;
   const petError = petQuery.error;
@@ -198,6 +240,16 @@ export function PetDetail() {
     return null;
   }
 
+  function openPetEditModal() {
+    setPetFormInitialValues({
+      name: pet.name,
+      type: pet.type,
+      gender: pet.gender,
+      breed: pet.breed ?? '',
+    });
+    setPetFormOpen(true);
+  }
+
   const typeLabel = pet.type === 'dog' ? 'כלב' : 'חתול';
   const genderLabel = pet.gender === 'male' ? 'זכר' : 'נקבה';
 
@@ -232,6 +284,15 @@ export function PetDetail() {
             </Button>
           </Menu.Target>
           <Menu.Dropdown data-testid="pet-actions-dropdown">
+            <Menu.Item
+              leftSection={<IconPencil size={16} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                openPetEditModal();
+              }}
+            >
+              ערוך חיית מחמד
+            </Menu.Item>
             <Menu.Item
               color="red"
               leftSection={<IconX size={16} />}
@@ -272,6 +333,15 @@ export function PetDetail() {
           </Stack>
         </Stack>
       </Card>
+
+      <PetFormModal
+        opened={petFormOpen}
+        onClose={closePetForm}
+        mode="edit"
+        submitLoading={petMutationInFlight}
+        initialValues={petFormInitialValues}
+        onSubmit={onSubmitPet}
+      />
 
       <Modal
         opened={deleteModalOpen}

@@ -45,6 +45,7 @@ describe('PetDetail page', () => {
   const getPetMock = vi.mocked(customersApi.getPet);
   const getCustomerMock = vi.mocked(customersApi.getCustomer);
   const deletePetMock = vi.mocked(customersApi.deletePet);
+  const updatePetMock = vi.mocked(customersApi.updatePet);
   let restoreConsoleError: (() => void) | null = null;
 
   beforeEach(() => {
@@ -53,6 +54,7 @@ describe('PetDetail page', () => {
     getPetMock.mockResolvedValue(mockPet);
     getCustomerMock.mockResolvedValue(mockCustomer);
     deletePetMock.mockResolvedValue();
+    updatePetMock.mockResolvedValue(mockPet);
     restoreConsoleError?.();
     restoreConsoleError = null;
   });
@@ -101,6 +103,51 @@ describe('PetDetail page', () => {
     await user.click(ownerLink);
 
     expect(navigateMock).toHaveBeenCalledWith('/customers/cust-1');
+  });
+
+  it('allows editing the pet details', async () => {
+    const user = userEvent.setup();
+    const updatedPet: customersApi.Pet = {
+      ...mockPet,
+      name: 'Bolt Updated',
+      breed: 'Labrador',
+    };
+    updatePetMock.mockResolvedValue(updatedPet);
+    getPetMock.mockResolvedValueOnce(mockPet).mockResolvedValue(updatedPet);
+
+    renderPetDetail();
+
+    await waitFor(() => expect(getPetMock).toHaveBeenCalled());
+
+    const menuButton = await screen.findByTestId('pet-actions-trigger');
+    await user.click(menuButton);
+
+    const actionsDropdown = await screen.findByTestId('pet-actions-dropdown');
+    await user.click(within(actionsDropdown).getByText('ערוך חיית מחמד'));
+
+    const dialog = await screen.findByRole('dialog', { name: 'עריכת חיית מחמד' });
+    const nameInput = within(dialog).getByLabelText(/שם/);
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Bolt Updated');
+
+    const breedInput = within(dialog).getByLabelText(/גזע/);
+    await user.clear(breedInput);
+    await user.type(breedInput, 'Labrador');
+
+    await user.click(within(dialog).getByRole('button', { name: 'שמור' }));
+
+    await waitFor(() => expect(updatePetMock).toHaveBeenCalled());
+    expect(updatePetMock).toHaveBeenCalledWith('cust-1', 'pet-1', {
+      name: 'Bolt Updated',
+      type: 'dog',
+      gender: 'male',
+      breed: 'Labrador',
+    });
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'עריכת חיית מחמד' })).not.toBeInTheDocument()
+    );
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Bolt Updated' })).toBeInTheDocument());
   });
 
   it('allows deleting the pet and returns to customer page', async () => {
