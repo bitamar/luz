@@ -67,7 +67,6 @@ jobs:
       - name: Run tests
         env:
           NODE_ENV: test
-          TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/kalimere_test
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/kalimere_dev
           APP_ORIGIN: http://localhost:3000
           URL: http://localhost:3000
