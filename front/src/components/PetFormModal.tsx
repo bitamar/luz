@@ -69,7 +69,13 @@ export function PetFormModal({
       gender: initialValues?.gender ?? '',
       breed: initialValues?.breed ?? '',
     });
-  }, [opened, initialValues?.name, initialValues?.type, initialValues?.gender, initialValues?.breed]);
+  }, [
+    opened,
+    initialValues?.name,
+    initialValues?.type,
+    initialValues?.gender,
+    initialValues?.breed,
+  ]);
 
   const submitDisabled = useMemo(() => {
     return values.name.trim() === '' || values.type === '' || values.gender === '';
@@ -103,7 +109,9 @@ export function PetFormModal({
       <TextInput
         label="שם"
         value={values.name}
-        onChange={({ currentTarget }) => setValues((prev) => ({ ...prev, name: currentTarget.value }))}
+        onChange={({ currentTarget }) =>
+          setValues((prev) => ({ ...prev, name: currentTarget.value }))
+        }
         required
       />
       <Select
@@ -129,7 +137,9 @@ export function PetFormModal({
       <TextInput
         label="גזע"
         value={values.breed}
-        onChange={({ currentTarget }) => setValues((prev) => ({ ...prev, breed: currentTarget.value }))}
+        onChange={({ currentTarget }) =>
+          setValues((prev) => ({ ...prev, breed: currentTarget.value }))
+        }
       />
     </EntityFormModal>
   );

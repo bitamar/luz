@@ -147,7 +147,9 @@ describe('PetDetail page', () => {
     await waitFor(() =>
       expect(screen.queryByRole('dialog', { name: 'עריכת חיית מחמד' })).not.toBeInTheDocument()
     );
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Bolt Updated' })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Bolt Updated' })).toBeInTheDocument()
+    );
   });
 
   it('allows deleting the pet and returns to customer page', async () => {
