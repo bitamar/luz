@@ -10,7 +10,6 @@ import {
   Stack,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -23,10 +22,12 @@ import {
 } from '../api/treatments';
 import { StatusCard } from '../components/StatusCard';
 import { EntityCard } from '../components/EntityCard';
+import { EntityFormModal } from '../components/EntityFormModal';
 import { queryKeys } from '../lib/queryKeys';
 import { extractErrorMessage } from '../lib/notifications';
 import { useApiMutation } from '../lib/useApiMutation';
 import type { SettingsResponse } from '@kalimere/types/users';
+import { PageTitle } from '../components/PageTitle';
 
 const sortTreatments = (rows: Treatment[]) =>
   [...rows].sort((a, b) => a.name.localeCompare(b.name, 'he-IL'));
@@ -264,7 +265,7 @@ export function Treatments() {
   return (
     <Container size="lg" mt="xl">
       <Group justify="space-between" mb="md">
-        <Title order={2}>סוגי טיפולים</Title>
+        <PageTitle order={2}>סוגי טיפולים</PageTitle>
         <Button onClick={openCreate} disabled={loading}>
           טיפול חדש
         </Button>
@@ -291,43 +292,37 @@ export function Treatments() {
         </SimpleGrid>
       )}
 
-      <Modal
+      <EntityFormModal
         opened={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editId ? 'עריכת טיפול' : 'טיפול חדש'}
+        mode={editId ? 'edit' : 'create'}
+        onSubmit={onSubmit}
+        submitLoading={mutationInFlight}
+        submitDisabled={!name}
       >
-        <Stack>
-          <TextInput
-            label="שם"
-            value={name}
-            onChange={({ currentTarget }) => setName(currentTarget.value)}
-            required
-          />
-          <NumberInput
-            label="מרווח ברירת מחדל (חודשים)"
-            value={defaultIntervalMonths}
-            onChange={(val) => setDefaultIntervalMonths(typeof val === 'number' ? val : '')}
-            min={0}
-            clampBehavior="strict"
-          />
-          <NumberInput
-            label="מחיר"
-            value={price}
-            onChange={(val) => setPrice(typeof val === 'number' ? val : '')}
-            min={0}
-            clampBehavior="strict"
-            leftSection={<Text size="sm">₪</Text>}
-          />
-          <Group justify="right" mt="sm">
-            <Button variant="default" onClick={() => setModalOpen(false)}>
-              ביטול
-            </Button>
-            <Button onClick={onSubmit} loading={mutationInFlight} disabled={!name}>
-              {editId ? 'שמור' : 'הוסף'}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+        <TextInput
+          label="שם"
+          value={name}
+          onChange={({ currentTarget }) => setName(currentTarget.value)}
+          required
+        />
+        <NumberInput
+          label="מרווח ברירת מחדל (חודשים)"
+          value={defaultIntervalMonths}
+          onChange={(val) => setDefaultIntervalMonths(typeof val === 'number' ? val : '')}
+          min={0}
+          clampBehavior="strict"
+        />
+        <NumberInput
+          label="מחיר"
+          value={price}
+          onChange={(val) => setPrice(typeof val === 'number' ? val : '')}
+          min={0}
+          clampBehavior="strict"
+          leftSection={<Text size="sm">₪</Text>}
+        />
+      </EntityFormModal>
 
       <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="מחיקת טיפול">
         <Stack>

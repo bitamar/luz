@@ -1,10 +1,11 @@
 import { Badge, Card, Container, Divider, Group, rem, SimpleGrid, Title } from '@mantine/core';
+import { PageTitle } from '../components/PageTitle';
 
 export function Dashboard() {
   return (
     <Container size="lg" mt="xl">
       <Group justify="space-between" mb="md">
-        <Title order={3}>דאשבורד</Title>
+        <PageTitle order={3}>דאשבורד</PageTitle>
         <Group>
           <Badge variant="dot" size="lg">
             היום

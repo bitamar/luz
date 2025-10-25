@@ -2,12 +2,23 @@ import { fetchJson } from '../lib/http';
 import {
   createCustomerBodySchema,
   createPetBodySchema,
+  customerPetParamsSchema,
   customerPetsResponseSchema,
   customerResponseSchema,
   customersListResponseSchema,
   petResponseSchema,
+  updateCustomerBodySchema,
+  updateCustomerParamsSchema,
+  updatePetBodySchema,
 } from '@kalimere/types/customers';
-import type { CreateCustomerBody, CreatePetBody, Customer, Pet } from '@kalimere/types/customers';
+import type {
+  CreateCustomerBody,
+  CreatePetBody,
+  Customer,
+  Pet,
+  UpdateCustomerBody,
+  UpdatePetBody,
+} from '@kalimere/types/customers';
 
 export type {
   CreateCustomerBody,
@@ -18,6 +29,8 @@ export type {
   CustomersListResponse,
   Pet,
   PetResponse,
+  UpdateCustomerBody,
+  UpdatePetBody,
 } from '@kalimere/types/customers';
 
 export type PetSummary = Pick<Pet, 'id' | 'name' | 'type'>;
@@ -37,6 +50,17 @@ export async function createCustomer(input: CreateCustomerBody): Promise<Custome
   const payload = createCustomerBodySchema.parse(input);
   const json = await fetchJson<unknown>('/customers', {
     method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  const result = customerResponseSchema.parse(json);
+  return result.customer;
+}
+
+export async function updateCustomer(customerId: string, input: UpdateCustomerBody): Promise<Customer> {
+  const params = updateCustomerParamsSchema.parse({ id: customerId });
+  const payload = updateCustomerBodySchema.parse(input);
+  const json = await fetchJson<unknown>(`/customers/${params.id}`, {
+    method: 'PUT',
     body: JSON.stringify(payload),
   });
   const result = customerResponseSchema.parse(json);
@@ -78,6 +102,21 @@ export async function addPetToCustomer(customerId: string, input: CreatePetBody)
   const payload = createPetBodySchema.parse(input);
   const json = await fetchJson<unknown>(`/customers/${customerId}/pets`, {
     method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  const result = petResponseSchema.parse(json);
+  return result.pet;
+}
+
+export async function updatePet(
+  customerId: string,
+  petId: string,
+  input: UpdatePetBody,
+): Promise<Pet> {
+  const params = customerPetParamsSchema.parse({ customerId, petId });
+  const payload = updatePetBodySchema.parse(input);
+  const json = await fetchJson<unknown>(`/customers/${params.customerId}/pets/${params.petId}`, {
+    method: 'PUT',
     body: JSON.stringify(payload),
   });
   const result = petResponseSchema.parse(json);

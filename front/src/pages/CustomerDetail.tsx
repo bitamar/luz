@@ -14,7 +14,6 @@ import {
   Stack,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core';
 import { IconDots, IconX } from '@tabler/icons-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -24,16 +23,23 @@ import {
   deletePet,
   getCustomer,
   getCustomerPets,
+  updateCustomer,
+  updatePet,
   type Customer,
   type Pet,
+  type UpdateCustomerBody,
+  type UpdatePetBody,
 } from '../api/customers';
 import { StatusCard } from '../components/StatusCard';
 import { EntityCard } from '../components/EntityCard';
+import { EntityFormModal } from '../components/EntityFormModal';
 import { formatPetsCount } from '../utils/formatPetsCount';
 import { queryKeys } from '../lib/queryKeys';
 import { extractErrorMessage } from '../lib/notifications';
 import { HttpError } from '../lib/http';
 import { useApiMutation } from '../lib/useApiMutation';
+import { applyCustomerUpdates, applyPetUpdates } from '../utils/entityUpdates';
+import { PageTitle } from '../components/PageTitle';
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -58,7 +64,12 @@ export function CustomerDetail() {
     enabled: Boolean(customerId),
   });
 
-  const [modalOpen, setModalOpen] = useState(false);
+  const [customerFormOpen, setCustomerFormOpen] = useState(false);
+  const [customerFormName, setCustomerFormName] = useState('');
+  const [customerFormEmail, setCustomerFormEmail] = useState('');
+  const [customerFormPhone, setCustomerFormPhone] = useState('');
+  const [customerFormAddress, setCustomerFormAddress] = useState('');
+  const [petFormOpen, setPetFormOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [petDeleteModalOpen, setPetDeleteModalOpen] = useState(false);
   const [petToDelete, setPetToDelete] = useState<{
@@ -66,10 +77,20 @@ export function CustomerDetail() {
     petId: string;
     petName: string;
   } | null>(null);
+  const [editingPetId, setEditingPetId] = useState<string | null>(null);
   const [petName, setPetName] = useState('');
   const [petType, setPetType] = useState<'dog' | 'cat' | ''>('');
   const [petGender, setPetGender] = useState<'male' | 'female' | ''>('');
   const [petBreed, setPetBreed] = useState('');
+
+  function closeCustomerForm() {
+    setCustomerFormOpen(false);
+  }
+
+  function closePetForm() {
+    setPetFormOpen(false);
+    setEditingPetId(null);
+  }
 
   const addPetMutation = useApiMutation({
     mutationFn: (payload: Parameters<typeof addPetToCustomer>[1]) =>
@@ -134,7 +155,7 @@ export function CustomerDetail() {
         }
         return [...old, data];
       });
-      setModalOpen(false);
+      closePetForm();
       setPetName('');
       setPetType('');
       setPetGender('');
@@ -144,6 +165,90 @@ export function CustomerDetail() {
       void queryClient.invalidateQueries({ queryKey: petsQueryKey });
       void queryClient.invalidateQueries({ queryKey: customerQueryKey });
       void queryClient.invalidateQueries({ queryKey: customersListKey });
+    },
+  });
+
+  const updateCustomerMutation = useApiMutation({
+    mutationFn: (payload: UpdateCustomerBody) => updateCustomer(customerId, payload),
+    successToast: { message: 'פרטי הלקוח עודכנו בהצלחה' },
+    errorToast: { fallbackMessage: 'עדכון פרטי הלקוח נכשל' },
+    onMutate: async (payload) => {
+      if (!customerId) return;
+      await queryClient.cancelQueries({ queryKey: customerQueryKey });
+      await queryClient.cancelQueries({ queryKey: customersListKey });
+      const previousCustomer = queryClient.getQueryData<Customer>(customerQueryKey);
+      const previousCustomers = queryClient.getQueryData<Customer[]>(customersListKey) ?? [];
+      if (previousCustomer) {
+        queryClient.setQueryData<Customer>(customerQueryKey, applyCustomerUpdates(previousCustomer, payload));
+      }
+      if (previousCustomers.length > 0) {
+        queryClient.setQueryData<Customer[]>(customersListKey, (old = []) =>
+          old.map((item) => (item.id === customerId ? applyCustomerUpdates(item, payload) : item))
+        );
+      }
+      return { previousCustomer, previousCustomers };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousCustomer !== undefined) {
+        queryClient.setQueryData<Customer | undefined>(customerQueryKey, context.previousCustomer);
+      }
+      if (context?.previousCustomers) {
+        queryClient.setQueryData(customersListKey, context.previousCustomers);
+      }
+    },
+    onSuccess: (data, _variables, context) => {
+      queryClient.setQueryData<Customer | undefined>(customerQueryKey, data ?? context?.previousCustomer);
+      if (context?.previousCustomers) {
+        queryClient.setQueryData<Customer[]>(customersListKey, (old = []) =>
+          old.map((item) => (item.id === (data?.id ?? customerId) ? (data ?? item) : item))
+        );
+      }
+      closeCustomerForm();
+    },
+    onSettled: () => {
+      if (!customerId) return;
+      void queryClient.invalidateQueries({ queryKey: customerQueryKey });
+      void queryClient.invalidateQueries({ queryKey: customersListKey });
+    },
+  });
+
+  const updatePetMutation = useApiMutation({
+    mutationFn: ({ petId, payload }: { petId: string; payload: UpdatePetBody }) =>
+      updatePet(customerId, petId, payload),
+    successToast: { message: 'חיית המחמד עודכנה בהצלחה' },
+    errorToast: { fallbackMessage: 'עדכון חיית המחמד נכשל' },
+    onMutate: async ({ petId, payload }) => {
+      if (!customerId) return;
+      await queryClient.cancelQueries({ queryKey: petsQueryKey });
+      const previousPets = queryClient.getQueryData<Pet[]>(petsQueryKey) ?? [];
+      queryClient.setQueryData<Pet[]>(petsQueryKey, (old = []) =>
+        old.map((pet) => (pet.id === petId ? applyPetUpdates(pet, payload) : pet))
+      );
+      return { previousPets };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousPets) {
+        queryClient.setQueryData(petsQueryKey, context.previousPets);
+      }
+    },
+    onSuccess: (data, variables) => {
+      if (!variables) {
+        closePetForm();
+        return;
+      }
+      const { petId, payload } = variables;
+      queryClient.setQueryData<Pet[]>(petsQueryKey, (old = []) =>
+        old.map((pet) =>
+          pet.id === (data?.id ?? petId)
+            ? data ?? applyPetUpdates(pet, payload)
+            : pet
+        )
+      );
+      closePetForm();
+    },
+    onSettled: () => {
+      if (!customerId) return;
+      void queryClient.invalidateQueries({ queryKey: petsQueryKey });
     },
   });
 
@@ -246,6 +351,8 @@ export function CustomerDetail() {
   const customer = customerQuery.data;
   const pets: Pet[] = petsQuery.data ?? [];
   const petCount = pets.length;
+  const petMutationInFlight = addPetMutation.isPending || updatePetMutation.isPending;
+  const customerMutationInFlight = updateCustomerMutation.isPending;
 
   const breadcrumbItems = useMemo(
     () =>
@@ -317,21 +424,61 @@ export function CustomerDetail() {
   }
 
   function openAddPet() {
+    setEditingPetId(null);
     setPetName('');
     setPetType('');
     setPetGender('');
     setPetBreed('');
-    setModalOpen(true);
+    setPetFormOpen(true);
   }
 
-  async function onAddPet() {
+  function openEditPet(pet: Pet) {
+    setEditingPetId(pet.id);
+    setPetName(pet.name);
+    setPetType(pet.type);
+    setPetGender(pet.gender);
+    setPetBreed(pet.breed ?? '');
+    setPetFormOpen(true);
+  }
+
+  async function onSubmitPet() {
     if (!petName || !petType || !petGender) return;
-    await addPetMutation.mutateAsync({
-      name: petName,
-      type: petType,
-      gender: petGender,
-      breed: petBreed || null,
-    });
+    if (!editingPetId) {
+      await addPetMutation.mutateAsync({
+        name: petName,
+        type: petType,
+        gender: petGender,
+        breed: petBreed || null,
+      });
+    } else {
+      const payload: UpdatePetBody = {
+        name: petName,
+        type: petType,
+        gender: petGender,
+        breed: petBreed || null,
+      };
+      await updatePetMutation.mutateAsync({ petId: editingPetId, payload });
+    }
+  }
+
+  function openCustomerEdit() {
+    if (!customer) return;
+    setCustomerFormName(customer.name);
+    setCustomerFormEmail(customer.email ?? '');
+    setCustomerFormPhone(customer.phone ?? '');
+    setCustomerFormAddress(customer.address ?? '');
+    setCustomerFormOpen(true);
+  }
+
+  async function onSubmitCustomerForm() {
+    if (!customerFormName) return;
+    const payload: UpdateCustomerBody = {
+      name: customerFormName,
+      email: customerFormEmail || null,
+      phone: customerFormPhone || null,
+      address: customerFormAddress || null,
+    };
+    await updateCustomerMutation.mutateAsync(payload);
   }
 
   function openDeleteModal() {
@@ -393,7 +540,7 @@ export function CustomerDetail() {
           </Menu.Dropdown>
         </Menu>
 
-        <Title order={2}>{customer.name}</Title>
+        <PageTitle order={2}>{customer.name}</PageTitle>
       </Group>
 
       <EntityCard
@@ -404,6 +551,7 @@ export function CustomerDetail() {
             {formatPetsCount(petCount)}
           </Badge>
         }
+        editAction={openCustomerEdit}
         className="customer-info-card"
       >
         <Stack gap={4}>
@@ -441,8 +589,8 @@ export function CustomerDetail() {
       </EntityCard>
 
       <Group justify="space-between" mb="md">
-        <Title order={3}>חיות מחמד</Title>
-        <Button onClick={openAddPet} disabled={addPetMutation.isPending}>
+        <PageTitle order={3}>חיות מחמד</PageTitle>
+        <Button onClick={openAddPet} disabled={petMutationInFlight}>
           + הוסף חיה
         </Button>
       </Group>
@@ -469,6 +617,7 @@ export function CustomerDetail() {
                 label: 'מחק חיית מחמד',
                 onClick: () => openPetDeleteModal(customer.id, pet.id, pet.name),
               }}
+              editAction={() => openEditPet(pet)}
               onClick={() => navigate(`/customers/${customer.id}/pets/${pet.id}`)}
               className="pet-card"
             />
@@ -476,55 +625,83 @@ export function CustomerDetail() {
         </SimpleGrid>
       )}
 
-      <Modal opened={modalOpen} onClose={() => setModalOpen(false)} title="הוסף חיה חדשה">
-        <Stack>
-          <TextInput
-            label="שם"
-            value={petName}
-            onChange={({ currentTarget }) => setPetName(currentTarget.value)}
-            required
-          />
-          <Select
-            label="סוג"
-            placeholder="בחר סוג"
-            data={[
-              { value: 'dog', label: 'כלב' },
-              { value: 'cat', label: 'חתול' },
-            ]}
-            value={petType}
-            onChange={(val) => setPetType((val as 'dog' | 'cat') ?? '')}
-            required
-          />
-          <Select
-            label="מין"
-            placeholder="בחר מין"
-            data={[
-              { value: 'male', label: 'זכר' },
-              { value: 'female', label: 'נקבה' },
-            ]}
-            value={petGender}
-            onChange={(val) => setPetGender((val as 'male' | 'female') ?? '')}
-            required
-          />
-          <TextInput
-            label="גזע"
-            value={petBreed}
-            onChange={({ currentTarget }) => setPetBreed(currentTarget.value)}
-          />
-          <Group justify="right" mt="sm">
-            <Button variant="default" onClick={() => setModalOpen(false)}>
-              ביטול
-            </Button>
-            <Button
-              onClick={onAddPet}
-              disabled={!petName || !petType || !petGender}
-              loading={addPetMutation.isPending}
-            >
-              הוסף
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+      <EntityFormModal
+        opened={petFormOpen}
+        onClose={closePetForm}
+        title={editingPetId ? 'עריכת חיית מחמד' : 'הוסף חיה חדשה'}
+        mode={editingPetId ? 'edit' : 'create'}
+        onSubmit={onSubmitPet}
+        submitDisabled={!petName || !petType || !petGender}
+        submitLoading={petMutationInFlight}
+      >
+        <TextInput
+          label="שם"
+          value={petName}
+          onChange={({ currentTarget }) => setPetName(currentTarget.value)}
+          required
+        />
+        <Select
+          label="סוג"
+          placeholder="בחר סוג"
+          data={[
+            { value: 'dog', label: 'כלב' },
+            { value: 'cat', label: 'חתול' },
+          ]}
+          value={petType}
+          onChange={(val) => setPetType((val as 'dog' | 'cat') ?? '')}
+          required
+        />
+        <Select
+          label="מין"
+          placeholder="בחר מין"
+          data={[
+            { value: 'male', label: 'זכר' },
+            { value: 'female', label: 'נקבה' },
+          ]}
+          value={petGender}
+          onChange={(val) => setPetGender((val as 'male' | 'female') ?? '')}
+          required
+        />
+        <TextInput
+          label="גזע"
+          value={petBreed}
+          onChange={({ currentTarget }) => setPetBreed(currentTarget.value)}
+        />
+      </EntityFormModal>
+
+      <EntityFormModal
+        opened={customerFormOpen}
+        onClose={closeCustomerForm}
+        title="עריכת לקוח"
+        mode="edit"
+        onSubmit={onSubmitCustomerForm}
+        submitDisabled={!customerFormName}
+        submitLoading={customerMutationInFlight}
+      >
+        <TextInput
+          label="שם"
+          value={customerFormName}
+          onChange={({ currentTarget }) => setCustomerFormName(currentTarget.value)}
+          required
+        />
+        <TextInput
+          label="אימייל"
+          type="email"
+          value={customerFormEmail}
+          onChange={({ currentTarget }) => setCustomerFormEmail(currentTarget.value)}
+        />
+        <TextInput
+          label="טלפון"
+          type="tel"
+          value={customerFormPhone}
+          onChange={({ currentTarget }) => setCustomerFormPhone(currentTarget.value)}
+        />
+        <TextInput
+          label="כתובת"
+          value={customerFormAddress}
+          onChange={({ currentTarget }) => setCustomerFormAddress(currentTarget.value)}
+        />
+      </EntityFormModal>
 
       <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="מחיקת לקוח">
         <Stack>

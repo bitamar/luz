@@ -50,6 +50,8 @@ describe('CustomerDetail page', () => {
   const deleteCustomerMock = vi.mocked(customersApi.deleteCustomer);
   const deletePetMock = vi.mocked(customersApi.deletePet);
   const getCustomerPetsMock = vi.mocked(customersApi.getCustomerPets);
+  const updateCustomerMock = vi.mocked(customersApi.updateCustomer);
+  const updatePetMock = vi.mocked(customersApi.updatePet);
   let restoreConsoleError: (() => void) | null = null;
 
   beforeEach(() => {
@@ -71,8 +73,88 @@ describe('CustomerDetail page', () => {
     });
     deleteCustomerMock.mockResolvedValue();
     deletePetMock.mockResolvedValue();
+    updateCustomerMock.mockResolvedValue(baseCustomer);
+    updatePetMock.mockResolvedValue(enrichPet(basePets[0]!));
     restoreConsoleError?.();
     restoreConsoleError = null;
+  });
+
+  it('allows editing customer details', async () => {
+    updateCustomerMock.mockResolvedValue({
+      ...baseCustomer,
+      name: 'Dana Updated',
+      phone: '050-9999999',
+      email: null,
+      address: null,
+    });
+
+    renderCustomerDetail();
+
+    await waitFor(() => expect(getCustomerMock).toHaveBeenCalled());
+
+    const user = userEvent.setup();
+    const customerInfoCard = (await screen.findByText('פרטי לקוח')).closest(
+      '.customer-info-card'
+    ) as HTMLElement | null;
+    if (!customerInfoCard) throw new Error('Customer info card not found');
+    const editButton = within(customerInfoCard).getByRole('button', { name: 'ערוך' }) as HTMLButtonElement;
+    await user.click(editButton);
+
+    const dialog = (await screen.findByRole('dialog', { name: 'עריכת לקוח' })) as HTMLElement;
+    const nameInput = within(dialog).getByLabelText(/שם/);
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Dana Updated');
+    const phoneInput = within(dialog).getByLabelText(/טלפון/);
+    await user.clear(phoneInput);
+    await user.type(phoneInput, '050-9999999');
+    const emailInput = within(dialog).getByLabelText(/אימייל/);
+    await user.clear(emailInput);
+    const addressInput = within(dialog).getByLabelText(/כתובת/);
+    await user.clear(addressInput);
+
+    await user.click(within(dialog).getByRole('button', { name: 'שמור' }) as HTMLButtonElement);
+
+    await waitFor(() => expect(updateCustomerMock).toHaveBeenCalled());
+    expect(updateCustomerMock).toHaveBeenCalledWith('cust-1', {
+      name: 'Dana Updated',
+      email: null,
+      phone: '050-9999999',
+      address: null,
+    });
+  });
+
+  it('allows editing a pet', async () => {
+    updatePetMock.mockResolvedValue({
+      ...enrichPet(basePets[0]!),
+      name: 'Bolt Updated',
+    });
+
+    renderCustomerDetail();
+
+    await waitFor(() => expect(getCustomerPetsMock).toHaveBeenCalled());
+
+    const user = userEvent.setup();
+    const boltCard = (await screen.findByText('Bolt')).closest('.pet-card') as HTMLElement | null;
+    if (!boltCard) throw new Error('Pet card not found');
+
+    await user.click(
+      within(boltCard).getByRole('button', { name: 'ערוך' }) as HTMLButtonElement,
+    );
+
+    const dialog = (await screen.findByRole('dialog', { name: 'עריכת חיית מחמד' })) as HTMLElement;
+    const nameInput = within(dialog).getByLabelText(/שם/);
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Bolt Updated');
+
+    await user.click(within(dialog).getByRole('button', { name: 'שמור' }) as HTMLButtonElement);
+
+    await waitFor(() => expect(updatePetMock).toHaveBeenCalled());
+    expect(updatePetMock).toHaveBeenCalledWith('cust-1', 'pet-1', {
+      name: 'Bolt Updated',
+      type: 'dog',
+      gender: 'male',
+      breed: null,
+    });
   });
 
   afterEach(() => {
@@ -158,7 +240,9 @@ describe('CustomerDetail page', () => {
     expect(titleGroup).toBeInTheDocument();
 
     // Find the menu button that's a direct child of the title group
-    const menuButton = within(titleGroup as HTMLElement).getByRole('button');
+    const menuButton = within(titleGroup as HTMLElement).getByRole('button', {
+      name: 'פתח תפריט פעולות לקוח',
+    });
 
     // Click the menu button to open the dropdown
     await user.click(menuButton);
