@@ -124,6 +124,16 @@ describe('CustomerDetail mutation handlers', () => {
     vi.restoreAllMocks();
   });
 
+  function getMutationBySuccessMessage(message: string) {
+    return capturedMutations.find((options) => {
+      const { successToast } = options;
+      if (successToast === false || successToast == null) {
+        return false;
+      }
+      return successToast.message === message;
+    });
+  }
+
   function renderPage() {
     renderWithProviders(
       <Routes>
@@ -135,7 +145,7 @@ describe('CustomerDetail mutation handlers', () => {
 
   it('restores cached data when add pet mutation fails', () => {
     renderPage();
-    const addPetOptions = capturedMutations[0];
+    const addPetOptions = getMutationBySuccessMessage('חיית המחמד נוספה בהצלחה');
     if (!addPetOptions?.onError) throw new Error('addPet onError handler missing');
 
     const context = {
@@ -162,7 +172,7 @@ describe('CustomerDetail mutation handlers', () => {
 
   it('restores cached data when delete customer mutation fails', () => {
     renderPage();
-    const deleteCustomerOptions = capturedMutations[1];
+    const deleteCustomerOptions = getMutationBySuccessMessage('הלקוח נמחק');
     if (!deleteCustomerOptions?.onError) throw new Error('deleteCustomer onError handler missing');
 
     const context = {
@@ -194,7 +204,7 @@ describe('CustomerDetail mutation handlers', () => {
 
   it('restores cached data when delete pet mutation fails', () => {
     renderPage();
-    const deletePetOptions = capturedMutations[2];
+    const deletePetOptions = getMutationBySuccessMessage('חיית המחמד נמחקה');
     if (!deletePetOptions?.onError) throw new Error('deletePet onError handler missing');
 
     const context = {

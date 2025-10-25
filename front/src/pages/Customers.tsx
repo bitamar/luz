@@ -12,7 +12,15 @@ import {
 } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { listCustomers, createCustomer, deleteCustomer, type Customer } from '../api/customers';
+import {
+  listCustomers,
+  createCustomer,
+  deleteCustomer,
+  updateCustomer,
+  type CreateCustomerBody,
+  type Customer,
+  type UpdateCustomerBody,
+} from '../api/customers';
 import { StatusCard } from '../components/StatusCard';
 import { PageTitle } from '../components/PageTitle';
 import { EntityCard } from '../components/EntityCard';
@@ -20,6 +28,8 @@ import { formatPetsCount } from '../utils/formatPetsCount';
 import { extractErrorMessage } from '../lib/notifications';
 import { queryKeys } from '../lib/queryKeys';
 import { useApiMutation } from '../lib/useApiMutation';
+import { EntityFormModal } from '../components/EntityFormModal';
+import { applyCustomerUpdates } from '../utils/entityUpdates';
 
 const sortCustomers = (rows: Customer[]) =>
   [...rows].sort((a, b) => a.name.localeCompare(b.name, 'he-IL'));
@@ -42,16 +52,32 @@ export function Customers() {
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
-  const [newCustomerName, setNewCustomerName] = useState('');
-  const [newCustomerEmail, setNewCustomerEmail] = useState('');
-  const [newCustomerPhone, setNewCustomerPhone] = useState('');
-  const [newCustomerAddress, setNewCustomerAddress] = useState('');
+  const [editCustomerId, setEditCustomerId] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
+
+  function closeFormModal() {
+    setModalOpen(false);
+    setEditCustomerId(null);
+  }
 
   function openCreateCustomer() {
-    setNewCustomerName('');
-    setNewCustomerEmail('');
-    setNewCustomerPhone('');
-    setNewCustomerAddress('');
+    setEditCustomerId(null);
+    setCustomerName('');
+    setCustomerEmail('');
+    setCustomerPhone('');
+    setCustomerAddress('');
+    setModalOpen(true);
+  }
+
+  function openEditCustomer(customer: Customer) {
+    setEditCustomerId(customer.id);
+    setCustomerName(customer.name);
+    setCustomerEmail(customer.email ?? '');
+    setCustomerPhone(customer.phone ?? '');
+    setCustomerAddress(customer.address ?? '');
     setModalOpen(true);
   }
 
@@ -88,10 +114,77 @@ export function Customers() {
           : old;
         return sortCustomers([...withoutOptimistic, data]);
       });
-      setModalOpen(false);
+      closeFormModal();
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: customersQueryKey });
+    },
+  });
+
+  const updateCustomerMutation = useApiMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateCustomerBody }) =>
+      updateCustomer(id, payload),
+    successToast: { message: 'הלקוח עודכן בהצלחה' },
+    errorToast: { fallbackMessage: 'עדכון הלקוח נכשל' },
+    onMutate: async ({ id, payload }) => {
+      await queryClient.cancelQueries({ queryKey: customersQueryKey });
+      const previousCustomers = queryClient.getQueryData<Customer[]>(customersQueryKey) ?? [];
+      queryClient.setQueryData<Customer[]>(customersQueryKey, (old = []) =>
+        sortCustomers(
+          old.map((customer) =>
+            customer.id === id ? applyCustomerUpdates(customer, payload) : customer
+          )
+        )
+      );
+      const customerKey = queryKeys.customer(id);
+      await queryClient.cancelQueries({ queryKey: customerKey });
+      const previousCustomer = queryClient.getQueryData<Customer>(customerKey);
+      if (previousCustomer) {
+        queryClient.setQueryData<Customer>(
+          customerKey,
+          applyCustomerUpdates(previousCustomer, payload)
+        );
+      }
+      return { previousCustomers, previousCustomer, customerKey };
+    },
+    onError: (_error, _variables, context) => {
+      queryClient.setQueryData(customersQueryKey, context?.previousCustomers ?? []);
+      if (context?.customerKey) {
+        queryClient.setQueryData(context.customerKey, context.previousCustomer);
+      }
+    },
+    onSuccess: (data, variables, context) => {
+      if (!variables) {
+        closeFormModal();
+        return;
+      }
+      const { id, payload } = variables;
+      queryClient.setQueryData<Customer[]>(customersQueryKey, (old = []) =>
+        sortCustomers(
+          old.map((customer) =>
+            customer.id === (data?.id ?? id)
+              ? (data ?? applyCustomerUpdates(customer, payload))
+              : customer
+          )
+        )
+      );
+      if (context?.customerKey) {
+        queryClient.setQueryData<Customer>(
+          context.customerKey,
+          data ??
+            (context.previousCustomer
+              ? applyCustomerUpdates(context.previousCustomer, payload)
+              : context.previousCustomer)
+        );
+      }
+      closeFormModal();
+    },
+    onSettled: (_data, _error, variables, context) => {
+      void queryClient.invalidateQueries({ queryKey: customersQueryKey });
+      const id = variables?.id ?? (context?.customerKey ? context.customerKey[1] : undefined);
+      if (id) {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.customer(id) });
+      }
     },
   });
 
@@ -135,14 +228,27 @@ export function Customers() {
     },
   });
 
-  async function onCreateCustomer() {
-    if (!newCustomerName) return;
-    await createCustomerMutation.mutateAsync({
-      name: newCustomerName,
-      email: newCustomerEmail || null,
-      phone: newCustomerPhone || null,
-      address: newCustomerAddress || null,
-    });
+  async function onSubmitCustomer() {
+    const trimmedName = customerName.trim();
+    if (!trimmedName) return;
+    const basePayload = {
+      email: customerEmail ? customerEmail : null,
+      phone: customerPhone ? customerPhone : null,
+      address: customerAddress ? customerAddress : null,
+    };
+    if (!editCustomerId) {
+      const createPayload: CreateCustomerBody = {
+        name: trimmedName,
+        ...basePayload,
+      };
+      await createCustomerMutation.mutateAsync(createPayload);
+    } else {
+      const updatePayload: UpdateCustomerBody = {
+        name: trimmedName,
+        ...basePayload,
+      };
+      await updateCustomerMutation.mutateAsync({ id: editCustomerId, payload: updatePayload });
+    }
   }
 
   function openDeleteModal(customer: Customer) {
@@ -196,6 +302,7 @@ export function Customers() {
               label: 'מחק לקוח',
               onClick: () => openDeleteModal(customer),
             }}
+            editAction={() => openEditCustomer(customer)}
             onClick={() => navigate(`/customers/${id}`)}
             className="customer-card"
           >
@@ -203,13 +310,13 @@ export function Customers() {
           </EntityCard>
         );
       }),
-    [customers, navigate]
+    [customers, navigate, openDeleteModal, openEditCustomer]
   );
 
   const loading = isPending;
   const queryError = isError ? extractErrorMessage(error, 'אירעה שגיאה בטעינת הלקוחות') : null;
   const isEmpty = !loading && !queryError && customers.length === 0;
-  const isCreating = createCustomerMutation.isPending;
+  const mutationInFlight = createCustomerMutation.isPending || updateCustomerMutation.isPending;
 
   return (
     <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
@@ -241,41 +348,39 @@ export function Customers() {
         </SimpleGrid>
       )}
 
-      <Modal opened={modalOpen} onClose={() => setModalOpen(false)} title="לקוח חדש">
-        <Stack>
-          <TextInput
-            label="שם"
-            value={newCustomerName}
-            onChange={({ currentTarget }) => setNewCustomerName(currentTarget.value)}
-            required
-          />
-          <TextInput
-            label="אימייל"
-            type="email"
-            value={newCustomerEmail}
-            onChange={({ currentTarget }) => setNewCustomerEmail(currentTarget.value)}
-          />
-          <TextInput
-            label="טלפון"
-            type="tel"
-            value={newCustomerPhone}
-            onChange={({ currentTarget }) => setNewCustomerPhone(currentTarget.value)}
-          />
-          <TextInput
-            label="כתובת"
-            value={newCustomerAddress}
-            onChange={({ currentTarget }) => setNewCustomerAddress(currentTarget.value)}
-          />
-          <Group justify="right" mt="sm">
-            <Button variant="default" onClick={() => setModalOpen(false)}>
-              ביטול
-            </Button>
-            <Button onClick={onCreateCustomer} disabled={!newCustomerName} loading={isCreating}>
-              הוסף
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+      <EntityFormModal
+        opened={modalOpen}
+        onClose={closeFormModal}
+        title={editCustomerId ? 'עריכת לקוח' : 'לקוח חדש'}
+        mode={editCustomerId ? 'edit' : 'create'}
+        onSubmit={onSubmitCustomer}
+        submitDisabled={!customerName}
+        submitLoading={mutationInFlight}
+      >
+        <TextInput
+          label="שם"
+          value={customerName}
+          onChange={({ currentTarget }) => setCustomerName(currentTarget.value)}
+          required
+        />
+        <TextInput
+          label="אימייל"
+          type="email"
+          value={customerEmail}
+          onChange={({ currentTarget }) => setCustomerEmail(currentTarget.value)}
+        />
+        <TextInput
+          label="טלפון"
+          type="tel"
+          value={customerPhone}
+          onChange={({ currentTarget }) => setCustomerPhone(currentTarget.value)}
+        />
+        <TextInput
+          label="כתובת"
+          value={customerAddress}
+          onChange={({ currentTarget }) => setCustomerAddress(currentTarget.value)}
+        />
+      </EntityFormModal>
 
       <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="מחיקת לקוח">
         <Stack>
