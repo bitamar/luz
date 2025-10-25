@@ -240,18 +240,20 @@ export function PetDetail() {
     return null;
   }
 
+  const ensuredPet = pet;
+
   function openPetEditModal() {
     setPetFormInitialValues({
-      name: pet.name,
-      type: pet.type,
-      gender: pet.gender,
-      breed: pet.breed ?? '',
+      name: ensuredPet.name,
+      type: ensuredPet.type,
+      gender: ensuredPet.gender,
+      breed: ensuredPet.breed ?? '',
     });
     setPetFormOpen(true);
   }
 
-  const typeLabel = pet.type === 'dog' ? 'כלב' : 'חתול';
-  const genderLabel = pet.gender === 'male' ? 'זכר' : 'נקבה';
+  const typeLabel = ensuredPet.type === 'dog' ? 'כלב' : 'חתול';
+  const genderLabel = ensuredPet.gender === 'male' ? 'זכר' : 'נקבה';
 
   return (
     <Container size="lg" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
@@ -306,8 +308,8 @@ export function PetDetail() {
           </Menu.Dropdown>
         </Menu>
 
-        <PageTitle order={2}>{pet.name}</PageTitle>
-        <Badge variant="light" size="lg" color={pet.type === 'dog' ? 'teal' : 'grape'}>
+        <PageTitle order={2}>{ensuredPet.name}</PageTitle>
+        <Badge variant="light" size="lg" color={ensuredPet.type === 'dog' ? 'teal' : 'grape'}>
           {typeLabel}
         </Badge>
       </Group>
@@ -321,14 +323,14 @@ export function PetDetail() {
             <Badge variant="light" color="blue">
               {genderLabel}
             </Badge>
-            {pet.breed && <Badge variant="outline">{pet.breed}</Badge>}
+            {ensuredPet.breed && <Badge variant="outline">{ensuredPet.breed}</Badge>}
           </Group>
           <Stack gap="xs">
             <Text size="sm" c="dimmed">
-              מזהה חיה: {pet.id}
+              מזהה חיה: {ensuredPet.id}
             </Text>
             <Text size="sm" c="dimmed">
-              מזהה לקוח: {pet.customerId}
+              מזהה לקוח: {ensuredPet.customerId}
             </Text>
           </Stack>
         </Stack>
@@ -350,7 +352,7 @@ export function PetDetail() {
       >
         <Stack>
           <Text>
-            האם אתה בטוח שברצונך למחוק את חיית המחמד "{pet.name}"? פעולה זו אינה ניתנת לביטול.
+            האם אתה בטוח שברצונך למחוק את חיית המחמד "{ensuredPet.name}"? פעולה זו אינה ניתנת לביטול.
           </Text>
           <Group justify="right" mt="sm">
             <Button variant="default" onClick={() => setDeleteModalOpen(false)}>

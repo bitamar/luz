@@ -104,7 +104,7 @@ export function PetFormModal({
       mode={mode}
       onSubmit={handleSubmit}
       submitDisabled={submitDisabled}
-      submitLoading={submitLoading}
+      submitLoading={submitLoading ?? false}
     >
       <TextInput
         label="שם"

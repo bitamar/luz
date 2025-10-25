@@ -11,7 +11,7 @@ export type UpdatePetVariables = {
 
 type UpdatePetContext = {
   previousPets: Pet[];
-  previousPetDetail?: Pet;
+  previousPetDetail: Pet | undefined;
 };
 
 type UsePetUpdateMutationParams = {
@@ -46,7 +46,7 @@ export function usePetUpdateMutation({
     errorToast: { fallbackMessage: 'עדכון חיית המחמד נכשל' },
     onMutate: async ({ petId, payload }) => {
       if (!customerId) {
-        return { previousPets: [] };
+        return { previousPets: [] as Pet[], previousPetDetail: undefined };
       }
       await queryClient.cancelQueries({ queryKey: petsQueryKey });
       if (petDetailQueryKey) {
