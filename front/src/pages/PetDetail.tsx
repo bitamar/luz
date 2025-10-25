@@ -352,7 +352,8 @@ export function PetDetail() {
       >
         <Stack>
           <Text>
-            האם אתה בטוח שברצונך למחוק את חיית המחמד "{ensuredPet.name}"? פעולה זו אינה ניתנת לביטול.
+            האם אתה בטוח שברצונך למחוק את חיית המחמד "{ensuredPet.name}"? פעולה זו אינה ניתנת
+            לביטול.
           </Text>
           <Group justify="right" mt="sm">
             <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
