@@ -140,7 +140,10 @@ export function Customers() {
       await queryClient.cancelQueries({ queryKey: customerKey });
       const previousCustomer = queryClient.getQueryData<Customer>(customerKey);
       if (previousCustomer) {
-        queryClient.setQueryData<Customer>(customerKey, applyCustomerUpdates(previousCustomer, payload));
+        queryClient.setQueryData<Customer>(
+          customerKey,
+          applyCustomerUpdates(previousCustomer, payload)
+        );
       }
       return { previousCustomers, previousCustomer, customerKey };
     },
@@ -160,7 +163,7 @@ export function Customers() {
         sortCustomers(
           old.map((customer) =>
             customer.id === (data?.id ?? id)
-              ? data ?? applyCustomerUpdates(customer, payload)
+              ? (data ?? applyCustomerUpdates(customer, payload))
               : customer
           )
         )
@@ -168,7 +171,10 @@ export function Customers() {
       if (context?.customerKey) {
         queryClient.setQueryData<Customer>(
           context.customerKey,
-          data ?? (context.previousCustomer ? applyCustomerUpdates(context.previousCustomer, payload) : context.previousCustomer)
+          data ??
+            (context.previousCustomer
+              ? applyCustomerUpdates(context.previousCustomer, payload)
+              : context.previousCustomer)
         );
       }
       closeFormModal();

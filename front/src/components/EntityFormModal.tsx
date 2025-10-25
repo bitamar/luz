@@ -49,8 +49,7 @@ export function EntityFormModal({
     void onSubmit();
   };
 
-  const modalSizeProps: Partial<Pick<ModalProps, 'size'>> =
-    size === undefined ? {} : { size };
+  const modalSizeProps: Partial<Pick<ModalProps, 'size'>> = size === undefined ? {} : { size };
 
   return (
     <Modal opened={opened} onClose={onClose} title={title} {...modalSizeProps} {...modalProps}>
@@ -61,12 +60,7 @@ export function EntityFormModal({
           {children}
 
           <Group justify="right" mt="sm">
-            <Button
-              variant="default"
-              type="button"
-              onClick={onClose}
-              {...cancelButtonProps}
-            >
+            <Button variant="default" type="button" onClick={onClose} {...cancelButtonProps}>
               {cancelLabel}
             </Button>
             <Button

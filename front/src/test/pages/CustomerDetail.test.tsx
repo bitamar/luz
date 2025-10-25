@@ -97,7 +97,9 @@ describe('CustomerDetail page', () => {
       '.customer-info-card'
     ) as HTMLElement | null;
     if (!customerInfoCard) throw new Error('Customer info card not found');
-    const editButton = within(customerInfoCard).getByRole('button', { name: 'ערוך' }) as HTMLButtonElement;
+    const editButton = within(customerInfoCard).getByRole('button', {
+      name: 'ערוך',
+    }) as HTMLButtonElement;
     await user.click(editButton);
 
     const dialog = (await screen.findByRole('dialog', { name: 'עריכת לקוח' })) as HTMLElement;
@@ -137,9 +139,7 @@ describe('CustomerDetail page', () => {
     const boltCard = (await screen.findByText('Bolt')).closest('.pet-card') as HTMLElement | null;
     if (!boltCard) throw new Error('Pet card not found');
 
-    await user.click(
-      within(boltCard).getByRole('button', { name: 'ערוך' }) as HTMLButtonElement,
-    );
+    await user.click(within(boltCard).getByRole('button', { name: 'ערוך' }) as HTMLButtonElement);
 
     const dialog = (await screen.findByRole('dialog', { name: 'עריכת חיית מחמד' })) as HTMLElement;
     const nameInput = within(dialog).getByLabelText(/שם/);

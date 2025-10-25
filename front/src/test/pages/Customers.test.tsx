@@ -128,12 +128,12 @@ describe('Customers page', () => {
     await waitFor(() => expect(listCustomersMock).toHaveBeenCalled());
 
     const user = userEvent.setup();
-    const aliceCard = (await screen.findByText('Alice')).closest('.customer-card') as HTMLElement | null;
+    const aliceCard = (await screen.findByText('Alice')).closest(
+      '.customer-card'
+    ) as HTMLElement | null;
     if (!aliceCard) throw new Error('Customer card not found');
 
-    await user.click(
-      within(aliceCard).getByRole('button', { name: 'ערוך' }) as HTMLButtonElement,
-    );
+    await user.click(within(aliceCard).getByRole('button', { name: 'ערוך' }) as HTMLButtonElement);
 
     const dialog = await screen.findByRole('dialog', { name: 'עריכת לקוח' });
     const nameInput = within(dialog).getByLabelText(/שם/);
@@ -168,7 +168,10 @@ describe('Customers page', () => {
     if (!firstCard) throw new Error('Customer card not found');
 
     await user.click(
-      within(firstCard).getByRole('button', { name: 'פתח תפריט פעולות', hidden: true }) as HTMLButtonElement,
+      within(firstCard).getByRole('button', {
+        name: 'פתח תפריט פעולות',
+        hidden: true,
+      }) as HTMLButtonElement
     );
     await user.click(await screen.findByRole('menuitem', { name: 'מחק לקוח' }));
     await user.click(await screen.findByRole('button', { name: 'מחק' }));
