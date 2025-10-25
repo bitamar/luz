@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Button, Group, Stack, Switch, TextInput, useMantineColorScheme } from '@mantine/core';
+import {
+  Button,
+  Card,
+  Container,
+  Group,
+  Stack,
+  Switch,
+  TextInput,
+  useMantineColorScheme,
+} from '@mantine/core';
 import { IconMoon, IconSun } from '@tabler/icons-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSettings, updateSettings } from '../auth/api';
@@ -70,33 +79,43 @@ export function Settings() {
   };
 
   return (
-    <form onSubmit={onSubmit}>
+    <Container size="sm" pt={{ base: 'xl', sm: 'xl' }} pb="xl">
       <Stack gap="md">
         <PageTitle order={3}>הגדרות משתמש</PageTitle>
-        <Switch
-          checked={colorScheme === 'dark'}
-          onChange={({ currentTarget }) => setColorScheme(currentTarget.checked ? 'dark' : 'light')}
-          onLabel={<IconMoon size={14} />}
-          offLabel={<IconSun size={14} />}
-        />
-        <TextInput
-          label="שם"
-          required
-          value={name}
-          onChange={({ currentTarget }) => setName(currentTarget.value)}
-        />
-        <TextInput
-          label="טלפון"
-          required
-          value={phone}
-          onChange={({ currentTarget }) => setPhone(currentTarget.value)}
-        />
-        <Group justify="flex-end">
-          <Button type="submit" loading={updateSettingsMutation.isPending} disabled={!phone.trim()}>
-            שמירה
-          </Button>
-        </Group>
+        <Card component="form" onSubmit={onSubmit} withBorder radius="lg" p="lg">
+          <Stack gap="md">
+            <Switch
+              checked={colorScheme === 'dark'}
+              onChange={({ currentTarget }) =>
+                setColorScheme(currentTarget.checked ? 'dark' : 'light')
+              }
+              onLabel={<IconMoon size={14} />}
+              offLabel={<IconSun size={14} />}
+            />
+            <TextInput
+              label="שם"
+              required
+              value={name}
+              onChange={({ currentTarget }) => setName(currentTarget.value)}
+            />
+            <TextInput
+              label="טלפון"
+              required
+              value={phone}
+              onChange={({ currentTarget }) => setPhone(currentTarget.value)}
+            />
+            <Group justify="flex-end">
+              <Button
+                type="submit"
+                loading={updateSettingsMutation.isPending}
+                disabled={!phone.trim()}
+              >
+                שמירה
+              </Button>
+            </Group>
+          </Stack>
+        </Card>
       </Stack>
-    </form>
+    </Container>
   );
 }
