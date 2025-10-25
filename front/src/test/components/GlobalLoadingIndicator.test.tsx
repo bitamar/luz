@@ -43,7 +43,7 @@ describe('GlobalLoadingIndicator', () => {
     renderWithProviders(
       <GlobalLoadingIndicator>
         <LoadingConsumer />
-      </GlobalLoadingIndicator>,
+      </GlobalLoadingIndicator>
     );
 
     expect(screen.getByText('busy')).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe('GlobalLoadingIndicator', () => {
     const { rerender } = renderWithProviders(
       <GlobalLoadingIndicator>
         <LoadingConsumer />
-      </GlobalLoadingIndicator>,
+      </GlobalLoadingIndicator>
     );
     expect(screen.getByText('busy')).toBeInTheDocument();
 
@@ -64,7 +64,7 @@ describe('GlobalLoadingIndicator', () => {
       rerender(
         <GlobalLoadingIndicator>
           <LoadingConsumer />
-        </GlobalLoadingIndicator>,
+        </GlobalLoadingIndicator>
       );
     });
 

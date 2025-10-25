@@ -11,7 +11,9 @@
 }
 
 .brandPawIcon {
-  transition: color 150ms ease, filter 150ms ease;
+  transition:
+    color 150ms ease,
+    filter 150ms ease;
 }
 
 .brandPawIcon[data-loading='true'] {
