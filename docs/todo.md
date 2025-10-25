@@ -46,7 +46,7 @@
 ### DevOps / Infrastructure (DO NOW)
 - [x] support PR environments - OAuth redirects to prod instead of staying on PR env (e.g., front-kalimere-pr-1.up.railway.app/login redirects to prod)
 - [x] run all tests on prs 
-- [ ] switch API tests to pg-mem (or similar) for local runs
+- [x] switch API tests to pg-mem (or similar) for local runs
 
 ### Security & Data Integrity (DO NOW)
 - [x] add rate limiting middleware (fastify-rate-limit)
